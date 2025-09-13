@@ -3,11 +3,11 @@ from pydantic import BaseModel
 from libs.config.http import HTTPClientConfig
 
 
-class OpenAIMetaConfig(BaseModel):
-    model: str = "gpt-4o-mini"
+class ClaudeMetaConfig(BaseModel):
+    model: str = "claude-3-sonnet-20240229"
     max_tokens: int = 1200
     temperature: float = 0.3
 
 
-class OpenAIHTTPClientConfig(HTTPClientConfig):
+class ClaudeHTTPClientConfig(HTTPClientConfig):
     pass
