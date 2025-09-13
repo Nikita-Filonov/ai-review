@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-review"
+version = "0.1.0"
+dependencies = [
+    "typer>=0.12.0",
+    "httpx",
+    "pyyaml",
+    "pydantic",
+    "pydantic-settings"
+]
+
+[project.scripts]
+ai-review = "cli.main:app"
+
+[tool.setuptools]
+py-modules = ["config"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
