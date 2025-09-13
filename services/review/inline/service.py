@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 
 from pydantic import ValidationError
@@ -9,7 +7,8 @@ from services.review.inline.schema import InlineCommentListSchema
 
 logger = get_logger("INLINE_COMMENT_SERVICE")
 
-FIRST_JSON_ARRAY_RE = re.compile(r"\[.*]", re.DOTALL)
+FIRST_JSON_ARRAY_RE = re.compile(r"\[[\s\S]*]", re.MULTILINE)
+CLEAN_JSON_BLOCK_RE = re.compile(r"```(?:json)?(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
 class InlineCommentService:
@@ -20,13 +19,15 @@ class InlineCommentService:
             logger.warning("️LLM returned empty string for inline review")
             return InlineCommentListSchema(root=[])
 
+        if match := CLEAN_JSON_BLOCK_RE.search(output):
+            output = match.group(1).strip()
+
         try:
             return InlineCommentListSchema.model_validate_json(output)
         except ValidationError:
             logger.warning("LLM output is not valid JSON, trying to extract first JSON array...")
 
-        json_array_match = FIRST_JSON_ARRAY_RE.search(output)
-        if json_array_match:
+        if json_array_match := FIRST_JSON_ARRAY_RE.search(output):
             try:
                 return InlineCommentListSchema.model_validate_json(json_array_match.group(0))
             except ValidationError:

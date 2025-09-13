@@ -8,20 +8,20 @@ DedupKey = tuple[str, int, str]
 class InlineCommentSchema(BaseModel):
     file: str = Field(min_length=1)
     line: int = Field(ge=1)
-    comment: str = Field(min_length=1)
+    message: str = Field(min_length=1)
 
     @field_validator("file")
     def normalize_file(cls, value: str) -> str:
         value = value.strip().replace("\\", "/")
         return value.lstrip("/")
 
-    @field_validator("comment")
-    def normalize_comment(cls, value: str) -> str:
+    @field_validator("message")
+    def normalize_message(cls, value: str) -> str:
         return value.strip()
 
     @property
     def dedup_key(self) -> DedupKey:
-        return self.file, self.line, self.comment.strip().lower()
+        return self.file, self.line, self.message.strip().lower()
 
 
 class InlineCommentListSchema(RootModel[list[InlineCommentSchema]]):
