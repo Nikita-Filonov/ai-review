@@ -1,0 +1,15 @@
+from dataclasses import dataclass
+from typing import Protocol
+
+
+@dataclass
+class ChatResult:
+    text: str
+    total_tokens: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+
+
+class LLMClient(Protocol):
+    async def chat(self, prompt: str) -> ChatResult:
+        ...
