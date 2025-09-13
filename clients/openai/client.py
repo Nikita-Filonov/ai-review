@@ -1,9 +1,6 @@
 from httpx import Response, AsyncHTTPTransport, AsyncClient
 
-from clients.openai.schema import (
-    OpenAIChatCompletionRequestSchema,
-    OpenAIChatCompletionResponseSchema
-)
+from clients.openai.schema import OpenAIChatRequestSchema, OpenAIChatResponseSchema
 from config import settings
 from libs.http.client import HTTPClient
 from libs.http.event_hooks.logger import LoggerEventHook
@@ -18,15 +15,12 @@ class OpenAIHTTPClientError(HTTPClientError):
 
 class OpenAIHTTPClient(HTTPClient):
     @handle_http_error(client='OpenAIHTTPClient', exception=OpenAIHTTPClientError)
-    async def chat_completion_api(self, request: OpenAIChatCompletionRequestSchema) -> Response:
+    async def chat_api(self, request: OpenAIChatRequestSchema) -> Response:
         return await self.post("/chat/completions", json=request.model_dump())
 
-    async def chat_completion(
-            self,
-            request: OpenAIChatCompletionRequestSchema
-    ) -> OpenAIChatCompletionResponseSchema:
-        response = await self.chat_completion_api(request)
-        return OpenAIChatCompletionResponseSchema.model_validate_json(response.text)
+    async def chat(self, request: OpenAIChatRequestSchema) -> OpenAIChatResponseSchema:
+        response = await self.chat_api(request)
+        return OpenAIChatResponseSchema.model_validate_json(response.text)
 
 
 def get_openai_http_client() -> OpenAIHTTPClient:
@@ -35,8 +29,9 @@ def get_openai_http_client() -> OpenAIHTTPClient:
     retry_transport = RetryTransport(transport=AsyncHTTPTransport())
 
     client = AsyncClient(
-        headers={"Authorization": f"Bearer {settings.openai.api_token}"},
-        base_url=str(settings.openai.api_url),
+        timeout=settings.llm.http_client.timeout,
+        headers={"Authorization": f"Bearer {settings.llm.http_client.bearer_token}"},
+        base_url=settings.llm.http_client.base_url,
         transport=retry_transport,
         event_hooks={
             'request': [logger_event_hook.request],

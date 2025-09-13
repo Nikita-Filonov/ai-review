@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 
 
+class OpenAIUsageSchema(BaseModel):
+    total_tokens: int
+    prompt_tokens: int
+    completion_tokens: int
+
+
 class OpenAIMessageSchema(BaseModel):
     role: str
     content: str
@@ -10,12 +16,20 @@ class OpenAIChoiceSchema(BaseModel):
     message: OpenAIMessageSchema
 
 
-class OpenAIChatCompletionRequestSchema(BaseModel):
+class OpenAIChatRequestSchema(BaseModel):
     model: str
     messages: list[OpenAIMessageSchema]
-    max_tokens: int = 800
-    temperature: float = 0.3
+    max_tokens: int
+    temperature: float
 
 
-class OpenAIChatCompletionResponseSchema(BaseModel):
+class OpenAIChatResponseSchema(BaseModel):
+    usage: OpenAIUsageSchema
     choices: list[OpenAIChoiceSchema]
+
+    @property
+    def first_text(self) -> str:
+        if not self.choices:
+            return ""
+
+        return (self.choices[0].message.content or "").strip()
