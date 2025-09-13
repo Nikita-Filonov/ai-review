@@ -3,7 +3,7 @@ import logging
 
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     if not logger.hasHandlers():
         handler = logging.StreamHandler()
