@@ -1,81 +1,79 @@
-import re
+from pathlib import Path
 
-from clients.gitlab.mr.schema.changes import GitLabMRChangeSchema
-from services.diff.schema import DiffLineListSchema, DiffLineSchema, DiffLineType
+from config import settings
+from libs.diff.models import Diff
+from libs.diff.parser import DiffParser
+from libs.logger import get_logger
+from services.diff.mode import MAP_REVIEW_MODE
 
-HUNK_RE = re.compile(r"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+logger = get_logger("DIFF_SERVICE")
+
+
+def marker_for_line(line_number: int, changed: set[int]) -> str:
+    return f"   {settings.review.review_change_marker}" if line_number in changed else ""
 
 
 class DiffService:
     @classmethod
-    def build_added_diff_line(cls, file: str, line: int, raw: str) -> DiffLineSchema:
-        return DiffLineSchema(
-            line_type=DiffLineType.ADDED,
-            file=file,
-            line=line,
-            content=raw[1:],
+    def parse(cls, raw_diff: str) -> Diff:
+        if not raw_diff.strip():
+            logger.debug("Received empty diff string")
+            return Diff(files=[], raw=raw_diff)
+
+        try:
+            return DiffParser.parse(raw_diff)
+        except Exception as error:
+            logger.error(f"Failed to parse diff: {error}")
+            raise
+
+    @classmethod
+    def apply_diff(cls, raw_diff: str, file_path: str) -> str:
+        diff = cls.parse(raw_diff)
+        changed = set(sum(diff.changed_lines().values(), []))
+
+        file = Path(file_path)
+        if not file.exists():
+            logger.warning(f"File not found when applying diff: {file_path}")
+            return f"# File {file_path} not found"
+
+        try:
+            file_lines = file.read_text(encoding="utf-8").splitlines()
+        except Exception as error:
+            logger.error(f"Failed to read file {file_path}: {error}")
+            return f"# Failed to read {file_path}: {error}"
+
+        if not file_lines:
+            logger.debug(f"File {file_path} is empty")
+            return f"# File {file_path} is empty"
+
+        filter_mode_func = MAP_REVIEW_MODE[settings.review.mode]
+        annotated = [
+            f"{line_no}: {content}{marker_for_line(line_no, changed)}"
+            for line_no, content in enumerate(file_lines, start=1)
+            if filter_mode_func(line_no, changed)
+        ]
+
+        logger.debug(
+            f"Annotated file {file_path}: {len(changed)} changed lines, {len(file_lines)} total"
         )
+        return "\n".join(annotated)
 
     @classmethod
-    def build_deleted_diff_line(cls, file: str, raw: str) -> DiffLineSchema:
-        return DiffLineSchema(
-            line_type=DiffLineType.DELETED,
-            file=file,
-            line=None,
-            content=raw[1:],
-        )
+    def build_changed_lines_by_file(cls, raw_diff: str, file_path: str) -> dict[str, set[int]]:
+        diff = cls.parse(raw_diff)
+        changed = set(diff.changed_lines().get(file_path, []))
+        logger.debug(f"Changed lines for {file_path}: {sorted(changed)}")
+        return {file_path: changed}
 
     @classmethod
-    def build_unchanged_diff_line(cls, file: str, line: int, raw: str) -> DiffLineSchema:
-        return DiffLineSchema(
-            line_type=DiffLineType.UNCHANGED,
-            file=file,
-            line=line,
-            content=raw[1:] if raw else "",
-        )
-
-    @classmethod
-    def build_diff_lines(cls, raw_diff: str, file: str) -> DiffLineListSchema:
-        lines: list[DiffLineSchema] = []
-        new_line: int | None = None
-
-        for raw_line in raw_diff.splitlines():
-            hunk_match = HUNK_RE.match(raw_line)
-            if hunk_match:
-                new_line = int(hunk_match.group(2))
+    def apply_diff_for_files(cls, diffs_by_file: dict[str, str]) -> list[str]:
+        results: list[str] = []
+        for file, raw_diff in diffs_by_file.items():
+            if not raw_diff.strip():
+                logger.debug(f"No diff for {file}, skipping")
                 continue
 
-            if raw_line == r"\ No newline at end of file":
-                continue
+            annotated = cls.apply_diff(raw_diff, file)
+            results.append(f"# File: {file}\n{annotated}")
 
-            if raw_line.startswith("+") and not raw_line.startswith("+++ "):
-                lines.append(cls.build_added_diff_line(file, new_line, raw_line))
-                new_line += 1
-                continue
-
-            if raw_line.startswith("-") and not raw_line.startswith("--- "):
-                lines.append(cls.build_deleted_diff_line(file, raw_line))
-                continue
-
-            if new_line is not None:
-                lines.append(cls.build_unchanged_diff_line(file, new_line, raw_line))
-                new_line += 1
-
-        return DiffLineListSchema(root=lines)
-
-    @classmethod
-    def build_allowed_map(cls, changes: list[GitLabMRChangeSchema]) -> dict[str, set[int]]:
-        allowed: dict[str, set[int]] = {}
-
-        for change in changes:
-            diff_lines = cls.build_diff_lines(change.diff, change.new_path)
-            added_lines = diff_lines.filter_only_added()
-            if not added_lines.root:
-                continue
-
-            allowed[change.new_path] = {
-                diff_line.line for diff_line in added_lines.root
-                if diff_line.line is not None
-            }
-
-        return allowed
+        return results
