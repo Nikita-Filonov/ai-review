@@ -14,5 +14,7 @@ class GitLabMRChangeSchema(BaseModel):
 
 
 class GitLabGetMRChangesResponseSchema(BaseModel):
+    title: str
     changes: list[GitLabMRChangeSchema]
     diff_refs: GitLabDiffRefsSchema
+    description: str
