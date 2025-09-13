@@ -1,0 +1,91 @@
+# ===============================
+# AI Review configuration file
+# ===============================
+
+llm:
+  # Provider for the Large Language Model.
+  # Options: OPENAI | GEMINI | CLAUDE
+  provider: OPENAI
+
+  # Path to the pricing file used for cost estimation.
+  # Default: ./pricing.yaml
+  pricing_file: ./pricing.yaml
+
+  # LLM metadata configuration (depends on provider).
+  meta:
+    # --- OpenAI ---
+    model: gpt-4o-mini  # e.g., gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+    max_tokens: 1200    # Maximum tokens for completion
+    temperature: 0.3    # Creativity of responses (0 = deterministic)
+
+    # --- Gemini ---
+    # model: gemini-2.0-pro
+    # max_output_tokens: 1200    # Note: Gemini uses max_output_tokens
+    # temperature: 0.3
+
+    # --- Claude ---
+    # model: claude-3-sonnet-20240229   # e.g., claude-3-opus, claude-3-sonnet, claude-3-haiku
+    # max_tokens: 1200
+    # temperature: 0.3
+
+  # HTTP client configuration for LLM.
+  http_client:
+    timeout: 120                        # Request timeout in seconds
+    api_url: https://api.openai.com/v1  # Base URL of the provider API
+    api_token: ${OPENAI_API_KEY}        # API token (set in env/CI variables)
+
+    # For Gemini:
+    # api_url: https://generativelanguage.googleapis.com
+    # api_token: ${GEMINI_API_KEY}
+
+    # For Claude:
+    # api_url: https://api.anthropic.com
+    # api_token: ${CLAUDE_API_KEY}
+    # api_version: 2023-06-01
+
+vcs:
+  # Version control system provider.
+  # Options: GITLAB (GitHub can be added later)
+  provider: GITLAB
+
+  # Pipeline/MR context.
+  pipeline:
+    project_id: ${CI_PROJECT_ID}               # GitLab project ID (auto-populated in CI)
+    merge_request_id: ${CI_MERGE_REQUEST_IID}  # MR IID (auto-populated in CI)
+
+  # HTTP client configuration for VCS.
+  http_client:
+    timeout: 120
+    api_url: ${CI_SERVER_URL}   # Base GitLab server URL
+    api_token: ${CI_JOB_TOKEN}  # Job token or personal access token
+
+prompt:
+  # Paths to custom prompt files.
+  inline_prompt_file: ./prompts/inline.md    # Inline prompt per MR
+  summary_prompt_file: ./prompts/summary.md  # Summary prompt per MR
+
+  # Global prompts (always included).
+  global_inline_prompt_file: ./prompts/global_inline.md
+  global_summary_prompt_file: ./prompts/global_summary.md
+
+review:
+  # Review mode determines which parts of files are reviewed.
+  # Options:
+  #   FULL_FILE            - Review the entire file
+  #   ONLY_CHANGED         - Review only changed lines
+  #   CHANGED_WITH_CONTEXT - Review changed lines + N lines around them
+  mode: CHANGED_WITH_CONTEXT
+
+  # Tags used to mark AI-generated comments in MR.
+  inline_tag: "#aireview-inline"
+  summary_tag: "#aireview-summary"
+
+  # Number of context lines around changes (only used in CHANGED_WITH_CONTEXT).
+  context_lines: 10
+
+  # File filters.
+  allow_changes: [ ]   # List of glob patterns to explicitly allow review (empty = all allowed)
+  ignore_changes: [ ]  # List of glob patterns to ignore, e.g. ["docs/*", "README.md"]
+
+  # Marker used to annotate changed lines in output.
+  review_change_marker: "# changed"

@@ -1,0 +1,43 @@
+{
+  "llm": {
+    "provider": "OPENAI",
+    "pricing_file": "./pricing.yaml",
+    "meta": {
+      "model": "gpt-4o-mini",
+      "max_tokens": 1200,
+      "temperature": 0.3
+    },
+    "http_client": {
+      "timeout": 120,
+      "api_url": "https://api.openai.com/v1",
+      "api_token": "${OPENAI_API_KEY}"
+    }
+  },
+  "vcs": {
+    "provider": "GITLAB",
+    "pipeline": {
+      "project_id": "${CI_PROJECT_ID}",
+      "merge_request_id": "${CI_MERGE_REQUEST_IID}"
+    },
+    "http_client": {
+      "timeout": 120,
+      "api_url": "${CI_SERVER_URL}",
+      "api_token": "${CI_JOB_TOKEN}"
+    }
+  },
+  "prompt": {
+    "inline_prompt_file": "./prompts/inline.md",
+    "summary_prompt_file": "./prompts/summary.md",
+    "global_inline_prompt_file": "./prompts/global_inline.md",
+    "global_summary_prompt_file": "./prompts/global_summary.md"
+  },
+  "review": {
+    "mode": "CHANGED_WITH_CONTEXT",
+    "inline_tag": "#aireview-inline",
+    "summary_tag": "#aireview-summary",
+    "context_lines": 10,
+    "allow_changes": [],
+    "ignore_changes": [],
+    "review_change_marker": "# changed"
+  }
+}
