@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
         env_file=os.path.join(os.getcwd(), ".env"),
         env_file_encoding="utf-8",
-        env_nested_delimiter=".",
+        env_nested_delimiter="__",
 
         yaml_file=os.path.join(os.getcwd(), ".ai-review.yaml"),
         yaml_file_encoding="utf-8",

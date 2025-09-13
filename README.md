@@ -19,28 +19,28 @@ ai-review:
     - ai-review run
   variables:
     # LLM
-    LLM.PROVIDER: "OPENAI"
-    LLM.META.MODEL: "gpt-4o-mini"
-    LLM.META.MAX_TOKENS: "1200"
-    LLM.META.TEMPERATURE: "0.3"
-    LLM.HTTP_CLIENT.API_URL: "https://api.openai.com/v1"
-    LLM.HTTP_CLIENT.API_TOKEN: "$OPENAI_API_KEY"
+    LLM__PROVIDER: "OPENAI"
+    LLM__META__MODEL: "gpt-4o-mini"
+    LLM__META__MAX_TOKENS: "1200"
+    LLM__META__TEMPERATURE: "0.3"
+    LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+    LLM__HTTP_CLIENT__API_TOKEN: "$OPENAI_API_KEY"
 
     # VCS
-    VCS.PROVIDER: "GITLAB"
-    VCS.HTTP_CLIENT.API_URL: "$CI_SERVER_URL"
-    VCS.HTTP_CLIENT.API_TOKEN: "$CI_JOB_TOKEN"
-    VCS.PIPELINE.PROJECT_ID: "$CI_PROJECT_ID"
-    VCS.PIPELINE.MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
+    VCS__PROVIDER: "GITLAB"
+    VCS__HTTP_CLIENT__API_URL: "$CI_SERVER_URL"
+    VCS__HTTP_CLIENT__API_TOKEN: "$CI_JOB_TOKEN"
+    VCS__PIPELINE__PROJECT_ID: "$CI_PROJECT_ID"
+    VCS__PIPELINE__MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
 
     # Prompts
-    PROMPT.INLINE_PROMPT_FILE: "./prompts/inline.md"
-    PROMPT.SUMMARY_PROMPT_FILE: "./prompts/summary.md"
+    PROMPT__INLINE_PROMPT_FILE: "./prompts/inline.md"
+    PROMPT__SUMMARY_PROMPT_FILE: "./prompts/summary.md"
 
     # Review
-    REVIEW.MODE: "CHANGED_WITH_CONTEXT"
-    REVIEW.CONTEXT_LINES: "10"
-    REVIEW.REVIEW_CHANGE_MARKER: "# changed"
+    REVIEW__MODE: "CHANGED_WITH_CONTEXT"
+    REVIEW__CONTEXT_LINES: "10"
+    REVIEW__REVIEW_CHANGE_MARKER: "# changed"
   allow_failure: true
 ```
 
@@ -63,10 +63,10 @@ Value: sk-your-token-here
 Masked: ✅
 ```
 
-You can also directly set `LLM.HTTP_CLIENT.API_TOKEN` if you prefer explicit configuration.
+You can also directly set `LLM__HTTP_CLIENT__API_TOKEN` if you prefer explicit configuration.
 
 ⚠️ Note: If you are using Gemini or Claude, replace `OPENAI_API_KEY` with `GEMINI_API_KEY` or `CLAUDE_API_KEY`
-and adjust `LLM.PROVIDER` + `LLM.HTTP_CLIENT.API_URL` accordingly.
+and adjust `LLM__PROVIDER` + `LLM__HTTP_CLIENT__API_URL` accordingly.
 
 That’s it. Push your MR → click "Run pipeline" → trigger ai-review job.
 You’ll see AI comments appear directly in the MR.
@@ -91,7 +91,7 @@ Defaults are already set to work out-of-the-box in GitLab CI.
 
 ## 🛠 Advanced usage
 
-All base job templates are defined in [./infra/gitlab/base.yaml](./infra/gitlab/base.yaml).
+All base job templates are defined in [./docs/ci/gitlab/base.yaml](./docs/ci/gitlab/base.yaml).
 
 You can extend them to run only inline or only summary review:
 
@@ -112,3 +112,11 @@ The latest image is always available here: [nikitafilonov/ai-review](https://hub
 ```shell
 docker pull nikitafilonov/ai-review:latest
 ```
+
+---
+
+## 📂 Examples
+
+- [./docs/ci/gitlab.yaml](./docs/ci/gitlab.yaml) — ready-to-use CI snippet
+- [./docs/configs](./docs/configs) — sample `.yaml`, `.json`, `.env` configs
+- [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
