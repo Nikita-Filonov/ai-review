@@ -23,8 +23,8 @@
     VCS.PIPELINE.MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
 
     # Prompts
-    PROMPT.INLINE_PROMPT_FILE: "./prompts/inline.md"
-    PROMPT.SUMMARY_PROMPT_FILE: "./prompts/summary.md"
+    PROMPT.INLINE_PROMPT_FILE: "./prompts/default_inline.md"
+    PROMPT.SUMMARY_PROMPT_FILE: "./prompts/default_summary.md"
 
     # Review
     REVIEW.MODE: "CHANGED_WITH_CONTEXT"
