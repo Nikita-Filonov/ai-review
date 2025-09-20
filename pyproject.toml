@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-review"
+name = "xai-review"
 version = "0.3.0"
 dependencies = [
     "typer",
