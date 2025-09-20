@@ -19,6 +19,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: lint
+    env:
+      AI_REVIEW_CONFIG_FILE_YAML: "./ai_review/tests/configs/config-test.yaml"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
