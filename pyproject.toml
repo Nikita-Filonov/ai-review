@@ -4,21 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-review"
-version = "0.1.0"
+version = "0.19.0"
 dependencies = [
-    "typer>=0.12.0",
+    "typer",
     "httpx",
     "pyyaml",
+    "pytest",
+    "loguru",
+    "aiofiles",
     "pydantic",
     "pydantic-settings"
 ]
 
 [project.scripts]
-ai-review = "cli.main:app"
+ai-review = "ai_review.cli.main:app"
 
 [tool.setuptools]
-py-modules = ["config"]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["*"]
+include = ["ai_review*"]
+
+[tool.setuptools.package-data]
+"ai_review.prompts" = ["*.md"]
+"ai_review.resources" = ["*.yaml"]

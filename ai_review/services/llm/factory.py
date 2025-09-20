@@ -1,0 +1,18 @@
+from ai_review.config import settings
+from ai_review.libs.constants.llm_provider import LLMProvider
+from ai_review.services.llm.claude.client import ClaudeLLMClient
+from ai_review.services.llm.gemini.client import GeminiLLMClient
+from ai_review.services.llm.openai.client import OpenAILLMClient
+from ai_review.services.llm.types import LLMClient
+
+
+def get_llm_client() -> LLMClient:
+    match settings.llm.provider:
+        case LLMProvider.OPENAI:
+            return OpenAILLMClient()
+        case LLMProvider.GEMINI:
+            return GeminiLLMClient()
+        case LLMProvider.CLAUDE:
+            return ClaudeLLMClient()
+        case _:
+            raise ValueError(f"Unsupported provider: {settings.llm.provider}")

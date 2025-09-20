@@ -1,0 +1,49 @@
+llm:
+  meta:
+    model: "gpt-4o-mini"
+    max_tokens: 1200
+    temperature: 0.3
+  provider: "OPENAI"
+  http_client:
+    timeout: 120
+    api_url: "http://localhost"
+    api_token: "token"
+  pricing_file: "./ai_review/resources/pricing.yaml"
+
+vcs:
+  provider: GITLAB
+  pipeline:
+    project_id: "1"
+    merge_request_id: "1"
+  http_client:
+    timeout: 120
+    api_url: "http://localhost"
+    api_token: "token"
+
+prompt:
+  inline_prompt_files:
+    - ./ai_review/prompts/default_inline.md
+  summary_prompt_files:
+    - ./ai_review/prompts/default_summary.md
+  system_inline_prompt_files:
+    - ./ai_review/prompts/default_system_inline.md
+  system_summary_prompt_files:
+    - ./ai_review/prompts/default_system_summary.md
+
+review:
+  mode: "FULL_FILE_DIFF"
+  inline_tag: "#ai-review-inline"
+  summary_tag: "#ai-review-summary"
+  context_lines: 10
+  allow_changes: [ ]
+  ignore_changes: [ ]
+  review_added_marker: " # added"
+  review_removed_marker: " # removed"
+
+logger:
+  level: "INFO"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+
+artifacts:
+  llm_dir: "./artifacts/llm"
+  llm_enabled: false

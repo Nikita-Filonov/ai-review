@@ -20,11 +20,11 @@ llm:
 
     # --- Gemini ---
     # model: gemini-2.0-pro
-    # max_output_tokens: 1200    # Note: Gemini uses max_output_tokens
+    # max_tokens: 1200
     # temperature: 0.3
 
     # --- Claude ---
-    # model: claude-3-sonnet-20240229   # e.g., claude-3-opus, claude-3-sonnet, claude-3-haiku
+    # model: claude-3-sonnet   # e.g., claude-3-opus, claude-3-haiku
     # max_tokens: 1200
     # temperature: 0.3
 
@@ -45,7 +45,7 @@ llm:
 
 vcs:
   # Version control system provider.
-  # Options: GITLAB (GitHub can be added later)
+  # Options: GITLAB (currently only GitLab is supported)
   provider: GITLAB
 
   # Pipeline/MR context.
@@ -60,27 +60,138 @@ vcs:
     api_token: ${CI_JOB_TOKEN}  # Job token or personal access token
 
 prompt:
-  # Paths to custom prompt files.
-  inline_prompt_file: ./prompts/inline.md    # Inline prompt per MR
-  summary_prompt_file: ./prompts/summary.md  # Summary prompt per MR
+  # ==============================
+  # Custom context variables
+  # ==============================
+  # context (key-value map).
+  # These variables are injected into all prompts as {placeholders}.
+  # Useful for adding project-specific metadata (company, team handles, CI/CD links, etc.).
+  #
+  # Referenced in prompt templates:
+  #   Project: {company_name}
+  #   Env: {environment}
+  #   Pipeline: {ci_pipeline_url}
+  #
+  # These values override built-in variables if names collide.
+  # To avoid clashes, prefer namespaced keys (ci_pipeline_url, org_notify_handle, env_name).
+  #
+  context:
+    environment: "staging"
+    company_name: "ACME Corp"
+    ci_pipeline_url: "https://gitlab.com/pipelines/123"
+  # ==============================
+  # Inline prompts
+  # ==============================
+  # inline_prompt_files (joined in order).
+  # These provide *local instructions* for inline review,
+  # e.g. what to check in code (readability, bugs, style, etc.).
+  #
+  # Defaults (if not defined):
+  #   - default_inline.md
+  #
+  inline_prompt_files:
+    - ./prompts/default_inline.md  # MR-specific inline prompt
 
-  # Global prompts (always included).
-  global_inline_prompt_file: ./prompts/global_inline.md
-  global_summary_prompt_file: ./prompts/global_summary.md
+  # system_inline_prompt_files (joined in order).
+  # These define the *contract* with the model for inline review:
+  # - enforce JSON output (file, line, message, suggestion),
+  # - restrict scope (only changed lines, no extras),
+  # - define comment structure rules.
+  #
+  # Defaults (if not defined):
+  #   - default_system_inline.md
+  #
+  system_inline_prompt_files:
+    - ./prompts/default_system_inline.md  # System inline prompt
+
+  # Whether to include built-in default system inline prompts.
+  # true  (default) → always prepend default_system_inline.md
+  # false → only user-provided system_inline_prompt_files are used
+  include_inline_system_prompts: true
+
+  # ==============================
+  # Context prompts
+  # ==============================
+  # context_prompt_files (joined in order).
+  # These provide *local instructions* for context review,
+  # e.g. broader analysis across multiple files, naming consistency,
+  # architectural issues, or duplicated code.
+  #
+  # Defaults (if not defined):
+  #   - default_context.md
+  #
+  context_prompt_files:
+    - ./prompts/default_context.md  # MR-specific context prompt
+
+  # system_context_prompt_files (joined in order).
+  # These define the *contract* with the model for context review:
+  # - enforce JSON output (same format as inline),
+  # - restrict scope (only changed files, no extras),
+  # - define comment structure rules.
+  #
+  # Defaults (if not defined):
+  #   - default_system_context.md
+  #
+  system_context_prompt_files:
+    - ./prompts/default_system_context.md  # System context prompt
+
+  # Whether to include built-in default system context prompts.
+  # true  (default) → always prepend default_system_context.md
+  # false → only user-provided system_context_prompt_files are used
+  include_context_system_prompts: true
+
+  # ==============================
+  # Summary prompts
+  # ==============================
+  # summary_prompt_files (joined in order).
+  # These provide *local instructions* for summary review,
+  # e.g. how to write the MR overview, highlight issues and strengths.
+  #
+  # Defaults (if not defined):
+  #   - default_summary.md
+  #
+  summary_prompt_files:
+    - ./prompts/default_summary.md  # MR-specific summary prompt
+
+  # system_summary_prompt_files (joined in order).
+  # These define the *contract* with the model for summary review:
+  # - enforce plain-text output,
+  # - restrict to 1–4 sentences,
+  # - return "No issues found." if nothing to report.
+  #
+  # Defaults (if not defined):
+  #   - default_system_summary.md
+  #
+  system_summary_prompt_files:
+    - ./prompts/default_system_summary.md  # System summary prompt
+
+  # Whether to include built-in default system summary prompts.
+  # true  (default) → always prepend default_system_summary.md
+  # false → only user-provided system_summary_prompt_files are used
+  include_summary_system_prompts: true
+
 
 review:
   # Review mode determines which parts of files are reviewed.
   # Options:
-  #   FULL_FILE            - Review the entire file
-  #   ONLY_CHANGED         - Review only changed lines
-  #   CHANGED_WITH_CONTEXT - Review changed lines + N lines around them
-  mode: CHANGED_WITH_CONTEXT
+  #   FULL_FILE_DIFF              - Compare added & removed lines (default)
+  #   FULL_FILE_CURRENT           - Review current file version
+  #   FULL_FILE_PREVIOUS          - Review previous file version
+  #
+  #   ONLY_ADDED                  - Only added lines
+  #   ONLY_REMOVED                - Only removed lines
+  #   ADDED_AND_REMOVED           - Both added and removed lines
+  #
+  #   ONLY_ADDED_WITH_CONTEXT     - Added lines + N lines of context
+  #   ONLY_REMOVED_WITH_CONTEXT   - Removed lines + N lines of context
+  #   ADDED_AND_REMOVED_WITH_CONTEXT - Both added/removed lines + N lines of context
+  mode: FULL_FILE_DIFF
 
   # Tags used to mark AI-generated comments in MR.
-  inline_tag: "#aireview-inline"
-  summary_tag: "#aireview-summary"
+  inline_tag: "#ai-review-inline"
+  summary_tag: "#ai-review-summary"
 
-  # Number of context lines around changes (only used in CHANGED_WITH_CONTEXT).
+  # Number of context lines around changes (only used in *_WITH_CONTEXT modes).
   context_lines: 10
 
   # File filters.
@@ -88,4 +199,25 @@ review:
   ignore_changes: [ ]  # List of glob patterns to ignore, e.g. ["docs/*", "README.md"]
 
   # Marker used to annotate changed lines in output.
-  review_change_marker: "# changed"
+  review_added_marker: " # added"
+  review_removed_marker: " # removed"
+
+  # Limit number of AI-generated comments to avoid noise.
+  # If None → no limit is applied.
+  max_inline_comments: null   # Maximum comments for inline review (per file)
+  max_context_comments: null  # Maximum comments for context review (per MR)
+
+logger:
+  # Logging level for the application.
+  # Options: NOTSET | DEBUG | INFO | WARNING | ERROR | CRITICAL
+  level: INFO
+
+  # Format string for log messages.
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+
+artifacts:
+  # Directory for storing LLM artifacts (created automatically if missing).
+  llm_dir: ./artifacts/llm
+
+  # Whether to enable saving/loading artifacts from this directory.
+  llm_enabled: false

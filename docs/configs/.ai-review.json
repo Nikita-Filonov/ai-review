@@ -26,18 +26,51 @@
     }
   },
   "prompt": {
-    "inline_prompt_file": "./prompts/inline.md",
-    "summary_prompt_file": "./prompts/summary.md",
-    "global_inline_prompt_file": "./prompts/global_inline.md",
-    "global_summary_prompt_file": "./prompts/global_summary.md"
+    "context": {
+      "environment": "staging",
+      "company_name": "ACME Corp",
+      "ci_pipeline_url": "https://gitlab.com/pipelines/123"
+    },
+    "inline_prompt_files": [
+      "./prompts/default_inline.md"
+    ],
+    "context_prompt_files": [
+      "./prompts/default_context.md"
+    ],
+    "summary_prompt_files": [
+      "./prompts/default_summary.md"
+    ],
+    "system_inline_prompt_files": [
+      "./prompts/default_system_inline.md"
+    ],
+    "system_context_prompt_files": [
+      "./prompts/default_system_context.md"
+    ],
+    "system_summary_prompt_files": [
+      "./prompts/default_system_summary.md"
+    ],
+    "include_inline_system_prompts": true,
+    "include_context_system_prompts": true,
+    "include_summary_system_prompts": true
   },
   "review": {
-    "mode": "CHANGED_WITH_CONTEXT",
-    "inline_tag": "#aireview-inline",
-    "summary_tag": "#aireview-summary",
+    "mode": "FULL_FILE_DIFF",
+    "inline_tag": "#ai-review-inline",
+    "summary_tag": "#ai-review-summary",
     "context_lines": 10,
     "allow_changes": [],
     "ignore_changes": [],
-    "review_change_marker": "# changed"
+    "review_added_marker": " # added",
+    "review_removed_marker": " # removed",
+    "max_inline_comments": null,
+    "max_context_comments": null
+  },
+  "logger": {
+    "level": "INFO",
+    "format": "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+  },
+  "artifacts": {
+    "llm_dir": "./artifacts/llm",
+    "llm_enabled": false
   }
 }

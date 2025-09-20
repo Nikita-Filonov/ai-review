@@ -1,0 +1,55 @@
+gpt-4o-mini:
+  input: 0.15e-6
+  output: 0.60e-6
+
+gpt-4o:
+  input: 5.00e-6
+  output: 15.00e-6
+
+gpt-4.1-mini:
+  input: 0.15e-6
+  output: 0.60e-6
+
+gpt-4.1:
+  input: 5.00e-6
+  output: 15.00e-6
+
+gpt-3.5-turbo:
+  input: 0.50e-6
+  output: 1.50e-6
+
+gemini-2.5-flash-lite:
+  input: 0.10e-6
+  output: 0.40e-6
+
+gemini-2.0-flash-lite:
+  input: 0.019e-6
+  output: 0.1e-6
+
+gemini-2.0-pro:
+  input: 0.125e-6
+  output: 0.375e-6
+
+gemini-2.5-pro:
+  input: 1.25e-6
+  output: 10.00e-6
+
+gemini-2.5-pro-long-context:
+  input: 2.50e-6
+  output: 15.00e-6
+
+claude-3.5-sonnet:
+  input: 3.00e-6
+  output: 15.00e-6
+
+claude-3-opus:
+  input: 15.00e-6
+  output: 75.00e-6
+
+claude-3-sonnet:
+  input: 3.00e-6
+  output: 15.00e-6
+
+claude-3-haiku:
+  input: 0.25e-6
+  output: 1.25e-6
