@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-review"
-version = "0.19.0"
+version = "0.3.0"
 dependencies = [
     "typer",
     "httpx",
