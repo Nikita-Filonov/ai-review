@@ -8,4 +8,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 ARG AI_REVIEW_VERSION
-RUN pip install --no-cache-dir ai-review==${AI_REVIEW_VERSION}
+RUN pip install --no-cache-dir xai-review==${AI_REVIEW_VERSION}
