@@ -20,7 +20,7 @@ _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
 Install via **pip**:
 
 ```bash
-pip install ai-review
+pip install xai-review
 ```
 
 Or run directly via Docker:
