@@ -33,8 +33,8 @@ def get_gemini_http_client() -> GeminiHTTPClient:
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,
-        headers={"x-goog-api-key": settings.llm.http_client.api_key},
-        base_url=settings.llm.http_client.base_url,
+        headers={"x-goog-api-key": settings.llm.http_client.api_token_value},
+        base_url=settings.llm.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
             "request": [logger_event_hook.request],

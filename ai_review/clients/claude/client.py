@@ -31,10 +31,10 @@ def get_claude_http_client() -> ClaudeHTTPClient:
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,
         headers={
-            "x-api-key": settings.llm.http_client.api_key,
+            "x-api-key": settings.llm.http_client.api_token_value,
             "anthropic-version": settings.llm.http_client.api_version,
         },
-        base_url=settings.llm.http_client.base_url,
+        base_url=settings.llm.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
             "request": [logger_event_hook.request],

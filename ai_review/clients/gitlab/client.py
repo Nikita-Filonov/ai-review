@@ -19,8 +19,8 @@ def get_gitlab_http_client() -> GitLabHTTPClient:
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,
-        headers={"Authorization": f"Bearer {settings.vcs.http_client.bearer_token}"},
-        base_url=settings.vcs.http_client.base_url,
+        headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
+        base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
             'request': [logger_event_hook.request],

@@ -7,13 +7,9 @@ class HTTPClientConfig(BaseModel):
     api_token: SecretStr
 
     @property
-    def api_key(self) -> str:
-        return self.api_token.get_secret_value()
-
-    @property
-    def base_url(self) -> str:
+    def api_url_value(self) -> str:
         return str(self.api_url)
 
     @property
-    def bearer_token(self) -> str:
+    def api_token_value(self) -> str:
         return self.api_token.get_secret_value()
