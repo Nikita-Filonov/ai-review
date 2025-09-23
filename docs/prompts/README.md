@@ -1,8 +1,11 @@
-# Prompt Examples
+# AI Review Prompts
 
 This folder contains **ready-to-use prompt templates** for AI Review.
-They extend the built-in global prompts (`prompts/default_system_inline.md`, `prompts/default_system_summary.md`,
-`prompts/default_system_context.md`) and define style & tone of the review.
+They extend the built-in global
+prompts ([prompts/default_system_inline.md](../../ai_review/prompts/default_system_inline.md),
+[prompts/default_system_summary.md](../../ai_review/prompts/default_system_summary.md),
+[prompts/default_system_context.md](../../ai_review/prompts/default_system_context.md)) and define style & tone of the
+review.
 
 ---
 
@@ -47,7 +50,7 @@ prompt:
 ## 📝 Notes
 
 - System prompts (`default_system_inline.md`, `default_system_context.md`, `default_system_summary.md`) are always
-  included unless disabled with `include_*_system_prompts: fals`e. They enforce correct output format (JSON / plain
+  included unless disabled with `include_*_system_prompts: false`. They enforce correct output format (JSON / plain
   text).
 - Project-specific prompts should only define style and tone — not the schema contract.
 - You can **mix & match** (e.g., `inline_go_strict.md` with `summary_python_light.md`).
@@ -102,8 +105,8 @@ In addition to the built-in variables, you can inject **your own context variabl
 
 These are configured under `prompt.context` and can be provided via:
 
-- **YAML** (`.ai-review.yaml`)
-- **JSON** (`.ai-review.json`)
+- **YAML** ([.ai-review.yaml](../../docs/configs/.ai-review.yaml))
+- **JSON** ([.ai-review.json](../../docs/configs/.ai-review.json))
 - **ENV variables** (`AI_REVIEW__PROMPT__CONTEXT__your_key=value`)
 - **.env file** (same as ENV)
 
