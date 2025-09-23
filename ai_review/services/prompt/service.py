@@ -11,34 +11,34 @@ class PromptService:
     @classmethod
     def build_inline_request(cls, diff: DiffFileSchema, context: PromptContextSchema) -> str:
         inline_prompts = "\n\n".join(settings.prompt.load_inline())
-        prompt = (
+        inline_prompts = context.apply_format(inline_prompts)
+        return (
             f"{inline_prompts}\n\n"
             f"## Diff\n\n"
             f"{format_file(diff)}"
         )
-        return context.apply_format(prompt)
 
     @classmethod
     def build_summary_request(cls, diffs: list[DiffFileSchema], context: PromptContextSchema) -> str:
         changes = "\n\n".join(map(format_file, diffs))
         summary_prompts = "\n\n".join(settings.prompt.load_summary())
-        prompt = (
+        summary_prompts = context.apply_format(summary_prompts)
+        return (
             f"{summary_prompts}\n\n"
             f"## Changes\n\n"
             f"{changes}\n"
         )
-        return context.apply_format(prompt)
 
     @classmethod
     def build_context_request(cls, diffs: list[DiffFileSchema], context: PromptContextSchema) -> str:
         changes = "\n\n".join(map(format_file, diffs))
         inline_prompts = "\n\n".join(settings.prompt.load_context())
-        prompt = (
+        inline_prompts = context.apply_format(inline_prompts)
+        return (
             f"{inline_prompts}\n\n"
             f"## Diff\n\n"
             f"{changes}\n"
         )
-        return context.apply_format(prompt)
 
     @classmethod
     def build_system_inline_request(cls, context: PromptContextSchema) -> str:

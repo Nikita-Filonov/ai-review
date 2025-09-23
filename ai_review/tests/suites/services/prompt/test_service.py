@@ -126,3 +126,11 @@ def test_build_system_summary_request_empty(
     monkeypatch.setattr(PromptConfig, "load_system_summary", lambda self: [])
     result = PromptService.build_system_summary_request(dummy_context)
     assert result == ""
+
+
+def test_diff_placeholders_are_not_replaced(dummy_context: PromptContextSchema) -> None:
+    diffs = [DiffFileSchema(file="x.py", diff='print("<<merge_request_title>>")')]
+    result = PromptService.build_summary_request(diffs, dummy_context)
+
+    assert "<<merge_request_title>>" in result
+    assert "Fix login bug" not in result
