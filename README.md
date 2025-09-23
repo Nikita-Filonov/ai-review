@@ -187,19 +187,38 @@ ai-review:
     # Custom context variables
     # ===============================
     # You can inject custom variables into prompts via PROMPT__CONTEXT__*.
-    # These will be available as placeholders {var} in all templates.
+    # These will be available in all templates through placeholders.
+    #
+    # Placeholder syntax is defined separately in PROMPT__CONTEXT_PLACEHOLDER.
+    # Default: <<{value}>>
     #
     # Example usage in prompt templates:
-    #   Project: {company_name}
-    #   Env: {environment}
-    #   Pipeline: {ci_pipeline_url}
+    #   Project: <<company_name>>
+    #   Env: <<environment>>
+    #   Pipeline: <<ci_pipeline_url>>
     #
     # Values override built-in variables if names collide.
-    # To avoid clashes, prefer namespaced keys (ci_pipeline_url, org_notify_handle, env_name).
+    # To avoid clashes, prefer namespaced keys
+    # (ci_pipeline_url, org_notify_handle, env_name).
     #
     # PROMPT__CONTEXT__ENVIRONMENT: "staging"
     # PROMPT__CONTEXT__COMPANY_NAME: "ACME Corp"
     # PROMPT__CONTEXT__CI_PIPELINE_URL: "https://gitlab.com/pipelines/123"
+    #
+    # ===============================
+    # Context placeholder
+    # ===============================
+    # Defines how placeholders are written in prompt templates.
+    # Must contain "{value}" which will be replaced by the variable name.
+    #
+    # Default: <<{value}>>
+    #
+    # Example:
+    #   PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
+    #   Template: "Env: <<environment>>"
+    #   Result:   "Env: staging"
+    #
+    # PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
 
     # ===============================
     # Review options

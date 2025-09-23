@@ -55,15 +55,15 @@ prompt:
 
 ## 🔀 Prompt Formatting
 
-Prompt templates support **placeholders** in the form `{variable_name}`. At runtime, these placeholders are
-automatically replaced with values from the review context.
+Prompt templates support **placeholders**. The placeholder syntax is configurable via `prompt.context_placeholder` (
+YAML/JSON) or `AI_REVIEW__PROMPT__CONTEXT_PLACEHOLDER` (ENV).
 
 For example:
 
 ```text
-Please review the changes in **{merge_request_title}**  
-Author: @{merge_request_author_username}  
-Labels: {labels}
+Please review the changes in **<<merge_request_title>>**  
+Author: @<<merge_request_author_username>>  
+Labels: <<labels>>
 ```
 
 ### 📌 Available Variables
@@ -89,11 +89,11 @@ Labels: {labels}
 For example:
 
 ```text
-If the title **{merge_request_title}** does not include a ticket ID,
-mention @{merge_request_author_username} and ask to update it.
+If the title **<<merge_request_title>>** does not include a ticket ID,
+mention @<<merge_request_author_username>> and ask to update it.
 
-If `{labels}` do not contain "autotests",
-remind @{merge_request_author_username} to add it.
+If <<labels>> do not contain "autotests",
+remind @<<merge_request_author_username>> to add it.
 ```
 
 ### 🔧 Custom Variables
@@ -142,10 +142,10 @@ AI_REVIEW__PROMPT__CONTEXT__COMPANY_NAME="ACME Corp"
 #### Usage in prompt templates
 
 ```text
-Company: {company_name}
-Environment: {environment}
-Pipeline: {ci_pipeline_url}
-Author: @{merge_request_author_username}
+Company: <<company_name>>
+Environment: <<environment>>
+Pipeline: <<ci_pipeline_url>>
+Author: @<<merge_request_author_username>>
 ```
 
 ### Notes

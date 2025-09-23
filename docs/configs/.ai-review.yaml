@@ -64,21 +64,35 @@ prompt:
   # Custom context variables
   # ==============================
   # context (key-value map).
-  # These variables are injected into all prompts as {placeholders}.
+  # These variables are injected into all prompts using placeholders.
   # Useful for adding project-specific metadata (company, team handles, CI/CD links, etc.).
   #
   # Referenced in prompt templates:
-  #   Project: {company_name}
-  #   Env: {environment}
-  #   Pipeline: {ci_pipeline_url}
+  #   Project: <<company_name>>
+  #   Env: <<environment>>
+  #   Pipeline: <<ci_pipeline_url>>
   #
   # These values override built-in variables if names collide.
   # To avoid clashes, prefer namespaced keys (ci_pipeline_url, org_notify_handle, env_name).
-  #
   context:
     environment: "staging"
     company_name: "ACME Corp"
     ci_pipeline_url: "https://gitlab.com/pipelines/123"
+
+  # ==============================
+  # Context placeholder
+  # ==============================
+  # Defines how placeholders are written in prompt templates.
+  # Must contain "{value}" which will be replaced by the variable name.
+  #
+  # Default: <<{value}>>
+  #
+  # Example:
+  #   context_placeholder: "<<{value}>>"
+  #   Template: "Env: <<environment>>"
+  #   Result:   "Env: staging"
+  context_placeholder: "<<{value}>>"
+
   # ==============================
   # Inline prompts
   # ==============================
