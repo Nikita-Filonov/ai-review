@@ -274,6 +274,6 @@ ai-review:
 
 ## 📂 Examples
 
-- [./docs/ci/gitlab.yaml](./docs/ci/gitlab.yaml) — ready-to-use CI snippet
+- [./docs/ci](./docs/ci) — ready-to-use CI snippets
 - [./docs/configs](./docs/configs) — sample `.yaml`, `.json`, `.env` configs
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
