@@ -13,7 +13,7 @@ Supported build modes:
 - ADDED_AND_REMOVED_WITH_CONTEXT added + removed + surrounding unchanged lines
 """
 from enum import Enum
-from typing import Iterable, Optional
+from typing import Iterable
 
 from ai_review.libs.diff.models import DiffFile, DiffLineType
 from ai_review.services.diff.tools import normalize_file_path, marker_for_line, read_snapshot
@@ -24,7 +24,7 @@ class MarkerType(Enum):
     REMOVED = "removed"
 
 
-def build_full_file_current(file: Optional[DiffFile], file_path: str, head_sha: str | None) -> str:
+def build_full_file_current(file: DiffFile | None, file_path: str, head_sha: str | None) -> str:
     text = read_snapshot(file_path, head_sha=head_sha)
     if text is None:
         return f"# Failed to read current snapshot for {file_path}"
@@ -33,7 +33,7 @@ def build_full_file_current(file: Optional[DiffFile], file_path: str, head_sha: 
     return render_plain_numbered(text.splitlines(), added_new, marker_type=MarkerType.ADDED)
 
 
-def build_full_file_previous(file: Optional[DiffFile], file_path: str, base_sha: str | None) -> str:
+def build_full_file_previous(file: DiffFile | None, file_path: str, base_sha: str | None) -> str:
     text = read_snapshot(file_path, base_sha=base_sha)
     if text is None:
         return f"# Failed to read previous snapshot for {file_path} (base_sha missing or file absent)"
@@ -42,31 +42,31 @@ def build_full_file_previous(file: Optional[DiffFile], file_path: str, base_sha:
     return render_plain_numbered(text.splitlines(), removed_old, marker_type=MarkerType.REMOVED)
 
 
-def build_full_file_diff(file: DiffFile) -> str:
+def build_full_file_diff(file: DiffFile | None) -> str:
     return render_unified(file, include_added=True, include_removed=True, include_unchanged=True, context=0)
 
 
-def build_only_added(file: DiffFile) -> str:
+def build_only_added(file: DiffFile | None) -> str:
     return render_unified(file, include_added=True, include_removed=False, include_unchanged=False, context=0)
 
 
-def build_only_removed(file: DiffFile) -> str:
+def build_only_removed(file: DiffFile | None) -> str:
     return render_unified(file, include_added=False, include_removed=True, include_unchanged=False, context=0)
 
 
-def build_added_and_removed(file: DiffFile) -> str:
+def build_added_and_removed(file: DiffFile | None) -> str:
     return render_unified(file, include_added=True, include_removed=True, include_unchanged=False, context=0)
 
 
-def build_only_added_with_context(file: DiffFile, context: int) -> str:
+def build_only_added_with_context(file: DiffFile | None, context: int) -> str:
     return render_unified(file, include_added=True, include_removed=False, include_unchanged=True, context=context)
 
 
-def build_only_removed_with_context(file: DiffFile, context: int) -> str:
+def build_only_removed_with_context(file: DiffFile | None, context: int) -> str:
     return render_unified(file, include_added=False, include_removed=True, include_unchanged=True, context=context)
 
 
-def build_added_and_removed_with_context(file: DiffFile, context: int) -> str:
+def build_added_and_removed_with_context(file: DiffFile | None, context: int) -> str:
     return render_unified(file, include_added=True, include_removed=True, include_unchanged=True, context=context)
 
 
@@ -87,7 +87,7 @@ def render_plain_numbered(lines: Iterable[str], changed: set[int], marker_type: 
 
 
 def render_unified(
-        file: DiffFile,
+        file: DiffFile | None,
         *,
         include_added: bool,
         include_removed: bool,
@@ -104,12 +104,19 @@ def render_unified(
 
     Context controls how many unchanged lines around modifications are shown.
     """
+    if file is None:
+        return "# Diff target not found"
+
+    if not file.hunks:
+        header = normalize_file_path(file.new_name or file.orig_name)
+        return f"# No matching lines for mode in {header}"
+
     lines_out: list[str] = []
 
     added_new_positions = file.added_line_numbers()
     removed_old_positions = file.removed_line_numbers()
 
-    def in_context(old_no: Optional[int], new_no: Optional[int]) -> bool:
+    def in_context(old_no: int | None, new_no: int | None) -> bool:
         """Check if an unchanged line falls within context radius."""
         if context <= 0:
             return False

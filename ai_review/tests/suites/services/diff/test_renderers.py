@@ -166,3 +166,26 @@ def test_build_added_and_removed_with_context(sample_diff_file: DiffFile) -> Non
         " 2: keep B\n"
         "+3: added me # added"
     )
+
+
+def test_build_full_file_diff_empty_file() -> None:
+    """
+    Should handle new empty file (mode=NEW, no hunks).
+    """
+    file = DiffFile(
+        header="diff --git a/LICENSE b/LICENSE",
+        mode=FileMode.NEW,
+        orig_name="",
+        new_name="LICENSE",
+        hunks=[],
+    )
+    out = renderers.build_full_file_diff(file)
+    assert "New empty file: LICENSE" in out or "No matching lines" in out
+
+
+def test_build_full_file_diff_none() -> None:
+    """
+    Should handle case when diff target is None.
+    """
+    out = renderers.build_full_file_diff(None)
+    assert "Diff target not found" in out or out == ""
