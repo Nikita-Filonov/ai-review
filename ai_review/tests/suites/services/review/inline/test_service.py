@@ -47,3 +47,55 @@ def test_no_json_array_found_logs_and_returns_empty():
     output = "this is not json at all"
     result = InlineCommentService.parse_model_output(output)
     assert result.root == []
+
+
+def test_json_with_raw_newline_sanitized():
+    output = '[{"file": "e.py", "line": 3, "message": "line1\nline2"}]'
+    result = InlineCommentService.parse_model_output(output)
+    assert len(result.root) == 1
+    assert result.root[0].message == "line1\nline2"
+
+
+def test_json_with_tab_character_sanitized():
+    output = '[{"file": "f.py", "line": 4, "message": "a\tb"}]'
+    result = InlineCommentService.parse_model_output(output)
+    assert len(result.root) == 1
+    assert result.root[0].message == "a\tb"
+
+
+def test_json_with_null_byte_sanitized():
+    raw = "abc\0def"
+    output = f'[{{"file": "g.py", "line": 5, "message": "{raw}"}}]'
+    result = InlineCommentService.parse_model_output(output)
+    assert len(result.root) == 1
+    assert result.root[0].message == "abc\0def"
+
+
+def test_json_with_multiple_control_chars():
+    raw = "x\n\ry\t\0z"
+    output = f'[{{"file": "h.py", "line": 6, "message": "{raw}"}}]'
+    result = InlineCommentService.parse_model_output(output)
+    assert len(result.root) == 1
+    assert result.root[0].message == "x\n\ry\t\0z"
+
+
+def test_try_parse_valid_json():
+    raw = '[{"file": "ok.py", "line": 1, "message": "all good"}]'
+    result = InlineCommentService.try_parse_model_output(raw)
+    assert isinstance(result, InlineCommentListSchema)
+    assert len(result.root) == 1
+    assert result.root[0].file == "ok.py"
+
+
+def test_try_parse_needs_sanitization():
+    raw = '[{"file": "bad.py", "line": 2, "message": "line1\nline2"}]'
+    result = InlineCommentService.try_parse_model_output(raw)
+    assert result is not None
+    assert result.root[0].file == "bad.py"
+    assert "line1" in result.root[0].message
+
+
+def test_try_parse_totally_invalid_returns_none():
+    raw = "this is not json at all"
+    result = InlineCommentService.try_parse_model_output(raw)
+    assert result is None
