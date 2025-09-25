@@ -12,7 +12,7 @@ def build_prompt_context_from_mr_info(mr: MRInfoSchema) -> PromptContextSchema:
 
         merge_request_reviewers=[reviewer.name for reviewer in mr.reviewers],
         merge_request_reviewers_usernames=[reviewer.username for reviewer in mr.reviewers],
-        merge_request_reviewer=mr.reviewers[0].name if mr.reviewers else None,
+        merge_request_reviewer=mr.reviewers[0].name if mr.reviewers else "",
 
         merge_request_assignees=[assignee.name for assignee in mr.assignees],
         merge_request_assignees_usernames=[assignee.username for assignee in mr.assignees],
