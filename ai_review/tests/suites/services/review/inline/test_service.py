@@ -53,6 +53,8 @@ def test_json_with_raw_newline_sanitized():
     output = '[{"file": "e.py", "line": 3, "message": "line1\nline2"}]'
     result = InlineCommentService.parse_model_output(output)
     assert len(result.root) == 1
+    assert result.root[0].file == "e.py"
+    assert result.root[0].line == 3
     assert result.root[0].message == "line1\nline2"
 
 
@@ -85,6 +87,8 @@ def test_try_parse_valid_json():
     assert isinstance(result, InlineCommentListSchema)
     assert len(result.root) == 1
     assert result.root[0].file == "ok.py"
+    assert result.root[0].line == 1
+    assert result.root[0].message == "all good"
 
 
 def test_try_parse_needs_sanitization():
@@ -92,6 +96,8 @@ def test_try_parse_needs_sanitization():
     result = InlineCommentService.try_parse_model_output(raw)
     assert result is not None
     assert result.root[0].file == "bad.py"
+    assert result.root[0].line == 2
+    assert result.root[0].message == "line1\nline2"
     assert "line1" in result.root[0].message
 
 

@@ -18,12 +18,12 @@ class InlineCommentService:
         try:
             return InlineCommentListSchema.model_validate_json(raw)
         except ValidationError as error:
-            logger.debug(f"Parse failed, trying sanitized JSON: {raw[:200]=}, {error=}")
+            logger.warning(f"Parse failed, trying sanitized JSON: {raw[:200]=}, {error=}")
             try:
                 cleaned = sanitize_json_string(raw)
                 return InlineCommentListSchema.model_validate_json(cleaned)
             except ValidationError as error:
-                logger.debug(f"Sanitized JSON still invalid: {raw[:200]=}, {error=}")
+                logger.warning(f"Sanitized JSON still invalid: {raw[:200]=}, {error=}")
                 return None
 
     @classmethod
