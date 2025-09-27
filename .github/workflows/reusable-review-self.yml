@@ -29,9 +29,6 @@ jobs:
       - name: Install ai-review
         run: pip install .
 
-      - name: Check ai-review version
-        run: ai-review --version
-
       - name: Run ai-review
         env:
           VCS__PROVIDER: "GITHUB"
@@ -49,6 +46,7 @@ jobs:
           LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          ai-review --version
           ai-review show-config
           ai-review ${{ inputs.review-command }}
     runs-on: ubuntu-latest
