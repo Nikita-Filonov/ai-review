@@ -13,7 +13,7 @@ on:
         required: false
 
 jobs:
-  job:
+  action:
     env:
       AI_REVIEW_CONFIG_FILE_YAML: ${{ inputs.config-file }}
     steps:

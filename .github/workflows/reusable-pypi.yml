@@ -9,7 +9,7 @@ on:
         required: false
 
 jobs:
-  job:
+  action:
     steps:
       - uses: actions/checkout@v4
 
