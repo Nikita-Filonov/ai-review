@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run ai-review
-        uses: Nikita-Filonov/ai-review@v0.14.0
+        uses: Nikita-Filonov/ai-review@v0.15.0
         env:
           VCS__PROVIDER: "GITHUB"
           VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
