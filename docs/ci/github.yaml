@@ -1,0 +1,223 @@
+# ===============================
+# AI Review — GitHub Actions Integration
+# ===============================
+# This workflow demonstrates how to integrate AI Review
+# into your GitHub repository for automated or manual pull request reviews.
+#
+# It can be launched manually from the Actions tab, or configured to trigger
+# automatically for PR events (opened, updated, reopened).
+#
+# Docs: https://github.com/Nikita-Filonov/ai-review
+# Marketplace Action: Nikita-Filonov/ai-review@v0.17.0
+# ===============================
+
+name: AI Review
+
+on:
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      review-command:
+        type: choice
+        required: true
+        default: "run"
+        description: "Review command (mode)"
+        options:
+          - run
+          - run-inline
+          - run-context
+          - run-summary
+
+      pull-request-number:
+        type: string
+        required: true
+        description: "Pull Request number to review"
+
+jobs:
+  ai-review:
+    name: Run AI Review
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run AI Review
+        uses: Nikita-Filonov/ai-review@v0.17.0
+        env:
+          # ===============================
+          # LLM provider & model
+          # ===============================
+          # Which LLM to use.
+          # Options: OPENAI | GEMINI | CLAUDE
+          LLM__PROVIDER: "OPENAI"
+
+          # --- Model metadata ---
+          # For OpenAI: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+          # For Gemini: gemini-2.0-pro, gemini-2.0-flash
+          # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
+          LLM__META__MODEL: "gpt-4o-mini"
+
+          # Max tokens for completion.
+          LLM__META__MAX_TOKENS: "15000"
+
+          # Creativity of responses (0 = deterministic, >0 = more creative).
+          LLM__META__TEMPERATURE: "0.3"
+
+          # --- HTTP client configuration ---
+          # API endpoint + token (must be set as CI/CD variables).
+          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+          LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
+
+          # Example for Gemini:
+          # LLM__HTTP_CLIENT__API_URL: "https://generativelanguage.googleapis.com"
+          # LLM__HTTP_CLIENT__API_TOKEN: "$GEMINI_API_KEY"
+
+          # Example for Claude:
+          # LLM__HTTP_CLIENT__API_URL: "https://api.anthropic.com"
+          # LLM__HTTP_CLIENT__API_TOKEN: "$CLAUDE_API_KEY"
+          # LLM__HTTP_CLIENT__API_VERSION: "2023-06-01"
+
+          # ===============================
+          # VCS (GitHub integration)
+          # ===============================
+          VCS__PROVIDER: "GITHUB"
+
+          # Context of the current pipeline (provided by GitHub Actions).
+          VCS__PIPELINE__OWNER: ${{ github.repository_owner }}
+          VCS__PIPELINE__REPO: ${{ github.event.repository.name }}
+          VCS__PIPELINE__PULL_NUMBER: ${{ inputs.pull-request-number }}
+
+          # GitHub API access.
+          VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
+          VCS__HTTP_CLIENT__API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # ===============================
+          # Prompts (optional overrides)
+          # ===============================
+          # Whether to normalize prompts before sending to the LLM.
+          # Controls stripping trailing spaces, collapsing multiple blank lines,
+          # and trimming leading/trailing whitespace.
+          #
+          # Default: "true"
+          #
+          # Example:
+          #   PROMPT__NORMALIZE_PROMPTS: "false"
+          #
+          # Set to "false" if you want prompts to be passed to the model "as is",
+          # without any cleanup or formatting changes.
+          #
+          # PROMPT__NORMALIZE_PROMPTS: "true"
+
+          # Inline prompts (joined in order, local review instructions).
+          # PROMPT__INLINE_PROMPT_FILES__0: "./prompts/inline.md"
+
+          # Inline system prompts (format/contract rules).
+          # PROMPT__SYSTEM_INLINE_PROMPT_FILES__0: "./prompts/system_inline.md"
+          # PROMPT__INCLUDE_INLINE_SYSTEM_PROMPTS: "true"
+
+          # Context prompts (joined in order, broader analysis instructions).
+          # PROMPT__CONTEXT_PROMPT_FILES__0: "./prompts/context.md"
+
+          # Context system prompts (format/contract rules).
+          # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES__0: "./prompts/system_context.md"
+          # PROMPT__INCLUDE_CONTEXT_SYSTEM_PROMPTS: "true"
+
+          # Summary prompts (joined in order, local review instructions).
+          # PROMPT__SUMMARY_PROMPT_FILES__0: "./prompts/summary.md"
+
+          # Summary system prompts (format/contract rules).
+          # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES__0: "./prompts/system_summary.md"
+          # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
+
+          # ===============================
+          # Custom context variables
+          # ===============================
+          # You can inject custom variables into prompts via PROMPT__CONTEXT__*.
+          # These will be available in all templates through placeholders.
+          #
+          # Placeholder syntax is defined separately in PROMPT__CONTEXT_PLACEHOLDER.
+          # Default: <<{value}>>
+          #
+          # Example usage in prompt templates:
+          #   Project: <<company_name>>
+          #   Env: <<environment>>
+          #   Pipeline: <<ci_pipeline_url>>
+          #
+          # Values override built-in variables if names collide.
+          # To avoid clashes, prefer namespaced keys
+          # (ci_pipeline_url, org_notify_handle, env_name).
+          #
+          # PROMPT__CONTEXT__ENVIRONMENT: "staging"
+          # PROMPT__CONTEXT__COMPANY_NAME: "ACME Corp"
+          # PROMPT__CONTEXT__CI_PIPELINE_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          #
+          # ===============================
+          # Context placeholder
+          # ===============================
+          # Defines how placeholders are written in prompt templates.
+          # Must contain "{value}" which will be replaced by the variable name.
+          #
+          # Default: <<{value}>>
+          #
+          # Example:
+          #   PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
+          #   Template: "Env: <<environment>>"
+          #   Result:   "Env: staging"
+          #
+          # PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
+
+          # ===============================
+          # Review options
+          # ===============================
+          # Available modes:
+          #   FULL_FILE_DIFF
+          #   FULL_FILE_CURRENT
+          #   FULL_FILE_PREVIOUS
+          #   ONLY_ADDED
+          #   ONLY_REMOVED
+          #   ADDED_AND_REMOVED
+          #   ONLY_ADDED_WITH_CONTEXT
+          #   ONLY_REMOVED_WITH_CONTEXT
+          #   ADDED_AND_REMOVED_WITH_CONTEXT
+          REVIEW__MODE: "FULL_FILE_DIFF"
+
+          # Tags used to mark AI-generated comments in PR.
+          REVIEW__INLINE_TAG: "#ai-review-inline"
+          REVIEW__SUMMARY_TAG: "#ai-review-summary"
+
+          # Context lines (only for *_WITH_CONTEXT modes).
+          REVIEW__CONTEXT_LINES: "10"
+
+          # Markers for changes in output.
+          REVIEW__REVIEW_ADDED_MARKER: " # added"
+          REVIEW__REVIEW_REMOVED_MARKER: " # removed"
+
+          # Optional filters:
+          # REVIEW__ALLOW_CHANGES: "src/*,lib/*"
+          # REVIEW__IGNORE_CHANGES: "docs/*,README.md"
+
+          # Optional limits for number of AI comments:
+          # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)
+          # REVIEW__MAX_CONTEXT_COMMENTS: "50"  # Max context comments per PR (default: unlimited)
+
+          # ===============================
+          # Logger (optional)
+          # ===============================
+          LOGGER__LEVEL: "INFO"
+          LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+
+          # ===============================
+          # Artifacts (optional)
+          # ===============================
+          ARTIFACTS__LLM_DIR: "./artifacts/llm"
+          ARTIFACTS__LLM_ENABLED: "false"
+
+        with:
+          review-command: ${{ inputs.review-command }}
