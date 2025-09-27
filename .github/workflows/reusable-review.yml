@@ -39,6 +39,3 @@ jobs:
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         run: ai-review run
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
