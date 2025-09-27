@@ -19,8 +19,10 @@ jobs:
     name: 📦 pypi
     uses: ./.github/workflows/reusable-pypi.yml
     needs: test
+    secrets: inherit
 
   docker:
     name: 🐳 docker
     uses: ./.github/workflows/reusable-docker.yml
     needs: pypi
+    secrets: inherit
