@@ -18,3 +18,4 @@ jobs:
     uses: ./.github/workflows/reusable-review.yml
     with:
       pull_request_number: ${{ inputs.pull_request_number }}
+    secrets: inherit
