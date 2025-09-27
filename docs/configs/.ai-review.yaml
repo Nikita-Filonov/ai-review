@@ -94,6 +94,22 @@ prompt:
   context_placeholder: "<<{value}>>"
 
   # ==============================
+  # Prompt normalization
+  # ==============================
+  # Whether to normalize prompts before sending to the LLM.
+  #
+  # true  (default) →
+  #   - strips trailing spaces/tabs at the end of each line,
+  #   - collapses runs of 3+ empty lines into a single blank line,
+  #   - trims leading/trailing whitespace of the entire prompt.
+  #
+  # false →
+  #   - prompts are passed "as is",
+  #   - useful if whitespace and formatting are significant
+  #     (e.g. testing model sensitivity, preserving custom layout).
+  normalize_prompts: true
+
+  # ==============================
   # Inline prompts
   # ==============================
   # inline_prompt_files (joined in order).

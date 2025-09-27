@@ -8,6 +8,7 @@ from ai_review.libs.resources import load_resource
 
 class PromptConfig(BaseModel):
     context: dict[str, str] = Field(default_factory=dict)
+    normalize_prompts: bool = True
     context_placeholder: str = "<<{value}>>"
     inline_prompt_files: list[FilePath] | None = None
     context_prompt_files: list[FilePath] | None = None

@@ -1,5 +1,6 @@
 import pytest
 
+from ai_review.config import settings
 from ai_review.libs.config.prompt import PromptConfig
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.prompt.schema import PromptContextSchema
@@ -134,3 +135,35 @@ def test_diff_placeholders_are_not_replaced(dummy_context: PromptContextSchema) 
 
     assert "<<merge_request_title>>" in result
     assert "Fix login bug" not in result
+
+
+def test_prepare_prompt_basic_substitution(dummy_context: PromptContextSchema) -> None:
+    prompts = ["Hello", "MR title: <<merge_request_title>>"]
+    result = PromptService.prepare_prompt(prompts, dummy_context)
+    assert "Hello" in result
+    assert "MR title: Fix login bug" in result
+
+
+def test_prepare_prompt_applies_normalization(
+        monkeypatch: pytest.MonkeyPatch,
+        dummy_context: PromptContextSchema
+) -> None:
+    monkeypatch.setattr(settings.prompt, "normalize_prompts", True)
+    prompts = ["Line with space   ", "", "", "Next line"]
+    result = PromptService.prepare_prompt(prompts, dummy_context)
+
+    assert "Line with space" in result
+    assert "Next line" in result
+    assert "\n\n\n" not in result
+
+
+def test_prepare_prompt_skips_normalization(
+        monkeypatch: pytest.MonkeyPatch,
+        dummy_context: PromptContextSchema
+) -> None:
+    monkeypatch.setattr(settings.prompt, "normalize_prompts", False)
+    prompts = ["Line with space   ", "", "", "Next line"]
+    result = PromptService.prepare_prompt(prompts, dummy_context)
+
+    assert "Line with space   " in result
+    assert "\n\n\n" in result

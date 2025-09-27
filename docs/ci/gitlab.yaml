@@ -57,6 +57,20 @@
     # ===============================
     # Prompts (optional overrides)
     # ===============================
+    # Whether to normalize prompts before sending to the LLM.
+    # Controls stripping trailing spaces, collapsing multiple blank lines,
+    # and trimming leading/trailing whitespace.
+    #
+    # Default: "true"
+    #
+    # Example:
+    #   PROMPT__NORMALIZE_PROMPTS: "false"
+    #
+    # Set to "false" if you want prompts to be passed to the model "as is",
+    # without any cleanup or formatting changes.
+    #
+    # PROMPT__NORMALIZE_PROMPTS: "true"
+
     # Inline prompts (joined in order, local review instructions).
     # PROMPT__INLINE_PROMPT_FILES__0: "./prompts/inline.md"
 

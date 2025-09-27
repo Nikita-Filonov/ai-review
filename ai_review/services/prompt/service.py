@@ -1,56 +1,57 @@
 from ai_review.config import settings
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.prompt.schema import PromptContextSchema
-
-
-def format_file(diff: DiffFileSchema) -> str:
-    return f"# File: {diff.file}\n{diff.diff}\n"
+from ai_review.services.prompt.tools import normalize_prompt, format_file
 
 
 class PromptService:
     @classmethod
+    def prepare_prompt(cls, prompts: list[str], context: PromptContextSchema) -> str:
+        prompt = "\n\n".join(prompts)
+        prompt = context.apply_format(prompt)
+
+        if settings.prompt.normalize_prompts:
+            prompt = normalize_prompt(prompt)
+
+        return prompt
+
+    @classmethod
     def build_inline_request(cls, diff: DiffFileSchema, context: PromptContextSchema) -> str:
-        inline_prompts = "\n\n".join(settings.prompt.load_inline())
-        inline_prompts = context.apply_format(inline_prompts)
+        prompt = cls.prepare_prompt(settings.prompt.load_inline(), context)
         return (
-            f"{inline_prompts}\n\n"
+            f"{prompt}\n\n"
             f"## Diff\n\n"
             f"{format_file(diff)}"
         )
 
     @classmethod
     def build_summary_request(cls, diffs: list[DiffFileSchema], context: PromptContextSchema) -> str:
+        prompt = cls.prepare_prompt(settings.prompt.load_summary(), context)
         changes = "\n\n".join(map(format_file, diffs))
-        summary_prompts = "\n\n".join(settings.prompt.load_summary())
-        summary_prompts = context.apply_format(summary_prompts)
         return (
-            f"{summary_prompts}\n\n"
+            f"{prompt}\n\n"
             f"## Changes\n\n"
             f"{changes}\n"
         )
 
     @classmethod
     def build_context_request(cls, diffs: list[DiffFileSchema], context: PromptContextSchema) -> str:
+        prompt = cls.prepare_prompt(settings.prompt.load_context(), context)
         changes = "\n\n".join(map(format_file, diffs))
-        inline_prompts = "\n\n".join(settings.prompt.load_context())
-        inline_prompts = context.apply_format(inline_prompts)
         return (
-            f"{inline_prompts}\n\n"
+            f"{prompt}\n\n"
             f"## Diff\n\n"
             f"{changes}\n"
         )
 
     @classmethod
     def build_system_inline_request(cls, context: PromptContextSchema) -> str:
-        prompt = "\n\n".join(settings.prompt.load_system_inline())
-        return context.apply_format(prompt)
+        return cls.prepare_prompt(settings.prompt.load_system_inline(), context)
 
     @classmethod
     def build_system_context_request(cls, context: PromptContextSchema) -> str:
-        prompt = "\n\n".join(settings.prompt.load_system_context())
-        return context.apply_format(prompt)
+        return cls.prepare_prompt(settings.prompt.load_system_context(), context)
 
     @classmethod
     def build_system_summary_request(cls, context: PromptContextSchema) -> str:
-        prompt = "\n\n".join(settings.prompt.load_system_summary())
-        return context.apply_format(prompt)
+        return cls.prepare_prompt(settings.prompt.load_system_summary(), context)

@@ -31,6 +31,7 @@
       "company_name": "ACME Corp",
       "ci_pipeline_url": "https://gitlab.com/pipelines/123"
     },
+    "normalize_prompts": true,
     "context_placeholder": "<<{value}>>",
     "inline_prompt_files": [
       "./prompts/default_inline.md"
