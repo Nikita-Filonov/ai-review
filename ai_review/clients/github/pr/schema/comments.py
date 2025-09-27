@@ -5,7 +5,7 @@ class GitHubPRCommentSchema(BaseModel):
     id: int
     body: str
     path: str | None = None
-    line: str | None = None
+    line: int | None = None
 
 
 class GitHubGetPRCommentsResponseSchema(RootModel[list[GitHubPRCommentSchema]]):
