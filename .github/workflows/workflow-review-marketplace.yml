@@ -1,4 +1,4 @@
-name: 🤖 Review
+name: 🤖 Review Marketplace
 
 on:
   workflow_dispatch:
@@ -20,8 +20,8 @@ permissions:
 
 jobs:
   review:
-    name: 🤖 review
-    uses: ./.github/workflows/reusable-review.yml
+    name: 🤖 review marketplace
+    uses: ./.github/workflows/reusable-review-marketplace.yml
     with:
       review-command: ${{ inputs.review-command }}
       pull-request-number: ${{ inputs.pull-request-number }}

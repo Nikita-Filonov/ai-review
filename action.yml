@@ -1,0 +1,19 @@
+name: 'XAI Review'
+author: 'Nikita Filonov'
+branding:
+  icon: 'eye'
+  color: 'purple'
+description: '🚀 AI-powered code review tool'
+
+inputs:
+  review-command:
+    default: 'run'
+    required: false
+    description: 'Which review mode to run (run, run-inline, run-summary, run-context)'
+
+runs:
+  args:
+    - ${{ inputs.review_command }}
+  image: 'docker://nikitafilonov/ai-review:latest'
+  using: 'docker'
+  entrypoint: 'ai-review'
