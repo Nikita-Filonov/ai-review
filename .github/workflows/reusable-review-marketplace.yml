@@ -1,12 +1,8 @@
-name: Review
+name: Review Marketplace
 
 on:
   workflow_call:
     inputs:
-      python-version:
-        type: string
-        default: "3.12"
-        required: false
       review-command:
         type: string
         default: "run"
@@ -30,6 +26,7 @@ jobs:
         run: pip install .
 
       - name: Run ai-review
+        uses: nikitafilonov/ai-review@v1
         env:
           VCS__PROVIDER: "GITHUB"
           VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
@@ -45,7 +42,6 @@ jobs:
           LLM__META__TEMPERATURE: "0.3"
           LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          ai-review show-config
-          ai-review ${{ inputs.review-command }}
+        with:
+          review-command: ${{ inputs.review-command }}
     runs-on: ubuntu-latest

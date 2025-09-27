@@ -6,7 +6,7 @@ branding:
 description: '🚀 AI-powered code review tool'
 
 inputs:
-  review_command:
+  review-command:
     default: 'run'
     required: false
     description: 'Which review mode to run (run, run-inline, run-summary, run-context)'
