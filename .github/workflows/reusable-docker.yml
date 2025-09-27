@@ -4,8 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  docker:
-    name: 🐳 Build and Push Docker Image
+  job:
     steps:
       - uses: actions/checkout@v4
 

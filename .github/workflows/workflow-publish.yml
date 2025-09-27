@@ -1,4 +1,4 @@
-name: 🚀 Publish Release
+name: 🚀 Publish
 
 on:
   push:
@@ -7,16 +7,20 @@ on:
 
 jobs:
   lint:
+    name: 🧹 lint
     uses: ./.github/workflows/reusable-lint.yml
 
   test:
+    name: 🧪 test
     uses: ./.github/workflows/reusable-test.yml
     needs: lint
 
   pypi:
+    name: 📦 pypi
     uses: ./.github/workflows/reusable-pypi.yml
     needs: test
 
   docker:
+    name: 🐳 docker
     uses: ./.github/workflows/reusable-docker.yml
     needs: pypi

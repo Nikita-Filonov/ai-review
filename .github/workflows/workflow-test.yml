@@ -6,8 +6,10 @@ on:
 
 jobs:
   lint:
+    name: 🧹 lint
     uses: ./.github/workflows/reusable-lint.yml
 
   test:
+    name: 🧪 test
     uses: ./.github/workflows/reusable-test.yml
     needs: lint

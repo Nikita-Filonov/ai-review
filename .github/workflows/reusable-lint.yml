@@ -9,8 +9,7 @@ on:
         required: false
 
 jobs:
-  lint:
-    name: 🧹 Lint code with Ruff
+  job:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

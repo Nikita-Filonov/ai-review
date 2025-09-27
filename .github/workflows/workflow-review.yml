@@ -1,4 +1,4 @@
-name: 🤖 AI Code Review
+name: 🤖 Review
 
 on:
   pull_request:
@@ -7,12 +7,15 @@ on:
 
 jobs:
   lint:
+    name: 🧹 lint
     uses: ./.github/workflows/reusable-lint.yml
 
   test:
+    name: 🧪 test
     uses: ./.github/workflows/reusable-test.yml
     needs: lint
 
   review:
+    name: 🤖 review
     uses: ./.github/workflows/reusable-review.yml
     needs: test

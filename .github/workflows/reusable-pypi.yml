@@ -9,8 +9,7 @@ on:
         required: false
 
 jobs:
-  pypi:
-    name: 📦 Build and Publish to PyPI
+  job:
     steps:
       - uses: actions/checkout@v4
 

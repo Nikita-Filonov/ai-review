@@ -13,10 +13,9 @@ on:
         required: false
 
 jobs:
-  test:
+  job:
     env:
       AI_REVIEW_CONFIG_FILE_YAML: ${{ inputs.config-file }}
-    name: 🧪 Run Unit Tests
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
