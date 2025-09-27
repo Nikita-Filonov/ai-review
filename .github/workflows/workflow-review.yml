@@ -4,13 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       review-command:
-        type: string
-        default: "run"
-        options:
-          - run
-          - run-inline
-          - run-context
-          - run-summary
+        type: choice
+        default: 'run'
+        options: [ run, run-inline, run-context, run-summary ]
         required: true
         description: 'Review command'
       pull-request-number:
