@@ -8,6 +8,7 @@ on:
         default: "run"
         options: [ run, run-inline, run-context, run-summary ]
         required: true
+        description: 'Review command'
       pull-request-number:
         type: string
         required: true
