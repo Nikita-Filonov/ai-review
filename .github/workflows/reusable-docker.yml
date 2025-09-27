@@ -5,7 +5,7 @@ on:
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    name: docker
     steps:
       - uses: actions/checkout@v4
 
@@ -29,3 +29,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/ai-review:latest
             ${{ secrets.DOCKER_USERNAME }}/ai-review:${{ github.ref_name }}
+
+    runs-on: ubuntu-latest

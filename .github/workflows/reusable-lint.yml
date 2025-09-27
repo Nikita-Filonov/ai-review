@@ -10,7 +10,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    name: lint
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,3 +18,4 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - run: pip install ruff
       - run: ruff check ai_review
+    runs-on: ubuntu-latest

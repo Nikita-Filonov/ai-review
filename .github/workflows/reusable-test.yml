@@ -16,7 +16,7 @@ jobs:
   test:
     env:
       AI_REVIEW_CONFIG_FILE_YAML: ${{ inputs.config-file }}
-    runs-on: ubuntu-latest
+    name: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,3 +24,4 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - run: pip install .[test] pytest pytest-cov
       - run: pytest --cov=ai_review --cov-report=xml --cov-report=term-missing
+    runs-on: ubuntu-latest

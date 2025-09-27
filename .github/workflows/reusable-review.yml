@@ -11,11 +11,7 @@ on:
 jobs:
   review:
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-
+    name: review
     steps:
       - uses: actions/checkout@v4
 
@@ -43,3 +39,7 @@ jobs:
           LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         run: ai-review run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write

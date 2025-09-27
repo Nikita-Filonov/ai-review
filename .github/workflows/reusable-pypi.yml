@@ -10,7 +10,7 @@ on:
 
 jobs:
   pypi:
-    runs-on: ubuntu-latest
+    name: pypi
     steps:
       - uses: actions/checkout@v4
 
@@ -32,3 +32,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    runs-on: ubuntu-latest
