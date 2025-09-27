@@ -1,21 +1,20 @@
 name: 🤖 Review
 
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened ]
   workflow_dispatch:
+    inputs:
+      pull_request_number:
+        type: string
+        required: true
+        description: 'Pull request number'
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
-  lint:
-    name: 🧹 lint
-    uses: ./.github/workflows/reusable-lint.yml
-
-  test:
-    name: 🧪 test
-    uses: ./.github/workflows/reusable-test.yml
-    needs: lint
-
   review:
     name: 🤖 review
     uses: ./.github/workflows/reusable-review.yml
-    needs: test
+    with:
+      pull_request_number: ${{ inputs.pull_request_number }}

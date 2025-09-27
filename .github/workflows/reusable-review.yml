@@ -7,10 +7,12 @@ on:
         type: string
         default: "3.12"
         required: false
+      pull_request_number:
+        type: string
+        required: true
 
 jobs:
   job:
-    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +31,7 @@ jobs:
 
           VCS__PIPELINE__OWNER: ${{ github.repository_owner }}
           VCS__PIPELINE__REPO: ${{ github.event.repository.name }}
-          VCS__PIPELINE__PULL_NUMBER: ${{ github.event.pull_request.number }}
+          VCS__PIPELINE__PULL_NUMBER: ${{ inputs.pull_request_number }}
 
           LLM__PROVIDER: "OPENAI"
           LLM__META__MODEL: "gpt-4o-mini"
@@ -39,6 +41,3 @@ jobs:
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         run: ai-review run
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
