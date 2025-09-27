@@ -18,13 +18,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
-
-      - name: Install ai-review
-        run: pip install .
-
       - name: Run ai-review
         uses: Nikita-Filonov/ai-review@v0.14.0
         env:

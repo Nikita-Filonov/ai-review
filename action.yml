@@ -13,7 +13,7 @@ inputs:
 
 runs:
   args:
-    - ${{ inputs.review_command }}
+    - ${{ inputs.review-command }}
   image: 'docker://nikitafilonov/ai-review:latest'
   using: 'docker'
   entrypoint: 'ai-review'
