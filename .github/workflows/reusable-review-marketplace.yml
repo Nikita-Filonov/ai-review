@@ -26,7 +26,7 @@ jobs:
         run: pip install .
 
       - name: Run ai-review
-        uses: nikitafilonov/ai-review@v0.14.0
+        uses: nikitafilonov/xai-review@v0.14.0
         env:
           VCS__PROVIDER: "GITHUB"
           VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
