@@ -37,4 +37,5 @@ jobs:
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         with:
           review-command: ${{ inputs.review-command }}
+        working-directory: /github/workspace
     runs-on: ubuntu-latest
