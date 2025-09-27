@@ -2,7 +2,7 @@ name: 'XAI Review'
 author: 'Nikita Filonov'
 branding:
   icon: 'eye'
-  color: 'blue'
+  color: 'purple'
 description: '🚀 AI-powered code review tool'
 
 inputs:
