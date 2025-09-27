@@ -1,0 +1,26 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        type: string
+        default: "./ai_review/tests/configs/config-test.yaml"
+        required: false
+      python-version:
+        type: string
+        default: "3.12"
+        required: false
+
+jobs:
+  test:
+    env:
+      AI_REVIEW_CONFIG_FILE_YAML: ${{ inputs.config-file }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - run: pip install .[test] pytest pytest-cov
+      - run: pytest --cov=ai_review --cov-report=xml --cov-report=term-missing

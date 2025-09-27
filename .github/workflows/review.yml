@@ -7,58 +7,12 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check ai_review
+    uses: ./.github/workflows/reusable/lint.yml
 
   test:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable/test.yml
     needs: lint
-    env:
-      AI_REVIEW_CONFIG_FILE_YAML: "./ai_review/tests/configs/config-test.yaml"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install .[test] pytest pytest-cov
-      - run: pytest --cov=ai_review --cov-report=xml --cov-report=term-missing
 
   review:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install ai-review
-        run: pip install .
-
-      - name: Run ai-review
-        env:
-          VCS__PROVIDER: "GITHUB"
-          VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
-          VCS__HTTP_CLIENT__API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          VCS__PIPELINE__OWNER: ${{ github.repository_owner }}
-          VCS__PIPELINE__REPO: ${{ github.event.repository.name }}
-          VCS__PIPELINE__PULL_NUMBER: ${{ github.event.pull_request.number }}
-
-          LLM__PROVIDER: "OPENAI"
-          LLM__META__MODEL: "gpt-4o-mini"
-          LLM__META__MAX_TOKENS: "15000"
-          LLM__META__TEMPERATURE: "0.3"
-          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
-          LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
-        run: ai-review run
+    uses: ./.github/workflows/reusable/review.yml
+    needs: test
