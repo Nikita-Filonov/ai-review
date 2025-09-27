@@ -3,7 +3,6 @@ name: Lint and Test
 on:
   push:
     branches: [ "**" ]
-  pull_request:
 
 jobs:
   lint:
