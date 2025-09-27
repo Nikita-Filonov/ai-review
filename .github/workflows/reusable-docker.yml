@@ -5,7 +5,7 @@ on:
 
 jobs:
   docker:
-    name: docker
+    name: 🐳 Build and Push Docker Image
     steps:
       - uses: actions/checkout@v4
 

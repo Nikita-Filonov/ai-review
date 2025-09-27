@@ -11,7 +11,7 @@ on:
 jobs:
   review:
     if: github.event_name == 'workflow_dispatch'
-    name: review
+    name: 🤖 Run AI Self Review
     steps:
       - uses: actions/checkout@v4
 
