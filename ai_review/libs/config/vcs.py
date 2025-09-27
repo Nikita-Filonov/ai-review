@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from ai_review.libs.config.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.config.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
 from ai_review.libs.constants.vcs_provider import VCSProvider
 
@@ -16,4 +17,10 @@ class GitLabVCSConfig(VCSConfigBase):
     http_client: GitLabHTTPClientConfig
 
 
-VCSConfig = Annotated[GitLabVCSConfig, Field(discriminator="provider")]
+class GitHubVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.GITHUB]
+    pipeline: GitHubPipelineConfig
+    http_client: GitHubHTTPClientConfig
+
+
+VCSConfig = Annotated[GitLabVCSConfig | GitHubVCSConfig, Field(discriminator="provider")]
