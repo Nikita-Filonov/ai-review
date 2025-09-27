@@ -7,12 +7,12 @@ on:
 
 jobs:
   lint:
-    uses: ./.github/workflows/reusable/lint.yml
+    uses: ./.github/workflows/reusable-lint.yml
 
   test:
-    uses: ./.github/workflows/reusable/test.yml
+    uses: ./.github/workflows/reusable-test.yml
     needs: lint
 
   review:
-    uses: ./.github/workflows/reusable/review.yml
+    uses: ./.github/workflows/reusable-review.yml
     needs: test

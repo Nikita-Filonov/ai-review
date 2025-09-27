@@ -1,0 +1,22 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable-lint.yml
+
+  test:
+    uses: ./.github/workflows/reusable-test.yml
+    needs: lint
+
+  pypi:
+    uses: ./.github/workflows/reusable-pypi.yml
+    needs: test
+
+  docker:
+    uses: ./.github/workflows/reusable-docker.yml
+    needs: pypi

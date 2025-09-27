@@ -1,0 +1,13 @@
+name: Test
+
+on:
+  push:
+    branches: [ "**" ]
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable-lint.yml
+
+  test:
+    uses: ./.github/workflows/reusable-test.yml
+    needs: lint
