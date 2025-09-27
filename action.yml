@@ -12,8 +12,19 @@ inputs:
     description: 'Which review mode to run (run, run-inline, run-summary, run-context)'
 
 runs:
-  args:
-    - ${{ inputs.review-command }}
-  image: 'docker://nikitafilonov/ai-review:latest'
-  using: 'docker'
-  entrypoint: 'ai-review'
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install XAI Review
+      run: pip install --no-cache-dir xai-review==0.16.0
+      shell: bash
+
+    - name: Run AI Review
+      run: |
+        ai-review show-config
+        ai-review ${{ inputs.review-command }}
+      shell: bash
