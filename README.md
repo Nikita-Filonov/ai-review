@@ -55,7 +55,7 @@ mode:
 | 🧠 Context | Performs broader analysis across multiple files    | [Try AI Review (context)](https://github.com/Nikita-Filonov/ai-review/pull/5) |
 | 📄 Summary | Posts a concise summary review with key highlights | [Try AI Review (summary)](https://github.com/Nikita-Filonov/ai-review/pull/6) |
 
-Each review was generated automatically via GitHub Actions using the corresponding mode:
+👉 Each review was generated automatically via GitHub Actions using the corresponding mode:
 
 ```bash
 ai-review run-inline
