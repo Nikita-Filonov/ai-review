@@ -15,7 +15,7 @@ from ai_review.services.review.inline.service import InlineCommentService
 from ai_review.services.review.policy.service import ReviewPolicyService
 from ai_review.services.review.summary.service import SummaryCommentService
 from ai_review.services.vcs.factory import get_vcs_client
-from ai_review.services.vcs.types import MRInfoSchema
+from ai_review.services.vcs.types import ReviewInfoSchema
 
 logger = get_logger("REVIEW_SERVICE")
 
@@ -52,37 +52,43 @@ class ReviewService:
             logger.exception(f"LLM request failed: {error}")
             raise
 
-    async def has_existing_inline_discussions(self) -> bool:
-        discussions = await self.vcs.get_discussions()
-        has_discussions = any(
-            settings.review.inline_tag in note.body
-            for discussion in discussions
-            for note in discussion.notes
+    async def has_existing_inline_comments(self) -> bool:
+        comments = await self.vcs.get_inline_comments()
+        has_comments = any(
+            settings.review.inline_tag in comment.body
+            for comment in comments
         )
-        if has_discussions:
-            logger.info("Skipping inline review: AI inline discussions already exist")
+        if has_comments:
+            logger.info("Skipping inline review: AI inline comments already exist")
 
-        return has_discussions
+        return has_comments
 
     async def has_existing_summary_comments(self) -> bool:
-        comments = await self.vcs.get_comments()
-        has_comments = any(settings.review.summary_tag in comment.body for comment in comments)
+        comments = await self.vcs.get_general_comments()
+        has_comments = any(
+            settings.review.summary_tag in comment.body for comment in comments
+        )
         if has_comments:
             logger.info("Skipping summary review: AI summary comment already exists")
 
         return has_comments
 
-    async def process_discussions(self, flow: Literal["inline", "context"], comments: InlineCommentListSchema) -> None:
+    async def process_inline_comments(
+            self,
+            flow: Literal["inline", "context"],
+            comments: InlineCommentListSchema
+    ) -> None:
         results = await bounded_gather([
-            self.vcs.create_discussion(
+            self.vcs.create_inline_comment(
                 file=comment.file,
                 line=comment.line,
                 message=comment.body_with_tag
             )
             for comment in comments.root
         ])
+
         fallbacks = [
-            self.vcs.create_comment(comment.fallback_body_with_tag)
+            self.vcs.create_general_comment(comment.fallback_body_with_tag)
             for comment, result in zip(comments.root, results)
             if isinstance(result, Exception)
         ]
@@ -90,19 +96,19 @@ class ReviewService:
             logger.warning(f"Falling back to {len(fallbacks)} general comments ({flow} review)")
             await bounded_gather(fallbacks)
 
-    async def process_file_inline(self, file: str, mr_info: MRInfoSchema) -> None:
-        raw_diff = self.git.get_diff_for_file(mr_info.base_sha, mr_info.head_sha, file)
+    async def process_file_inline(self, file: str, review_info: ReviewInfoSchema) -> None:
+        raw_diff = self.git.get_diff_for_file(review_info.base_sha, review_info.head_sha, file)
         if not raw_diff.strip():
             logger.debug(f"No diff for {file}, skipping")
             return
 
         rendered_file = self.diff.render_file(
             file=file,
-            base_sha=mr_info.base_sha,
-            head_sha=mr_info.head_sha,
+            base_sha=review_info.base_sha,
+            head_sha=review_info.head_sha,
             raw_diff=raw_diff,
         )
-        prompt_context = build_prompt_context_from_mr_info(mr_info)
+        prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_inline_request(rendered_file, prompt_context)
         prompt_system = self.prompt.build_system_inline_request(prompt_context)
         prompt_result = await self.ask_llm(prompt, prompt_system)
@@ -114,29 +120,27 @@ class ReviewService:
             return
 
         logger.info(f"Posting {len(comments.root)} inline comments to {file}")
-        await self.process_discussions(flow="inline", comments=comments)
+        await self.process_inline_comments(flow="inline", comments=comments)
 
     async def run_inline_review(self) -> None:
-        if await self.has_existing_inline_discussions():
+        if await self.has_existing_inline_comments():
             return
 
-        mr_info = await self.vcs.get_mr_info()
+        review_info = await self.vcs.get_review_info()
+        logger.info(f"Starting inline review: {len(review_info.changed_files)} files changed")
 
-        logger.info(f"Starting inline review: {len(mr_info.changed_files)} files changed")
-
-        changed_files = self.policy.apply_for_files(mr_info.changed_files)
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         await bounded_gather([
-            self.process_file_inline(changed_file, mr_info)
+            self.process_file_inline(changed_file, review_info)
             for changed_file in changed_files
         ])
 
     async def run_context_review(self) -> None:
-        if await self.has_existing_inline_discussions():
+        if await self.has_existing_inline_comments():
             return
 
-        mr_info = await self.vcs.get_mr_info()
-        changed_files = self.policy.apply_for_files(mr_info.changed_files)
-
+        review_info = await self.vcs.get_review_info()
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         if not changed_files:
             logger.info("No files to review for context review")
             return
@@ -146,10 +150,10 @@ class ReviewService:
         rendered_files = self.diff.render_files(
             git=self.git,
             files=changed_files,
-            base_sha=mr_info.base_sha,
-            head_sha=mr_info.head_sha,
+            base_sha=review_info.base_sha,
+            head_sha=review_info.head_sha,
         )
-        prompt_context = build_prompt_context_from_mr_info(mr_info)
+        prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_context_request(rendered_files, prompt_context)
         prompt_system = self.prompt.build_system_context_request(prompt_context)
         prompt_result = await self.ask_llm(prompt, prompt_system)
@@ -161,15 +165,14 @@ class ReviewService:
             return
 
         logger.info(f"Posting {len(comments.root)} inline comments (context review)")
-        await self.process_discussions(flow="context", comments=comments)
+        await self.process_inline_comments(flow="context", comments=comments)
 
     async def run_summary_review(self) -> None:
         if await self.has_existing_summary_comments():
             return
 
-        mr_info = await self.vcs.get_mr_info()
-        changed_files = self.policy.apply_for_files(mr_info.changed_files)
-
+        review_info = await self.vcs.get_review_info()
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         if not changed_files:
             logger.info("No files to review for summary")
             return
@@ -179,10 +182,10 @@ class ReviewService:
         rendered_files = self.diff.render_files(
             git=self.git,
             files=changed_files,
-            base_sha=mr_info.base_sha,
-            head_sha=mr_info.head_sha,
+            base_sha=review_info.base_sha,
+            head_sha=review_info.head_sha,
         )
-        prompt_context = build_prompt_context_from_mr_info(mr_info)
+        prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_summary_request(rendered_files, prompt_context)
         prompt_system = self.prompt.build_system_summary_request(prompt_context)
         prompt_result = await self.ask_llm(prompt, prompt_system)
@@ -193,7 +196,7 @@ class ReviewService:
             return
 
         logger.info(f"Posting summary review comment ({len(summary.text)} chars)")
-        await self.vcs.create_comment(summary.body_with_tag)
+        await self.vcs.create_general_comment(summary.body_with_tag)
 
     def report_total_cost(self):
         total_report = self.cost.aggregate()

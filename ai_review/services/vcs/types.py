@@ -3,53 +3,62 @@ from typing import Protocol
 from pydantic import BaseModel, Field
 
 
-class MRUserSchema(BaseModel):
+class UserSchema(BaseModel):
+    id: str | int | None = None
     name: str = ""
     username: str = ""
 
 
-class MRInfoSchema(BaseModel):
+class BranchRefSchema(BaseModel):
+    ref: str = ""
+    sha: str = ""
+
+
+class ReviewInfoSchema(BaseModel):
+    id: str | int | None = None
     title: str = ""
-    author: MRUserSchema = Field(default_factory=MRUserSchema)
+    description: str = ""
+    author: UserSchema = Field(default_factory=UserSchema)
     labels: list[str] = Field(default_factory=list)
+    assignees: list[UserSchema] = Field(default_factory=list)
+    reviewers: list[UserSchema] = Field(default_factory=list)
+    source_branch: BranchRefSchema = Field(default_factory=BranchRefSchema)
+    target_branch: BranchRefSchema = Field(default_factory=BranchRefSchema)
+    changed_files: list[str] = Field(default_factory=list)
     base_sha: str = ""
     head_sha: str = ""
-    assignees: list[MRUserSchema] = Field(default_factory=list)
-    reviewers: list[MRUserSchema] = Field(default_factory=list)
     start_sha: str = ""
-    description: str = ""
-    source_branch: str = ""
-    target_branch: str = ""
-    changed_files: list[str] = Field(default_factory=list)
 
 
-class MRNoteSchema(BaseModel):
-    id: int | str
+class ReviewCommentSchema(BaseModel):
+    id: str | int
     body: str
+    file: str | None = None
+    line: int | None = None
 
 
-class MRDiscussionSchema(BaseModel):
-    id: str
-    notes: list[MRNoteSchema]
-
-
-class MRCommentSchema(BaseModel):
-    id: int | str
-    body: str
+class ReviewThreadSchema(BaseModel):
+    id: str | int
+    comments: list[ReviewCommentSchema]
 
 
 class VCSClient(Protocol):
-    async def get_mr_info(self) -> MRInfoSchema:
-        ...
+    """
+    Unified interface for version control system integrations (GitHub, GitLab, Bitbucket, etc.).
+    Designed for code review automation: fetching review info, comments, and posting feedback.
+    """
 
-    async def get_comments(self) -> list[MRCommentSchema]:
-        ...
+    async def get_review_info(self) -> ReviewInfoSchema:
+        """Fetch general information about the current review (PR/MR)."""
 
-    async def get_discussions(self) -> list[MRDiscussionSchema]:
-        ...
+    async def get_general_comments(self) -> list[ReviewCommentSchema]:
+        """Fetch all top-level (non-inline) comments."""
 
-    async def create_comment(self, message: str) -> None:
-        ...
+    async def get_inline_comments(self) -> list[ReviewCommentSchema]:
+        """Fetch inline (file + line attached) comments."""
 
-    async def create_discussion(self, file: str, line: int, message: str) -> None:
-        ...
+    async def create_general_comment(self, message: str) -> None:
+        """Post a top-level comment."""
+
+    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+        """Post a comment attached to a specific line in file."""

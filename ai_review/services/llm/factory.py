@@ -15,4 +15,4 @@ def get_llm_client() -> LLMClient:
         case LLMProvider.CLAUDE:
             return ClaudeLLMClient()
         case _:
-            raise ValueError(f"Unsupported provider: {settings.llm.provider}")
+            raise ValueError(f"Unsupported LLM provider: {settings.llm.provider}")

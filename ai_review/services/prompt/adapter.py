@@ -1,25 +1,25 @@
 from ai_review.services.prompt.schema import PromptContextSchema
-from ai_review.services.vcs.types import MRInfoSchema
+from ai_review.services.vcs.types import ReviewInfoSchema
 
 
-def build_prompt_context_from_mr_info(mr: MRInfoSchema) -> PromptContextSchema:
+def build_prompt_context_from_mr_info(review: ReviewInfoSchema) -> PromptContextSchema:
     return PromptContextSchema(
-        merge_request_title=mr.title,
-        merge_request_description=mr.description,
+        review_title=review.title,
+        review_description=review.description,
 
-        merge_request_author_name=mr.author.name,
-        merge_request_author_username=mr.author.username,
+        review_author_name=review.author.name,
+        review_author_username=review.author.username,
 
-        merge_request_reviewers=[reviewer.name for reviewer in mr.reviewers],
-        merge_request_reviewers_usernames=[reviewer.username for reviewer in mr.reviewers],
-        merge_request_reviewer=mr.reviewers[0].name if mr.reviewers else "",
+        review_reviewers=[user.name for user in review.reviewers],
+        review_reviewers_usernames=[user.username for user in review.reviewers],
+        review_reviewer=review.reviewers[0].name if review.reviewers else "",
 
-        merge_request_assignees=[assignee.name for assignee in mr.assignees],
-        merge_request_assignees_usernames=[assignee.username for assignee in mr.assignees],
+        review_assignees=[user.name for user in review.assignees],
+        review_assignees_usernames=[user.username for user in review.assignees],
 
-        source_branch=mr.source_branch,
-        target_branch=mr.target_branch,
+        source_branch=review.source_branch.ref,
+        target_branch=review.target_branch.ref,
 
-        labels=mr.labels,
-        changed_files=mr.changed_files,
+        labels=review.labels,
+        changed_files=review.changed_files,
     )

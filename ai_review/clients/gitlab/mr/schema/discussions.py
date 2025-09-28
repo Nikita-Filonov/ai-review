@@ -1,9 +1,6 @@
 from pydantic import BaseModel, RootModel
 
-
-class GitLabNoteSchema(BaseModel):
-    id: int
-    body: str
+from ai_review.clients.gitlab.mr.schema.notes import GitLabNoteSchema
 
 
 class GitLabDiscussionSchema(BaseModel):

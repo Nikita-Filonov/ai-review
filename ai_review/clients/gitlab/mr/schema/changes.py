@@ -14,9 +14,9 @@ class GitLabDiffRefsSchema(BaseModel):
 
 
 class GitLabMRChangeSchema(BaseModel):
-    diff: str
-    old_path: str
-    new_path: str
+    diff: str | None = None
+    old_path: str | None = None
+    new_path: str | None = None
 
 
 class GitLabGetMRChangesResponseSchema(BaseModel):
@@ -24,12 +24,12 @@ class GitLabGetMRChangesResponseSchema(BaseModel):
     iid: int
     title: str
     author: GitLabUserSchema
-    labels: list[str] = []
+    labels: list[str] = Field(default_factory=list)
     changes: list[GitLabMRChangeSchema]
     assignees: list[GitLabUserSchema] = Field(default_factory=list)
     reviewers: list[GitLabUserSchema] = Field(default_factory=list)
     diff_refs: GitLabDiffRefsSchema
     project_id: int
-    description: str
+    description: str | None = None
     source_branch: str
     target_branch: str

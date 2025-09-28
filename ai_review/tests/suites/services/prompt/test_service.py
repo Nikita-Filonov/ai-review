@@ -20,15 +20,16 @@ def patch_prompts(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def dummy_context() -> PromptContextSchema:
+    """Builds a context object that reflects the new unified review schema."""
     return PromptContextSchema(
-        merge_request_title="Fix login bug",
-        merge_request_description="Some description",
-        merge_request_author_name="Nikita",
-        merge_request_author_username="nikita.filonov",
-        merge_request_reviewers=["Alice", "Bob"],
-        merge_request_reviewers_usernames=["alice", "bob"],
-        merge_request_assignees=["Charlie"],
-        merge_request_assignees_usernames=["charlie"],
+        review_title="Fix login bug",
+        review_description="Some description",
+        review_author_name="Nikita",
+        review_author_username="nikita.filonov",
+        review_reviewers=["Alice", "Bob"],
+        review_reviewers_usernames=["alice", "bob"],
+        review_assignees=["Charlie"],
+        review_assignees_usernames=["charlie"],
         source_branch="feature/login-fix",
         target_branch="main",
         labels=["bug", "critical"],
@@ -130,16 +131,17 @@ def test_build_system_summary_request_empty(
 
 
 def test_diff_placeholders_are_not_replaced(dummy_context: PromptContextSchema) -> None:
-    diffs = [DiffFileSchema(file="x.py", diff='print("<<merge_request_title>>")')]
+    diffs = [DiffFileSchema(file="x.py", diff='print("<<review_title>>")')]
     result = PromptService.build_summary_request(diffs, dummy_context)
 
-    assert "<<merge_request_title>>" in result
+    assert "<<review_title>>" in result
     assert "Fix login bug" not in result
 
 
 def test_prepare_prompt_basic_substitution(dummy_context: PromptContextSchema) -> None:
-    prompts = ["Hello", "MR title: <<merge_request_title>>"]
+    prompts = ["Hello", "MR title: <<review_title>>"]
     result = PromptService.prepare_prompt(prompts, dummy_context)
+
     assert "Hello" in result
     assert "MR title: Fix login bug" in result
 

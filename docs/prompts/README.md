@@ -71,32 +71,32 @@ Labels: <<labels>>
 
 ### 📌 Available Variables
 
-| Variable                            | Example                             | Description                                   |
-|-------------------------------------|-------------------------------------|-----------------------------------------------|
-| `merge_request_title`               | `"Fix login bug"`                   | MR title                                      |
-| `merge_request_description`         | `"Implements redirect after login"` | MR description                                |
-| `merge_request_author_name`         | `"Nikita"`                          | Author’s display name                         |
-| `merge_request_author_username`     | `"nikita.filonov"`                  | Author’s username (use `@{...}` for mentions) |
-| `merge_request_reviewer`            | `"Alice"`                           | First reviewer’s name (if any)                |
-| `merge_request_reviewers`           | `"Alice, Bob"`                      | List of reviewers (names)                     |
-| `merge_request_reviewers_usernames` | `"alice, bob"`                      | List of reviewers (usernames)                 |
-| `merge_request_assignees`           | `"Charlie, Diana"`                  | List of assignees (names)                     |
-| `merge_request_assignees_usernames` | `"charlie, diana"`                  | List of assignees (usernames)                 |
-| `source_branch`                     | `"feature/login-fix"`               | MR source branch                              |
-| `target_branch`                     | `"main"`                            | MR target branch                              |
-| `labels`                            | `"bug, critical"`                   | MR labels                                     |
-| `changed_files`                     | `"foo.py, bar.py"`                  | Changed files in MR                           |
+| Variable                     | Example                             | Description                                   |
+|------------------------------|-------------------------------------|-----------------------------------------------|
+| `review_title`               | `"Fix login bug"`                   | Review title (PR/MR title)                    |
+| `review_description`         | `"Implements redirect after login"` | Review description (PR/MR description)        |
+| `review_author_name`         | `"Nikita"`                          | Author’s display name                         |
+| `review_author_username`     | `"nikita.filonov"`                  | Author’s username (use `@{...}` for mentions) |
+| `review_reviewer`            | `"Alice"`                           | First reviewer’s name (if any)                |
+| `review_reviewers`           | `"Alice, Bob"`                      | List of reviewers (names)                     |
+| `review_reviewers_usernames` | `"alice, bob"`                      | List of reviewers (usernames)                 |
+| `review_assignees`           | `"Charlie, Diana"`                  | List of assignees (names)                     |
+| `review_assignees_usernames` | `"charlie, diana"`                  | List of assignees (usernames)                 |
+| `source_branch`              | `"feature/login-fix"`               | Source branch                                 |
+| `target_branch`              | `"main"`                            | Target branch                                 |
+| `labels`                     | `"bug, critical"`                   | Review labels                                 |
+| `changed_files`              | `"foo.py, bar.py"`                  | Changed files in review                       |
 
 ✅ This allows you to write conditional instructions directly in your prompt.
 
 For example:
 
 ```text
-If the title **<<merge_request_title>>** does not include a ticket ID,
-mention @<<merge_request_author_username>> and ask to update it.
+If the title **<<review_title>>** does not include a ticket ID,
+mention @<<review_author_username>> and ask to update it.
 
 If <<labels>> do not contain "autotests",
-remind @<<merge_request_author_username>> to add it.
+remind @<<review_author_username>> to add it.
 ```
 
 ### 🔧 Custom Variables
@@ -148,7 +148,7 @@ AI_REVIEW__PROMPT__CONTEXT__COMPANY_NAME="ACME Corp"
 Company: <<company_name>>
 Environment: <<environment>>
 Pipeline: <<ci_pipeline_url>>
-Author: @<<merge_request_author_username>>
+Author: @<<review_author_username>>
 ```
 
 ### Notes

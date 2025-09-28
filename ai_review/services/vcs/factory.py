@@ -12,4 +12,4 @@ def get_vcs_client() -> VCSClient:
         case VCSProvider.GITHUB:
             return GitHubVCSClient()
         case _:
-            raise ValueError(f"Unsupported provider: {settings.llm.provider}")
+            raise ValueError(f"Unsupported VCS provider: {settings.vcs.provider}")

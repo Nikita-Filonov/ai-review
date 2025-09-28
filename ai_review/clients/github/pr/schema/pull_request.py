@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GitHubUserSchema(BaseModel):
@@ -8,13 +8,13 @@ class GitHubUserSchema(BaseModel):
 
 class GitHubLabelSchema(BaseModel):
     id: int
-    name: str
+    name: str | None = None
 
 
 class GitHubBranchSchema(BaseModel):
     ref: str
     sha: str
-    label: str
+    label: str | None = None
 
 
 class GitHubGetPRResponseSchema(BaseModel):
@@ -23,8 +23,8 @@ class GitHubGetPRResponseSchema(BaseModel):
     title: str
     body: str | None = None
     user: GitHubUserSchema
-    labels: list[GitHubLabelSchema]
-    assignees: list[GitHubUserSchema] = []
-    requested_reviewers: list[GitHubUserSchema] = []
+    labels: list[GitHubLabelSchema] = Field(default_factory=list)
+    assignees: list[GitHubUserSchema] = Field(default_factory=list)
+    requested_reviewers: list[GitHubUserSchema] = Field(default_factory=list)
     base: GitHubBranchSchema
     head: GitHubBranchSchema
