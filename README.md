@@ -96,8 +96,8 @@ vcs:
 > **Note:** Running `ai-review run` executes the full review (inline + summary).
 > To run only one mode, use the dedicated subcommands:
 > - ai-review run-inline
-> - ai-review run-summary
 > - ai-review run-context
+> - ai-review run-summary
 
 ---
 
@@ -108,7 +108,7 @@ Key things you can customize:
 
 - **LLM provider** — OpenAI, Gemini, or Claude
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — GitLab (currently supported) with project/MR context
+- **VCS integration** — works out of the box with **GitLab** and **GitHub**.
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
