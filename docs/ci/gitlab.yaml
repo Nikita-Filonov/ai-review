@@ -1,7 +1,7 @@
 .ai-review-base:
   tags: [ build ]
   when: manual
-  stage: checks
+  stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
@@ -22,7 +22,7 @@
     LLM__META__MODEL: "gpt-4o-mini"
 
     # Max tokens for completion.
-    LLM__META__MAX_TOKENS: "1200"
+    LLM__META__MAX_TOKENS: "15000"
 
     # Creativity of responses (0 = deterministic, >0 = more creative).
     LLM__META__TEMPERATURE: "0.3"
@@ -72,24 +72,24 @@
     # PROMPT__NORMALIZE_PROMPTS: "true"
 
     # Inline prompts (joined in order, local review instructions).
-    # PROMPT__INLINE_PROMPT_FILES__0: "./prompts/inline.md"
+    # PROMPT__INLINE_PROMPT_FILES: '["./prompts/inline.md"]'
 
     # Inline system prompts (format/contract rules).
-    # PROMPT__SYSTEM_INLINE_PROMPT_FILES__0: "./prompts/system_inline.md"
+    # PROMPT__SYSTEM_INLINE_PROMPT_FILES: '["./prompts/system_inline.md"]'
     # PROMPT__INCLUDE_INLINE_SYSTEM_PROMPTS: "true"
 
     # Context prompts (joined in order, broader analysis instructions).
-    # PROMPT__CONTEXT_PROMPT_FILES__0: "./prompts/context.md"
+    # PROMPT__CONTEXT_PROMPT_FILES: '["./prompts/context.md"]'
 
     # Context system prompts (format/contract rules).
-    # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES__0: "./prompts/system_context.md"
+    # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES: '["./prompts/system_context.md"]'
     # PROMPT__INCLUDE_CONTEXT_SYSTEM_PROMPTS: "true"
 
     # Summary prompts (joined in order, local review instructions).
-    # PROMPT__SUMMARY_PROMPT_FILES__0: "./prompts/summary.md"
+    # PROMPT__SUMMARY_PROMPT_FILES: '["./prompts/summary.md"]'
 
     # Summary system prompts (format/contract rules).
-    # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES__0: "./prompts/system_summary.md"
+    # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES: '["./prompts/system_summary.md"]'
     # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
 
     # ===============================
@@ -175,7 +175,7 @@
     ARTIFACTS__LLM_DIR: "./artifacts/llm"
     ARTIFACTS__LLM_ENABLED: "false"
 
-  allow_failure: true
+  allow_failure: true  # Optional: don't block pipeline if AI review fails
 
 
 .ai-review-inline:

@@ -2,16 +2,44 @@
 
 AI-powered code review tool.
 
+[![CI](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml/badge.svg)](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml)
+[![codecov](https://codecov.io/gh/Nikita-Filonov/ai-review/branch/main/graph/badge.svg)](https://codecov.io/gh/Nikita-Filonov/ai-review)
+[![PyPI version](https://img.shields.io/pypi/v/xai-review.svg)](https://pypi.org/project/xai-review/)
+[![License](https://img.shields.io/github/license/Nikita-Filonov/ai-review)](./LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Nikita-Filonov/ai-review?style=social)](https://github.com/Nikita-Filonov/ai-review/stargazers)
+
 _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
 
 ---
 
 ## 📑 Table of Contents
 
+- ✨ [About](#-about)
 - 🚀 [Quick Start](#-quick-start)
-- ⚙️ [Configuration](#-configuration)
-- 🛠 [Advanced usage](#-advanced-usage)
-- 📂 [Examples](#-examples)
+- ⚙️ [️CI/CD Integration](#-cicd-integration)
+    - 🚀 [GitHub Actions](#-github-actions)
+    - 🚀 [GitLab CI/CD](#-gitlab-cicd)
+- 📘 [Documentation](#-documentation)
+- ⚠️ [Privacy & Responsibility Notice](#-privacy--responsibility-notice)
+
+---
+
+## ✨ About
+
+**AI Review** is a developer tool that brings **AI-powered code review** directly into your workflow. It helps teams
+improve code quality, enforce consistency, and speed up the review process.
+
+✨ Key features:
+
+- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, and **Gemini**, or switch anytime.
+- **VCS integration** — works out of the box with GitLab, GitHub (more providers coming).
+- **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
+- **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
+- **AI Review runs fully client-side** — it never proxies or inspects your requests.
+
+AI Review runs automatically in your CI/CD pipeline and posts both **inline comments** and **summary reviews** right
+inside your merge requests. This makes reviews faster, more consistent, and less error-prone — while still leaving the
+final decision to human reviewers.
 
 ---
 
@@ -63,13 +91,13 @@ vcs:
 
 - Run AI Review against your codebase.
 - Generate inline and/or summary comments (depending on the selected mode).
-- Use your chosen LLM provider (e.g., OpenAI GPT-4o-mini by default in this example).
+- Use your chosen LLM provider (OpenAI GPT-4o-mini in this example).
 
 > **Note:** Running `ai-review run` executes the full review (inline + summary).
 > To run only one mode, use the dedicated subcommands:
 > - ai-review run-inline
-> - ai-review run-summary
 > - ai-review run-context
+> - ai-review run-summary
 
 ---
 
@@ -80,7 +108,7 @@ Key things you can customize:
 
 - **LLM provider** — OpenAI, Gemini, or Claude
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — GitLab (currently supported) with project/MR context
+- **VCS integration** — works out of the box with **GitLab** and **GitHub**.
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
@@ -89,191 +117,120 @@ timeouts, artifacts, logging, etc.).
 
 ---
 
-## 🛠 Advanced usage
+## ⚙️ CI/CD Integration
 
-Below is the **full configuration reference** with all available options. Most projects only need a
-minimal `.ai-review.yaml`, but you can use these templates as a starting point for advanced setups:
+AI Review works out-of-the-box with major CI providers.
+Use these snippets to run AI Review automatically on Pull/Merge Requests.  
+Each integration uses environment variables for LLM and VCS configuration.
 
-- [docs/configs/.ai-review.yaml](./docs/configs/.ai-review.yaml) — YAML configuration (with comments)
-- [docs/configs/.ai-review.json](./docs/configs/.ai-review.json) — JSON configuration
-- [docs/configs/.env.example](./docs/configs/.env.example) — environment variables example
+> For full configuration details (timeouts, artifacts, logging, prompt overrides), see [./docs/configs](./docs/configs).
 
-👉 The YAML file includes comments for every option, making it the best place to explore the complete set of settings.
+### 🚀 GitHub Actions
 
-Below is an **example GitLab CI job** showing how to run AI Review with these variables:
+Add a workflow like this (manual trigger from **Actions** tab):
+
+```yaml
+name: AI Review
+on:
+  workflow_dispatch:
+    inputs:
+      review-command:
+        type: choice
+        default: run
+        options: [ run, run-inline, run-context, run-summary ]
+      pull-request-number:
+        type: string
+        required: true
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Nikita-Filonov/ai-review@v0.17.0
+        with:
+          review-command: ${{ inputs.review-command }}
+        env:
+          # --- LLM configuration ---
+          LLM__PROVIDER: "OPENAI"
+          LLM__META__MODEL: "gpt-4o-mini"
+          LLM__META__MAX_TOKENS: "15000"
+          LLM__META__TEMPERATURE: "0.3"
+          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+          LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
+
+          # --- GitHub integration ---
+          VCS__PROVIDER: "GITHUB"
+          VCS__PIPELINE__OWNER: ${{ github.repository_owner }}
+          VCS__PIPELINE__REPO: ${{ github.event.repository.name }}
+          VCS__PIPELINE__PULL_NUMBER: ${{ inputs.pull-request-number }}
+          VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
+          VCS__HTTP_CLIENT__API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+```
+
+🔗 Full example: [./docs/ci/github.yaml](./docs/ci/github.yaml)
+
+### 🚀 GitLab CI/CD
+
+For GitLab users:
 
 ```yaml
 ai-review:
-  tags: [ build ]
   when: manual
-  stage: checks
+  stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
   script:
     - ai-review run
   variables:
-    # ===============================
-    # LLM provider & model
-    # ===============================
-    # Which LLM to use.
-    # Options: OPENAI | GEMINI | CLAUDE
+    # --- LLM configuration ---
     LLM__PROVIDER: "OPENAI"
-
-    # --- Model metadata ---
-    # For OpenAI: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
-    # For Gemini: gemini-2.0-pro, gemini-2.0-flash
-    # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
     LLM__META__MODEL: "gpt-4o-mini"
-
-    # Max tokens for completion.
-    LLM__META__MAX_TOKENS: "1200"
-
-    # Creativity of responses (0 = deterministic, >0 = more creative).
+    LLM__META__MAX_TOKENS: "15000"
     LLM__META__TEMPERATURE: "0.3"
-
-    # --- HTTP client configuration ---
-    # API endpoint + token (must be set as CI/CD variables).
     LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
     LLM__HTTP_CLIENT__API_TOKEN: "$OPENAI_API_KEY"
 
-    # Example for Gemini:
-    # LLM__HTTP_CLIENT__API_URL: "https://generativelanguage.googleapis.com"
-    # LLM__HTTP_CLIENT__API_TOKEN: "$GEMINI_API_KEY"
-
-    # Example for Claude:
-    # LLM__HTTP_CLIENT__API_URL: "https://api.anthropic.com"
-    # LLM__HTTP_CLIENT__API_TOKEN: "$CLAUDE_API_KEY"
-    # LLM__HTTP_CLIENT__API_VERSION: "2023-06-01"
-
-    # ===============================
-    # VCS (GitLab integration)
-    # ===============================
+    # --- GitLab integration ---
     VCS__PROVIDER: "GITLAB"
-
-    # Context of the current pipeline (auto-populated by GitLab).
     VCS__PIPELINE__PROJECT_ID: "$CI_PROJECT_ID"
     VCS__PIPELINE__MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
-
-    # GitLab API access.
     VCS__HTTP_CLIENT__API_URL: "$CI_SERVER_URL"
     VCS__HTTP_CLIENT__API_TOKEN: "$CI_JOB_TOKEN"
-
-    # ===============================
-    # Prompts (optional overrides)
-    # ===============================
-    # Inline prompts (joined in order, local review instructions).
-    # PROMPT__INLINE_PROMPT_FILES__0: "./prompts/inline.md"
-
-    # Inline system prompts (format/contract rules).
-    # PROMPT__SYSTEM_INLINE_PROMPT_FILES__0: "./prompts/system_inline.md"
-    # PROMPT__INCLUDE_INLINE_SYSTEM_PROMPTS: "true"
-
-    # Context prompts (joined in order, broader analysis instructions).
-    # PROMPT__CONTEXT_PROMPT_FILES__0: "./prompts/context.md"
-
-    # Context system prompts (format/contract rules).
-    # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES__0: "./prompts/system_context.md"
-    # PROMPT__INCLUDE_CONTEXT_SYSTEM_PROMPTS: "true"
-
-    # Summary prompts (joined in order, local review instructions).
-    # PROMPT__SUMMARY_PROMPT_FILES__0: "./prompts/summary.md"
-
-    # Summary system prompts (format/contract rules).
-    # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES__0: "./prompts/system_summary.md"
-    # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
-
-    # ===============================
-    # Custom context variables
-    # ===============================
-    # You can inject custom variables into prompts via PROMPT__CONTEXT__*.
-    # These will be available in all templates through placeholders.
-    #
-    # Placeholder syntax is defined separately in PROMPT__CONTEXT_PLACEHOLDER.
-    # Default: <<{value}>>
-    #
-    # Example usage in prompt templates:
-    #   Project: <<company_name>>
-    #   Env: <<environment>>
-    #   Pipeline: <<ci_pipeline_url>>
-    #
-    # Values override built-in variables if names collide.
-    # To avoid clashes, prefer namespaced keys
-    # (ci_pipeline_url, org_notify_handle, env_name).
-    #
-    # PROMPT__CONTEXT__ENVIRONMENT: "staging"
-    # PROMPT__CONTEXT__COMPANY_NAME: "ACME Corp"
-    # PROMPT__CONTEXT__CI_PIPELINE_URL: "https://gitlab.com/pipelines/123"
-    #
-    # ===============================
-    # Context placeholder
-    # ===============================
-    # Defines how placeholders are written in prompt templates.
-    # Must contain "{value}" which will be replaced by the variable name.
-    #
-    # Default: <<{value}>>
-    #
-    # Example:
-    #   PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
-    #   Template: "Env: <<environment>>"
-    #   Result:   "Env: staging"
-    #
-    # PROMPT__CONTEXT_PLACEHOLDER: "<<{value}>>"
-
-    # ===============================
-    # Review options
-    # ===============================
-    # Available modes:
-    #   FULL_FILE_DIFF
-    #   FULL_FILE_CURRENT
-    #   FULL_FILE_PREVIOUS
-    #   ONLY_ADDED
-    #   ONLY_REMOVED
-    #   ADDED_AND_REMOVED
-    #   ONLY_ADDED_WITH_CONTEXT
-    #   ONLY_REMOVED_WITH_CONTEXT
-    #   ADDED_AND_REMOVED_WITH_CONTEXT
-    REVIEW__MODE: "FULL_FILE_DIFF"
-
-    # Tags used to mark AI-generated comments in MR.
-    REVIEW__INLINE_TAG: "#ai-review-inline"
-    REVIEW__SUMMARY_TAG: "#ai-review-summary"
-
-    # Context lines (only for *_WITH_CONTEXT modes).
-    REVIEW__CONTEXT_LINES: "10"
-
-    # Markers for changes in output.
-    REVIEW__REVIEW_ADDED_MARKER: " # added"
-    REVIEW__REVIEW_REMOVED_MARKER: " # removed"
-
-    # Optional filters:
-    # REVIEW__ALLOW_CHANGES: "src/*,lib/*"
-    # REVIEW__IGNORE_CHANGES: "docs/*,README.md"
-
-    # Optional limits for number of AI comments:
-    # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)
-    # REVIEW__MAX_CONTEXT_COMMENTS: "50"  # Max context comments per MR (default: unlimited)
-
-    # ===============================
-    # Logger (optional)
-    # ===============================
-    LOGGER__LEVEL: "INFO"
-    LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
-
-    # ===============================
-    # Artifacts (optional)
-    # ===============================
-    ARTIFACTS__LLM_DIR: "./artifacts/llm"
-    ARTIFACTS__LLM_ENABLED: "false"
-
-  allow_failure: true
+  allow_failure: true  # Optional: don't block pipeline if AI review fails
 
 ```
 
+🔗 Full example: [./docs/ci/gitlab.yaml](./docs/ci/gitlab.yaml)
+
 ---
 
-## 📂 Examples
+## 📘 Documentation
 
-- [./docs/ci](./docs/ci) — ready-to-use CI snippets
-- [./docs/configs](./docs/configs) — sample `.yaml`, `.json`, `.env` configs
+See these folders for reference templates and full configuration options:
+
+- [./docs/ci](./docs/ci) — CI/CD integration templates (GitHub Actions, GitLab CI)
+- [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
+
+---
+
+## ⚠️ Privacy & Responsibility Notice
+
+AI Review does **not store**, **log**, or **transmit** your source code to any external service other than the **LLM
+provider** explicitly configured in your `.ai-review.yaml`.
+
+All data is sent **directly** from your CI/CD environment to the selected LLM API endpoint (e.g. OpenAI, Gemini,
+Claude). No intermediary servers or storage layers are involved.
+
+> ⚠️ Please ensure you use proper API tokens and avoid exposing corporate or personal secrets.
+> If you accidentally leak private code or credentials due to incorrect configuration (e.g., using a personal key
+> instead of an enterprise one), it is **your responsibility** — the tool does not retain or share any data by itself.
+
+---
+
+🧠 **AI Review** — open-source AI-powered code reviewer
+
+- 📦 [PyPI](https://pypi.org/project/xai-review/)
+- 🐳 [DockerHub](https://hub.docker.com/r/nikitafilonov/ai-review)
