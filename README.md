@@ -43,6 +43,27 @@ final decision to human reviewers.
 
 ---
 
+## 🧪 Live Preview
+
+Curious how **AI Review** works in practice?  
+Here are three real Pull Requests reviewed entirely by the tool — one per mode:
+
+| Mode       | Description                                        | Live Example                                                                  |
+|------------|----------------------------------------------------|-------------------------------------------------------------------------------|
+| 🧩 Inline  | Adds line-by-line comments directly in the diff    | [Try AI Review (inline)](https://github.com/Nikita-Filonov/ai-review/pull/4)  |
+| 📄 Summary | Posts a concise summary review with key highlights | [Try AI Review (context)](https://github.com/Nikita-Filonov/ai-review/pull/5) |
+| 🧠 Context | Performs broader analysis across multiple files    | [Try AI Review (summary)](https://github.com/Nikita-Filonov/ai-review/pull/6) |
+
+Each review was generated automatically via GitHub Actions using the corresponding mode:
+
+```bash
+ai-review run-inline
+ai-review run-summary
+ai-review run-context
+```
+
+---
+
 ## 🚀 Quick Start
 
 Install via **pip**:
