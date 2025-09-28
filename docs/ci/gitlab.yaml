@@ -72,24 +72,24 @@
     # PROMPT__NORMALIZE_PROMPTS: "true"
 
     # Inline prompts (joined in order, local review instructions).
-    # PROMPT__INLINE_PROMPT_FILES__0: "./prompts/inline.md"
+    # PROMPT__INLINE_PROMPT_FILES: '["./prompts/inline.md"]'
 
     # Inline system prompts (format/contract rules).
-    # PROMPT__SYSTEM_INLINE_PROMPT_FILES__0: "./prompts/system_inline.md"
+    # PROMPT__SYSTEM_INLINE_PROMPT_FILES: '["./prompts/system_inline.md"]'
     # PROMPT__INCLUDE_INLINE_SYSTEM_PROMPTS: "true"
 
     # Context prompts (joined in order, broader analysis instructions).
-    # PROMPT__CONTEXT_PROMPT_FILES__0: "./prompts/context.md"
+    # PROMPT__CONTEXT_PROMPT_FILES: '["./prompts/context.md"]'
 
     # Context system prompts (format/contract rules).
-    # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES__0: "./prompts/system_context.md"
+    # PROMPT__SYSTEM_CONTEXT_PROMPT_FILES: '["./prompts/system_context.md"]'
     # PROMPT__INCLUDE_CONTEXT_SYSTEM_PROMPTS: "true"
 
     # Summary prompts (joined in order, local review instructions).
-    # PROMPT__SUMMARY_PROMPT_FILES__0: "./prompts/summary.md"
+    # PROMPT__SUMMARY_PROMPT_FILES: '["./prompts/summary.md"]'
 
     # Summary system prompts (format/contract rules).
-    # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES__0: "./prompts/system_summary.md"
+    # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES: '["./prompts/system_summary.md"]'
     # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
 
     # ===============================
