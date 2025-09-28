@@ -31,20 +31,14 @@ jobs:
 
       - name: Run ai-review
         env:
-          VCS__PROVIDER: "GITHUB"
-          VCS__HTTP_CLIENT__API_URL: "https://api.github.com"
+          AI_REVIEW_CONFIG_FILE_YAML: ./ci/review/config.yaml
+
+          LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
           VCS__HTTP_CLIENT__API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           VCS__PIPELINE__OWNER: ${{ github.repository_owner }}
           VCS__PIPELINE__REPO: ${{ github.event.repository.name }}
           VCS__PIPELINE__PULL_NUMBER: ${{ inputs.pull-request-number }}
-
-          LLM__PROVIDER: "OPENAI"
-          LLM__META__MODEL: "gpt-4o-mini"
-          LLM__META__MAX_TOKENS: "15000"
-          LLM__META__TEMPERATURE: "0.3"
-          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
-          LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
         run: |
           ai-review show-config
           ai-review ${{ inputs.review-command }}

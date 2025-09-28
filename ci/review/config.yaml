@@ -1,0 +1,23 @@
+llm:
+  provider: OPENAI
+
+  meta:
+    model: gpt-4o-mini
+    max_tokens: 15000
+    temperature: 0.3
+
+  http_client:
+    timeout: 120
+    api_url: https://api.openai.com/v1
+
+vcs:
+  provider: GITHUB
+
+  http_client:
+    timeout: 120
+    api_url: https://api.github.com
+
+prompt:
+  inline_prompt_files: [ ./docs/prompts/inline_python_strict.md ]
+  context_prompt_files: [ ./docs/prompts/inline_python_strict.md ]
+  summary_prompt_files: [ ./docs/prompts/summary_python_strict.md ]
