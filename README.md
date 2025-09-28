@@ -46,8 +46,8 @@ final decision to human reviewers.
 
 ## 🧪 Live Preview
 
-Curious how **AI Review** works in practice?  
-Here are three real Pull Requests reviewed entirely by the tool — one per mode:
+Curious how **AI Review** works in practice? Here are three real Pull Requests reviewed entirely by the tool — one per
+mode:
 
 | Mode       | Description                                        | Live Example                                                                  |
 |------------|----------------------------------------------------|-------------------------------------------------------------------------------|
