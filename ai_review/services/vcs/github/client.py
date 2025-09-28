@@ -124,6 +124,10 @@ class GitHubVCSClient(VCSClient):
 
     async def create_discussion(self, file: str, line: int, message: str) -> None:
         try:
+            logger.info(
+                f"Posting inline comment in {self.owner}/{self.repo}#{self.pull_number} at {file}:{line}: {message}"
+            )
+
             pr = await self.http_client.pr.get_pull_request(
                 owner=self.owner, repo=self.repo, pull_number=self.pull_number
             )
