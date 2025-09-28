@@ -73,11 +73,17 @@ Install via **pip**:
 pip install xai-review
 ```
 
+📦 Available on [PyPI](https://pypi.org/project/xai-review/)
+
+---
+
 Or run directly via Docker:
 
 ```bash
 docker run --rm -v $(pwd):/app nikitafilonov/ai-review:latest run-summary
 ```
+
+🐳 Pull from [DockerHub](https://hub.docker.com/r/nikitafilonov/ai-review)
 
 👉 Before running, create a basic configuration file [.ai-review.yaml](./docs/configs/.ai-review.yaml) in the root of
 your project:
