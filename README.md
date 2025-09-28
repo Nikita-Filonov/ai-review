@@ -49,7 +49,7 @@ final decision to human reviewers.
 Curious how **AI Review** works in practice? Here are three real Pull Requests reviewed entirely by the tool — one per
 mode:
 
-| Mode       | Description                                        | 🔗 GitHub Example                                                    | 🔗 GitLab Example                                                          |
+| Mode       | Description                                        | 🔗 GitHub                                                            | 🔗 GitLab                                                                  |
 |------------|----------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------------|
 | 🧩 Inline  | Adds line-by-line comments directly in the diff    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/4) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/2) |
 | 🧠 Context | Performs broader analysis across multiple files    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/5) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/3) |
