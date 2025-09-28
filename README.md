@@ -15,6 +15,7 @@ _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
 ## 📑 Table of Contents
 
 - ✨ [About](#-about)
+- 🧪 [Live Preview](#-live-preview)
 - 🚀 [Quick Start](#-quick-start)
 - ⚙️ [️CI/CD Integration](#-cicd-integration)
     - 🚀 [GitHub Actions](#-github-actions)
