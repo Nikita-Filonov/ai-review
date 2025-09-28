@@ -159,6 +159,7 @@ Add a workflow like this (manual trigger from **Actions** tab):
 
 ```yaml
 name: AI Review
+
 on:
   workflow_dispatch:
     inputs:
