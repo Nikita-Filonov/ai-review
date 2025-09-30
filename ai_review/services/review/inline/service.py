@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from ai_review.libs.json import sanitize_json_string
 from ai_review.libs.logger import get_logger
 from ai_review.services.review.inline.schema import InlineCommentListSchema
+from ai_review.services.review.inline.types import InlineCommentServiceProtocol
 
 logger = get_logger("INLINE_COMMENT_SERVICE")
 
@@ -12,7 +13,7 @@ FIRST_JSON_ARRAY_RE = re.compile(r"\[[\s\S]*]", re.MULTILINE)
 CLEAN_JSON_BLOCK_RE = re.compile(r"```(?:json)?(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
-class InlineCommentService:
+class InlineCommentService(InlineCommentServiceProtocol):
     @classmethod
     def try_parse_model_output(cls, raw: str) -> InlineCommentListSchema | None:
         try:
