@@ -6,7 +6,7 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.types import (
-    VCSClient,
+    VCSClientProtocol,
     UserSchema,
     BranchRefSchema,
     ReviewInfoSchema,
@@ -16,7 +16,7 @@ from ai_review.services.vcs.types import (
 logger = get_logger("GITLAB_VCS_CLIENT")
 
 
-class GitLabVCSClient(VCSClient):
+class GitLabVCSClient(VCSClientProtocol):
     def __init__(self):
         self.http_client = get_gitlab_http_client()
         self.project_id = settings.vcs.pipeline.project_id
@@ -132,6 +132,7 @@ class GitLabVCSClient(VCSClient):
             logger.exception(
                 f"Failed to create general comment in merge_request_id={self.merge_request_id}: {error}"
             )
+            raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         try:
@@ -168,3 +169,4 @@ class GitLabVCSClient(VCSClient):
                 f"Failed to create inline comment in merge_request_id={self.merge_request_id} "
                 f"at {file}:{line}: {error}"
             )
+            raise

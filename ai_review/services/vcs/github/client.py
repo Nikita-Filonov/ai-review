@@ -3,7 +3,7 @@ from ai_review.clients.github.pr.schema.comments import GitHubCreateReviewCommen
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.types import (
-    VCSClient,
+    VCSClientProtocol,
     UserSchema,
     BranchRefSchema,
     ReviewInfoSchema,
@@ -13,7 +13,7 @@ from ai_review.services.vcs.types import (
 logger = get_logger("GITHUB_VCS_CLIENT")
 
 
-class GitHubVCSClient(VCSClient):
+class GitHubVCSClient(VCSClientProtocol):
     def __init__(self):
         self.http_client = get_github_http_client()
         self.owner = settings.vcs.pipeline.owner
@@ -135,6 +135,7 @@ class GitHubVCSClient(VCSClient):
             logger.exception(
                 f"Failed to create general comment in PR {self.owner}/{self.repo}#{self.pull_number}: {error}"
             )
+            raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         try:
@@ -167,3 +168,4 @@ class GitHubVCSClient(VCSClient):
                 f"Failed to create inline comment in {self.owner}/{self.repo}#{self.pull_number} "
                 f"at {file}:{line}: {error}"
             )
+            raise
