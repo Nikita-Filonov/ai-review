@@ -55,23 +55,23 @@ def test_find_diff_file_not_found_returns_none() -> None:
 
 # ---------- read_snapshot ----------
 
-def test_read_snapshot_prefers_git(monkeypatch: pytest.MonkeyPatch, fake_git: FakeGitService) -> None:
-    fake_git.responses["get_file_at_commit"] = "from git"
-    monkeypatch.setattr(tools, "GitService", lambda: fake_git)
+def test_read_snapshot_prefers_git(monkeypatch: pytest.MonkeyPatch, fake_git_service: FakeGitService) -> None:
+    fake_git_service.responses["get_file_at_commit"] = "from git"
+    monkeypatch.setattr(tools, "GitService", lambda: fake_git_service)
 
     assert tools.read_snapshot("foo.py", head_sha="HEAD") == "from git"
 
 
 def test_read_snapshot_fallback_to_filesystem(
         tmp_path: Path,
-        fake_git: FakeGitService,
         monkeypatch: pytest.MonkeyPatch,
+        fake_git_service: FakeGitService,
 ) -> None:
     file = tmp_path / "file.txt"
     file.write_text("hello")
 
-    fake_git.responses["get_file_at_commit"] = None
-    monkeypatch.setattr(tools, "GitService", lambda: fake_git)
+    fake_git_service.responses["get_file_at_commit"] = None
+    monkeypatch.setattr(tools, "GitService", lambda: fake_git_service)
 
     result = tools.read_snapshot(str(file))
     assert result == "hello"
@@ -79,11 +79,11 @@ def test_read_snapshot_fallback_to_filesystem(
 
 def test_read_snapshot_returns_none_if_missing(
         tmp_path: Path,
-        fake_git: FakeGitService,
         monkeypatch: pytest.MonkeyPatch,
+        fake_git_service: FakeGitService,
 ) -> None:
-    fake_git.responses["get_file_at_commit"] = None
-    monkeypatch.setattr(tools, "GitService", lambda: fake_git)
+    fake_git_service.responses["get_file_at_commit"] = None
+    monkeypatch.setattr(tools, "GitService", lambda: fake_git_service)
 
     assert tools.read_snapshot(str(tmp_path / "nope.txt")) is None
 
