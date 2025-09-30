@@ -1,16 +1,15 @@
-from typing import Literal
-
-from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.service import ArtifactsService
 from ai_review.services.cost.service import CostService
 from ai_review.services.diff.service import DiffService
 from ai_review.services.git.service import GitService
+from ai_review.services.hook import hook
 from ai_review.services.llm.factory import get_llm_client
 from ai_review.services.prompt.adapter import build_prompt_context_from_mr_info
 from ai_review.services.prompt.service import PromptService
-from ai_review.services.review.inline.schema import InlineCommentListSchema
+from ai_review.services.review.gateway.comment import ReviewCommentGateway
+from ai_review.services.review.gateway.llm import ReviewLLMGateway
 from ai_review.services.review.inline.service import InlineCommentService
 from ai_review.services.review.policy.service import ReviewPolicyService
 from ai_review.services.review.summary.service import SummaryCommentService
@@ -33,68 +32,12 @@ class ReviewService:
         self.summary = SummaryCommentService()
         self.artifacts = ArtifactsService()
 
-    async def ask_llm(self, prompt: str, prompt_system: str) -> str:
-        try:
-            result = await self.llm.chat(prompt, prompt_system)
-            if not result.text:
-                logger.warning(
-                    f"LLM returned an empty response (prompt length={len(prompt)} chars)"
-                )
-
-            report = self.cost.calculate(result)
-            if report:
-                logger.info(report.pretty())
-
-            await self.artifacts.save_llm_interaction(prompt, prompt_system, result.text)
-
-            return result.text
-        except Exception as error:
-            logger.exception(f"LLM request failed: {error}")
-            raise
-
-    async def has_existing_inline_comments(self) -> bool:
-        comments = await self.vcs.get_inline_comments()
-        has_comments = any(
-            settings.review.inline_tag in comment.body
-            for comment in comments
+        self.llm_gateway = ReviewLLMGateway(
+            llm=self.llm,
+            cost=self.cost,
+            artifacts=self.artifacts
         )
-        if has_comments:
-            logger.info("Skipping inline review: AI inline comments already exist")
-
-        return has_comments
-
-    async def has_existing_summary_comments(self) -> bool:
-        comments = await self.vcs.get_general_comments()
-        has_comments = any(
-            settings.review.summary_tag in comment.body for comment in comments
-        )
-        if has_comments:
-            logger.info("Skipping summary review: AI summary comment already exists")
-
-        return has_comments
-
-    async def process_inline_comments(
-            self,
-            flow: Literal["inline", "context"],
-            comments: InlineCommentListSchema
-    ) -> None:
-        results = await bounded_gather([
-            self.vcs.create_inline_comment(
-                file=comment.file,
-                line=comment.line,
-                message=comment.body_with_tag
-            )
-            for comment in comments.root
-        ])
-
-        fallbacks = [
-            self.vcs.create_general_comment(comment.fallback_body_with_tag)
-            for comment, result in zip(comments.root, results)
-            if isinstance(result, Exception)
-        ]
-        if fallbacks:
-            logger.warning(f"Falling back to {len(fallbacks)} general comments ({flow} review)")
-            await bounded_gather(fallbacks)
+        self.comment_gateway = ReviewCommentGateway(vcs=self.vcs)
 
     async def process_file_inline(self, file: str, review_info: ReviewInfoSchema) -> None:
         raw_diff = self.git.get_diff_for_file(review_info.base_sha, review_info.head_sha, file)
@@ -111,7 +54,7 @@ class ReviewService:
         prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_inline_request(rendered_file, prompt_context)
         prompt_system = self.prompt.build_system_inline_request(prompt_context)
-        prompt_result = await self.ask_llm(prompt, prompt_system)
+        prompt_result = await self.llm_gateway.ask(prompt, prompt_system)
 
         comments = self.inline.parse_model_output(prompt_result).dedupe()
         comments.root = self.policy.apply_for_inline_comments(comments.root)
@@ -120,10 +63,11 @@ class ReviewService:
             return
 
         logger.info(f"Posting {len(comments.root)} inline comments to {file}")
-        await self.process_inline_comments(flow="inline", comments=comments)
+        await self.comment_gateway.process_inline_comments(comments)
 
     async def run_inline_review(self) -> None:
-        if await self.has_existing_inline_comments():
+        await hook.emit_inline_review_start()
+        if await self.comment_gateway.has_existing_inline_comments():
             return
 
         review_info = await self.vcs.get_review_info()
@@ -134,9 +78,11 @@ class ReviewService:
             self.process_file_inline(changed_file, review_info)
             for changed_file in changed_files
         ])
+        await hook.emit_inline_review_complete(self.cost.aggregate())
 
     async def run_context_review(self) -> None:
-        if await self.has_existing_inline_comments():
+        await hook.emit_context_review_start()
+        if await self.comment_gateway.has_existing_inline_comments():
             return
 
         review_info = await self.vcs.get_review_info()
@@ -156,7 +102,7 @@ class ReviewService:
         prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_context_request(rendered_files, prompt_context)
         prompt_system = self.prompt.build_system_context_request(prompt_context)
-        prompt_result = await self.ask_llm(prompt, prompt_system)
+        prompt_result = await self.llm_gateway.ask(prompt, prompt_system)
 
         comments = self.inline.parse_model_output(prompt_result).dedupe()
         comments.root = self.policy.apply_for_context_comments(comments.root)
@@ -165,10 +111,12 @@ class ReviewService:
             return
 
         logger.info(f"Posting {len(comments.root)} inline comments (context review)")
-        await self.process_inline_comments(flow="context", comments=comments)
+        await self.comment_gateway.process_inline_comments(comments)
+        await hook.emit_context_review_complete(self.cost.aggregate())
 
     async def run_summary_review(self) -> None:
-        if await self.has_existing_summary_comments():
+        await hook.emit_summary_review_start()
+        if await self.comment_gateway.has_existing_summary_comments():
             return
 
         review_info = await self.vcs.get_review_info()
@@ -188,7 +136,7 @@ class ReviewService:
         prompt_context = build_prompt_context_from_mr_info(review_info)
         prompt = self.prompt.build_summary_request(rendered_files, prompt_context)
         prompt_system = self.prompt.build_system_summary_request(prompt_context)
-        prompt_result = await self.ask_llm(prompt, prompt_system)
+        prompt_result = await self.llm_gateway.ask(prompt, prompt_system)
 
         summary = self.summary.parse_model_output(prompt_result)
         if not summary.text.strip():
@@ -196,7 +144,8 @@ class ReviewService:
             return
 
         logger.info(f"Posting summary review comment ({len(summary.text)} chars)")
-        await self.vcs.create_general_comment(summary.body_with_tag)
+        await self.comment_gateway.process_summary_comment(summary)
+        await hook.emit_summary_review_complete(self.cost.aggregate())
 
     def report_total_cost(self):
         total_report = self.cost.aggregate()
