@@ -16,12 +16,13 @@ from ai_review.services.diff.renderers import (
 )
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.diff.tools import find_diff_file
+from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 
 logger = get_logger("DIFF_SERVICE")
 
 
-class DiffService:
+class DiffService(DiffServiceProtocol):
     @classmethod
     def parse(cls, raw_diff: str) -> Diff:
         if not raw_diff.strip():
