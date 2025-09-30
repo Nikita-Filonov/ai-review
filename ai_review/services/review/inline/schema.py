@@ -38,8 +38,8 @@ class InlineCommentSchema(BaseModel):
         return f"{self.body}\n\n{settings.review.inline_tag}"
 
     @property
-    def fallback_body_with_tag(self) -> str:
-        return f"**{self.file}:{self.line}** — {self.message}\n\n{settings.review.inline_tag}"
+    def fallback_body(self) -> str:
+        return f"**{self.file}:{self.line}** — {self.message}"
 
 
 class InlineCommentListSchema(RootModel[list[InlineCommentSchema]]):
