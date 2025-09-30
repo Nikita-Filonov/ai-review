@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.20.0
+      - uses: Nikita-Filonov/ai-review@v0.21.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -240,6 +240,7 @@ ai-review:
 See these folders for reference templates and full configuration options:
 
 - [./docs/ci](./docs/ci) — CI/CD integration templates (GitHub Actions, GitLab CI)
+- [./docs/hooks](./docs/hooks) — hook reference and lifecycle events
 - [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
 
