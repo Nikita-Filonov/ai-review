@@ -1,10 +1,10 @@
 from ai_review.clients.claude.client import get_claude_http_client
 from ai_review.clients.claude.schema import ClaudeChatRequestSchema, ClaudeMessageSchema
 from ai_review.config import settings
-from ai_review.services.llm.types import LLMClient, ChatResultSchema
+from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
 
 
-class ClaudeLLMClient(LLMClient):
+class ClaudeLLMClient(LLMClientProtocol):
     def __init__(self):
         self.http_client = get_claude_http_client()
 

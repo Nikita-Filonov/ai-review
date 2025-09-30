@@ -6,10 +6,10 @@ from ai_review.clients.gemini.schema import (
     GeminiGenerationConfigSchema,
 )
 from ai_review.config import settings
-from ai_review.services.llm.types import LLMClient, ChatResultSchema
+from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
 
 
-class GeminiLLMClient(LLMClient):
+class GeminiLLMClient(LLMClientProtocol):
     def __init__(self):
         self.http_client = get_gemini_http_client()
 

@@ -3,10 +3,10 @@ from ai_review.libs.constants.llm_provider import LLMProvider
 from ai_review.services.llm.claude.client import ClaudeLLMClient
 from ai_review.services.llm.gemini.client import GeminiLLMClient
 from ai_review.services.llm.openai.client import OpenAILLMClient
-from ai_review.services.llm.types import LLMClient
+from ai_review.services.llm.types import LLMClientProtocol
 
 
-def get_llm_client() -> LLMClient:
+def get_llm_client() -> LLMClientProtocol:
     match settings.llm.provider:
         case LLMProvider.OPENAI:
             return OpenAILLMClient()

@@ -1,10 +1,10 @@
 from ai_review.clients.openai.client import get_openai_http_client
 from ai_review.clients.openai.schema import OpenAIChatRequestSchema, OpenAIMessageSchema
 from ai_review.config import settings
-from ai_review.services.llm.types import LLMClient, ChatResultSchema
+from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
 
 
-class OpenAILLMClient(LLMClient):
+class OpenAILLMClient(LLMClientProtocol):
     def __init__(self):
         self.http_client = get_openai_http_client()
 
