@@ -18,5 +18,4 @@ def test_body_with_tag_appends_tag(monkeypatch):
     body = comment.body_with_tag
     assert body.startswith("Review passed")
     assert body.endswith("\n\n#ai-summary")
-    # убедимся, что перенос строки присутствует
     assert "\n\n#ai-summary" in body
