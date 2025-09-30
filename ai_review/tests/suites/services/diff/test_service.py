@@ -69,16 +69,16 @@ def test_render_file_returns_unsupported(monkeypatch: pytest.MonkeyPatch, fake_d
 
 
 def test_render_files_invokes_render_file(
-        fake_git: FakeGitService,
         fake_diff: Diff,
         monkeypatch: pytest.MonkeyPatch,
+        fake_git_service: FakeGitService,
 ) -> None:
     monkeypatch.setattr("ai_review.services.diff.service.DiffParser.parse", lambda _: fake_diff)
     monkeypatch.setattr(config.settings.review, "mode", ReviewMode.FULL_FILE_DIFF)
 
-    fake_git.responses["get_diff_for_file"] = "fake-diff"
+    fake_git_service.responses["get_diff_for_file"] = "fake-diff"
 
-    out = DiffService.render_files(git=fake_git, base_sha="A", head_sha="B", files=["b/x"])
+    out = DiffService.render_files(git=fake_git_service, base_sha="A", head_sha="B", files=["b/x"])
     assert out
     assert out[0].file == "b/x"
     assert out[0].diff.startswith("# No matching lines for mode")
