@@ -17,6 +17,7 @@ from ai_review.clients.github.pr.schema.reviews import (
     GitHubGetPRReviewsQuerySchema,
     GitHubGetPRReviewsResponseSchema
 )
+from ai_review.clients.github.pr.types import GitHubPullRequestsHTTPClientProtocol
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import HTTPClientError, handle_http_error
 
@@ -25,7 +26,7 @@ class GitHubPullRequestsHTTPClientError(HTTPClientError):
     pass
 
 
-class GitHubPullRequestsHTTPClient(HTTPClient):
+class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProtocol):
     @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
     async def get_pull_request_api(self, owner: str, repo: str, pull_number: str) -> Response:
         return await self.get(f"/repos/{owner}/{repo}/pulls/{pull_number}")
