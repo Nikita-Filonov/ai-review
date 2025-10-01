@@ -1,12 +1,13 @@
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.cost.schema import CostReportSchema
+from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.llm.types import ChatResultSchema
 
 logger = get_logger("COST_SERVICE")
 
 
-class CostService:
+class CostService(CostServiceProtocol):
     def __init__(self):
         self.pricing = settings.llm.load_pricing()
         self.reports: list[CostReportSchema] = []

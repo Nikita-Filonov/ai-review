@@ -8,6 +8,10 @@ class GitHubPRCommentSchema(BaseModel):
     line: int | None = None
 
 
+class GitHubGetPRCommentsQuerySchema(BaseModel):
+    per_page: int
+
+
 class GitHubGetPRCommentsResponseSchema(RootModel[list[GitHubPRCommentSchema]]):
     root: list[GitHubPRCommentSchema]
 

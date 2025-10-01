@@ -6,11 +6,12 @@ from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.schema import LLMArtifactSchema
 from ai_review.services.artifacts.tools import make_artifact_id
+from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 
 logger = get_logger("ARTIFACTS_SERVICE")
 
 
-class ArtifactsService:
+class ArtifactsService(ArtifactsServiceProtocol):
     @classmethod
     async def save_llm_interaction(cls, prompt: str, prompt_system: str, response: str | None = None) -> str | None:
         if not settings.artifacts.llm_enabled:

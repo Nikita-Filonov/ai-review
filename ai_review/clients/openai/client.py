@@ -26,7 +26,7 @@ class OpenAIHTTPClient(HTTPClient):
 def get_openai_http_client() -> OpenAIHTTPClient:
     logger = get_logger("OPENAI_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,

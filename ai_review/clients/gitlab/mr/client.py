@@ -1,16 +1,19 @@
-from httpx import Response
+from httpx import Response, QueryParams
 
 from ai_review.clients.gitlab.mr.schema.changes import GitLabGetMRChangesResponseSchema
 from ai_review.clients.gitlab.mr.schema.discussions import (
+    GitLabGetMRDiscussionsQuerySchema,
     GitLabGetMRDiscussionsResponseSchema,
     GitLabCreateMRDiscussionRequestSchema,
     GitLabCreateMRDiscussionResponseSchema
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
+    GitLabGetMRNotesQuerySchema,
     GitLabGetMRNotesResponseSchema,
     GitLabCreateMRNoteRequestSchema,
     GitLabCreateMRNoteResponseSchema,
 )
+from ai_review.clients.gitlab.mr.types import GitLabMergeRequestsHTTPClientProtocol
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
 
@@ -19,7 +22,7 @@ class GitLabMergeRequestsHTTPClientError(HTTPClientError):
     pass
 
 
-class GitLabMergeRequestsHTTPClient(HTTPClient):
+class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientProtocol):
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
     async def get_changes_api(self, project_id: str, merge_request_id: str) -> Response:
         return await self.get(
@@ -27,15 +30,27 @@ class GitLabMergeRequestsHTTPClient(HTTPClient):
         )
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
-    async def get_notes_api(self, project_id: str, merge_request_id: str) -> Response:
+    async def get_notes_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            query: GitLabGetMRNotesQuerySchema
+    ) -> Response:
         return await self.get(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/notes"
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/notes",
+            query=QueryParams(**query.model_dump())
         )
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
-    async def get_discussions_api(self, project_id: str, merge_request_id: str) -> Response:
+    async def get_discussions_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            query: GitLabGetMRDiscussionsQuerySchema
+    ) -> Response:
         return await self.get(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/discussions"
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/discussions",
+            query=QueryParams(**query.model_dump())
         )
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
@@ -71,7 +86,8 @@ class GitLabMergeRequestsHTTPClient(HTTPClient):
             project_id: str,
             merge_request_id: str
     ) -> GitLabGetMRNotesResponseSchema:
-        response = await self.get_notes_api(project_id, merge_request_id)
+        query = GitLabGetMRNotesQuerySchema(per_page=100)
+        response = await self.get_notes_api(project_id, merge_request_id, query)
         return GitLabGetMRNotesResponseSchema.model_validate_json(response.text)
 
     async def get_discussions(
@@ -79,7 +95,8 @@ class GitLabMergeRequestsHTTPClient(HTTPClient):
             project_id: str,
             merge_request_id: str
     ) -> GitLabGetMRDiscussionsResponseSchema:
-        response = await self.get_discussions_api(project_id, merge_request_id)
+        query = GitLabGetMRDiscussionsQuerySchema(per_page=100)
+        response = await self.get_discussions_api(project_id, merge_request_id, query)
         return GitLabGetMRDiscussionsResponseSchema.model_validate_json(response.text)
 
     async def create_note(

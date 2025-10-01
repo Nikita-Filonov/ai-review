@@ -2,9 +2,10 @@ from ai_review.config import settings
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.prompt.schema import PromptContextSchema
 from ai_review.services.prompt.tools import normalize_prompt, format_file
+from ai_review.services.prompt.types import PromptServiceProtocol
 
 
-class PromptService:
+class PromptService(PromptServiceProtocol):
     @classmethod
     def prepare_prompt(cls, prompts: list[str], context: PromptContextSchema) -> str:
         prompt = "\n\n".join(prompts)

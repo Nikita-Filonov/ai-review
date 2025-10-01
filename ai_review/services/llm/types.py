@@ -10,6 +10,6 @@ class ChatResultSchema(BaseModel):
     completion_tokens: int | None = None
 
 
-class LLMClient(Protocol):
+class LLMClientProtocol(Protocol):
     async def chat(self, prompt: str, prompt_system: str) -> ChatResultSchema:
         ...

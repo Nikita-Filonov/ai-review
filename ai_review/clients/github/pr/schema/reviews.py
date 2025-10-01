@@ -9,5 +9,9 @@ class GitHubPRReviewSchema(BaseModel):
     state: str
 
 
+class GitHubGetPRReviewsQuerySchema(BaseModel):
+    per_page: int
+
+
 class GitHubGetPRReviewsResponseSchema(RootModel[list[GitHubPRReviewSchema]]):
     root: list[GitHubPRReviewSchema]

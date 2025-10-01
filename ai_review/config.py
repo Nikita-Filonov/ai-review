@@ -12,6 +12,7 @@ from ai_review.libs.config.base import (
     get_yaml_config_file_or_default,
     get_json_config_file_or_default
 )
+from ai_review.libs.config.core import CoreConfig
 from ai_review.libs.config.llm import LLMConfig
 from ai_review.libs.config.logger import LoggerConfig
 from ai_review.libs.config.prompt import PromptConfig
@@ -36,6 +37,7 @@ class Settings(BaseSettings):
 
     llm: LLMConfig
     vcs: VCSConfig
+    core: CoreConfig = CoreConfig()
     prompt: PromptConfig = PromptConfig()
     review: ReviewConfig = ReviewConfig()
     logger: LoggerConfig = LoggerConfig()

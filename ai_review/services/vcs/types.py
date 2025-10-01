@@ -42,7 +42,7 @@ class ReviewThreadSchema(BaseModel):
     comments: list[ReviewCommentSchema]
 
 
-class VCSClient(Protocol):
+class VCSClientProtocol(Protocol):
     """
     Unified interface for version control system integrations (GitHub, GitLab, Bitbucket, etc.).
     Designed for code review automation: fetching review info, comments, and posting feedback.

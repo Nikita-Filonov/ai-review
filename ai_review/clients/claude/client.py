@@ -26,7 +26,7 @@ class ClaudeHTTPClient(HTTPClient):
 def get_claude_http_client() -> ClaudeHTTPClient:
     logger = get_logger("CLAUDE_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,

@@ -1,12 +1,15 @@
-from logging import Logger
+from typing import TYPE_CHECKING
 
 from httpx import Request, Response
 
 from ai_review.libs.http.event_hooks.base import BaseEventHook
 
+if TYPE_CHECKING:
+    from loguru import Logger
+
 
 class LoggerEventHook(BaseEventHook):
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: "Logger"):
         self.logger = logger
 
     async def request(self, request: Request):

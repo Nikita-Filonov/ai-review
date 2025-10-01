@@ -6,6 +6,10 @@ class GitLabNoteSchema(BaseModel):
     body: str
 
 
+class GitLabGetMRNotesQuerySchema(BaseModel):
+    per_page: int
+
+
 class GitLabGetMRNotesResponseSchema(RootModel[list[GitLabNoteSchema]]):
     root: list[GitLabNoteSchema]
 

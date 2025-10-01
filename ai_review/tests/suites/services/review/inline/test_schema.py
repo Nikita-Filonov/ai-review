@@ -1,3 +1,5 @@
+import pytest
+
 from ai_review.config import settings
 from ai_review.services.review.inline.schema import (
     InlineCommentSchema,
@@ -7,14 +9,14 @@ from ai_review.services.review.inline.schema import (
 
 def test_normalize_file_and_message():
     comment = InlineCommentSchema(file=" \\src\\main.py ", line=10, message="  fix bug  ")
-    assert comment.file == "src/main.py"  # нормализуется и слеши, и пробелы
-    assert comment.message == "fix bug"  # пробелы убраны
+    assert comment.file == "src/main.py"
+    assert comment.message == "fix bug"
 
 
 def test_body_without_suggestion():
     comment = InlineCommentSchema(file="a.py", line=1, message="use f-string")
     assert comment.body == "use f-string"
-    assert settings.review.inline_tag not in comment.body  # тег ещё не добавлен
+    assert settings.review.inline_tag not in comment.body
 
 
 def test_body_with_suggestion():
@@ -31,18 +33,17 @@ def test_body_with_suggestion():
     assert comment.body == expected
 
 
-def test_body_with_tag(monkeypatch):
+def test_body_with_tag(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings.review, "inline_tag", "#ai-inline")
     comment = InlineCommentSchema(file="a.py", line=3, message="something")
     assert comment.body_with_tag.endswith("\n\n#ai-inline")
+    assert settings.review.inline_tag not in comment.body
 
 
-def test_fallback_body_with_tag(monkeypatch):
+def test_fallback_body(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings.review, "inline_tag", "#ai-inline")
     comment = InlineCommentSchema(file="a.py", line=42, message="missing check")
-    body = comment.fallback_body_with_tag
-    assert body.startswith("**a.py:42** — missing check")
-    assert "#ai-inline" in body
+    assert comment.fallback_body.startswith("**a.py:42** — missing check")
 
 
 def test_dedup_key_differs_on_message_and_suggestion():
@@ -53,7 +54,7 @@ def test_dedup_key_differs_on_message_and_suggestion():
 
 def test_list_dedupe_removes_duplicates():
     c1 = InlineCommentSchema(file="a.py", line=1, message="msg one")
-    c2 = InlineCommentSchema(file="a.py", line=1, message="msg one")  # дубликат
+    c2 = InlineCommentSchema(file="a.py", line=1, message="msg one")
     c3 = InlineCommentSchema(file="a.py", line=2, message="msg two")
 
     comment_list = InlineCommentListSchema(root=[c1, c2, c3])
