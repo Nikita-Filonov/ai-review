@@ -5,7 +5,7 @@ import pytest
 
 from ai_review.libs.diff.models import Diff, DiffFile, DiffHunk, DiffRange, DiffLineType, FileMode
 from ai_review.services.diff import tools
-from ai_review.tests.fixtures.git import FakeGitService
+from ai_review.tests.fixtures.services.git import FakeGitService
 
 
 # ---------- normalize_file_path ----------

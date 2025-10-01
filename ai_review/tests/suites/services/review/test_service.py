@@ -1,15 +1,15 @@
 import pytest
 
 from ai_review.services.review.service import ReviewService
-from ai_review.tests.fixtures.artifacts import FakeArtifactsService
-from ai_review.tests.fixtures.cost import FakeCostService
-from ai_review.tests.fixtures.diff import FakeDiffService
-from ai_review.tests.fixtures.git import FakeGitService
-from ai_review.tests.fixtures.llm import FakeLLMClient
-from ai_review.tests.fixtures.prompt import FakePromptService
-from ai_review.tests.fixtures.review.inline import FakeInlineCommentService
-from ai_review.tests.fixtures.review.summary import FakeSummaryCommentService
-from ai_review.tests.fixtures.vcs import FakeVCSClient
+from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
+from ai_review.tests.fixtures.services.cost import FakeCostService
+from ai_review.tests.fixtures.services.diff import FakeDiffService
+from ai_review.tests.fixtures.services.git import FakeGitService
+from ai_review.tests.fixtures.services.llm import FakeLLMClient
+from ai_review.tests.fixtures.services.prompt import FakePromptService
+from ai_review.tests.fixtures.services.review.inline import FakeInlineCommentService
+from ai_review.tests.fixtures.services.review.summary import FakeSummaryCommentService
+from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ from ai_review import config
 from ai_review.libs.config.review import ReviewMode
 from ai_review.libs.diff.models import Diff, DiffFile, FileMode
 from ai_review.services.diff.service import DiffService
-from ai_review.tests.fixtures.git import FakeGitService
+from ai_review.tests.fixtures.services.git import FakeGitService
 
 
 @pytest.fixture
