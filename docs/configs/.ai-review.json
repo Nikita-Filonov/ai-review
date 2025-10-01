@@ -25,6 +25,9 @@
       "api_token": "${CI_JOB_TOKEN}"
     }
   },
+  "core": {
+    "concurrency": 7
+  },
   "prompt": {
     "context": {
       "environment": "staging",

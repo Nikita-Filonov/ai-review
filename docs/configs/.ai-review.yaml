@@ -43,6 +43,20 @@ llm:
     # api_token: ${CLAUDE_API_KEY}
     # api_version: 2023-06-01
 
+core:
+  # ==============================
+  # Core engine configuration
+  # ==============================
+  # Controls the maximum number of concurrently running async tasks.
+  # Used in bounded_gather() to limit concurrency when sending requests
+  # (e.g., posting comments or fetching data from LLM/VCS APIs).
+  #
+  # Increasing this value allows more operations in parallel,
+  # but may hit API rate limits or increase memory consumption.
+  #
+  # Recommended: 5–10 for LLM requests, depending on model rate limits.
+  concurrency: 7
+
 vcs:
   # Version control system provider.
   # Options: GITLAB (currently only GitLab is supported)

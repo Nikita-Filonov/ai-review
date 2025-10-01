@@ -55,6 +55,21 @@
     VCS__HTTP_CLIENT__API_TOKEN: "$CI_JOB_TOKEN"
 
     # ===============================
+    # Core (execution settings)
+    # ===============================
+    # Limits the maximum number of concurrent async tasks
+    # (e.g., posting comments or calling LLMs).
+    # Helps avoid hitting API rate limits.
+    #
+    # Default: 7
+    #
+    # Example:
+    #   CORE__CONCURRENCY: 5
+    #
+    # Recommended range: 5–10 depending on model/API limits.
+    CORE__CONCURRENCY: 7
+
+    # ===============================
     # Prompts (optional overrides)
     # ===============================
     # Whether to normalize prompts before sending to the LLM.
