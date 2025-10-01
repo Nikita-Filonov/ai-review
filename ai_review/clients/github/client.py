@@ -15,7 +15,7 @@ class GitHubHTTPClient:
 def get_github_http_client() -> GitHubHTTPClient:
     logger = get_logger("GITHUB_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,

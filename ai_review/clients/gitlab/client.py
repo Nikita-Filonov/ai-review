@@ -15,7 +15,7 @@ class GitLabHTTPClient:
 def get_gitlab_http_client() -> GitLabHTTPClient:
     logger = get_logger("GITLAB_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
         timeout=settings.llm.http_client.timeout,
