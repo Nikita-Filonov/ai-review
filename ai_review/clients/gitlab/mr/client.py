@@ -13,6 +13,7 @@ from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabCreateMRNoteRequestSchema,
     GitLabCreateMRNoteResponseSchema,
 )
+from ai_review.clients.gitlab.mr.types import GitLabMergeRequestsHTTPClientProtocol
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
 
@@ -21,7 +22,7 @@ class GitLabMergeRequestsHTTPClientError(HTTPClientError):
     pass
 
 
-class GitLabMergeRequestsHTTPClient(HTTPClient):
+class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientProtocol):
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
     async def get_changes_api(self, project_id: str, merge_request_id: str) -> Response:
         return await self.get(
