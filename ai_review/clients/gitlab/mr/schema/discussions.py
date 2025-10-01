@@ -17,6 +17,10 @@ class GitLabDiscussionPositionSchema(BaseModel):
     new_line: int
 
 
+class GitLabGetMRDiscussionsQuerySchema(BaseModel):
+    per_page: int
+
+
 class GitLabGetMRDiscussionsResponseSchema(RootModel[list[GitLabDiscussionSchema]]):
     root: list[GitLabDiscussionSchema]
 

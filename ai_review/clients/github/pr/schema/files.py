@@ -8,5 +8,9 @@ class GitHubPRFileSchema(BaseModel):
     filename: str
 
 
+class GitHubGetPRFilesQuerySchema(BaseModel):
+    per_page: int
+
+
 class GitHubGetPRFilesResponseSchema(RootModel[list[GitHubPRFileSchema]]):
     root: list[GitHubPRFileSchema]
