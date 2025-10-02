@@ -116,14 +116,14 @@ def render_unified(
     added_new_positions = file.added_line_numbers()
     removed_old_positions = file.removed_line_numbers()
 
-    def in_context(old_no: int | None, new_no: int | None) -> bool:
+    def in_context(inner_old_no: int | None, inner_new_no: int | None) -> bool:
         """Check if an unchanged line falls within context radius."""
         if context <= 0:
             return False
-        if include_added and new_no is not None:
+        if include_added and inner_new_no is not None:
             if any(abs(new_no - a) <= context for a in added_new_positions):
                 return True
-        if include_removed and old_no is not None:
+        if include_removed and inner_old_no is not None:
             if any(abs(old_no - r) <= context for r in removed_old_positions):
                 return True
         return False
