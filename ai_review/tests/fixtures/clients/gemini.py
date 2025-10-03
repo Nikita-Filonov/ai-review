@@ -2,8 +2,8 @@ import pytest
 from pydantic import HttpUrl, SecretStr
 
 from ai_review.config import settings
-from ai_review.libs.config.gemini import GeminiMetaConfig, GeminiHTTPClientConfig
-from ai_review.libs.config.llm import GeminiLLMConfig
+from ai_review.libs.config.llm.base import GeminiLLMConfig
+from ai_review.libs.config.llm.gemini import GeminiMetaConfig, GeminiHTTPClientConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 
 

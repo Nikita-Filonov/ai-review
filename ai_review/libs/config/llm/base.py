@@ -4,9 +4,9 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import BaseModel, Field, FilePath
 
-from ai_review.libs.config.claude import ClaudeHTTPClientConfig, ClaudeMetaConfig
-from ai_review.libs.config.gemini import GeminiHTTPClientConfig, GeminiMetaConfig
-from ai_review.libs.config.openai import OpenAIHTTPClientConfig, OpenAIMetaConfig
+from ai_review.libs.config.llm.claude import ClaudeHTTPClientConfig, ClaudeMetaConfig
+from ai_review.libs.config.llm.gemini import GeminiHTTPClientConfig, GeminiMetaConfig
+from ai_review.libs.config.llm.openai import OpenAIHTTPClientConfig, OpenAIMetaConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 from ai_review.libs.resources import load_resource
 

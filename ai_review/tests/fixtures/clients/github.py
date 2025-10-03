@@ -18,8 +18,8 @@ from ai_review.clients.github.pr.schema.pull_request import (
 from ai_review.clients.github.pr.schema.reviews import GitHubGetPRReviewsResponseSchema, GitHubPRReviewSchema
 from ai_review.clients.github.pr.types import GitHubPullRequestsHTTPClientProtocol
 from ai_review.config import settings
-from ai_review.libs.config.github import GitHubPipelineConfig, GitHubHTTPClientConfig
-from ai_review.libs.config.vcs import GitHubVCSConfig
+from ai_review.libs.config.vcs.base import GitHubVCSConfig
+from ai_review.libs.config.vcs.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.constants.vcs_provider import VCSProvider
 from ai_review.services.vcs.github.client import GitHubVCSClient
 
