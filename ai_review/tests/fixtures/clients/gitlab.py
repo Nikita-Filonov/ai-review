@@ -20,8 +20,8 @@ from ai_review.clients.gitlab.mr.schema.notes import (
 )
 from ai_review.clients.gitlab.mr.types import GitLabMergeRequestsHTTPClientProtocol
 from ai_review.config import settings
-from ai_review.libs.config.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
-from ai_review.libs.config.vcs import GitLabVCSConfig
+from ai_review.libs.config.vcs.base import GitLabVCSConfig
+from ai_review.libs.config.vcs.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
 from ai_review.libs.constants.vcs_provider import VCSProvider
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 

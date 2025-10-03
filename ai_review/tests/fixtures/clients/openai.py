@@ -2,8 +2,8 @@ import pytest
 from pydantic import HttpUrl, SecretStr
 
 from ai_review.config import settings
-from ai_review.libs.config.llm import OpenAILLMConfig
-from ai_review.libs.config.openai import OpenAIMetaConfig, OpenAIHTTPClientConfig
+from ai_review.libs.config.llm.base import OpenAILLMConfig
+from ai_review.libs.config.llm.openai import OpenAIMetaConfig, OpenAIHTTPClientConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 
 

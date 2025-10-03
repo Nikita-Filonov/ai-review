@@ -13,11 +13,11 @@ from ai_review.libs.config.base import (
     get_json_config_file_or_default
 )
 from ai_review.libs.config.core import CoreConfig
-from ai_review.libs.config.llm import LLMConfig
+from ai_review.libs.config.llm.base import LLMConfig
 from ai_review.libs.config.logger import LoggerConfig
 from ai_review.libs.config.prompt import PromptConfig
 from ai_review.libs.config.review import ReviewConfig
-from ai_review.libs.config.vcs import VCSConfig
+from ai_review.libs.config.vcs.base import VCSConfig
 
 
 class Settings(BaseSettings):

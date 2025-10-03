@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.libs.config.llm import LLMPricingConfig, LLMConfigBase
+from ai_review.libs.config.llm.base import LLMPricingConfig, LLMConfigBase
 from ai_review.services.cost.schema import CostReportSchema
 from ai_review.services.cost.service import CostService
 from ai_review.services.llm.types import ChatResultSchema

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from ai_review.config import settings
 from ai_review.libs.template.render import render_template
@@ -24,29 +24,18 @@ class PromptContextSchema(BaseModel):
     labels: list[str] = Field(default_factory=list)
     changed_files: list[str] = Field(default_factory=list)
 
-    @property
-    def render_values(self) -> dict[str, str]:
-        return {
-            "review_title": self.review_title,
-            "review_description": self.review_description,
-
-            "review_author_name": self.review_author_name,
-            "review_author_username": self.review_author_username,
-
-            "review_reviewer": self.review_reviewer,
-            "review_reviewers": ", ".join(self.review_reviewers),
-            "review_reviewers_usernames": ", ".join(self.review_reviewers_usernames),
-
-            "review_assignees": ", ".join(self.review_assignees),
-            "review_assignees_usernames": ", ".join(self.review_assignees_usernames),
-
-            "source_branch": self.source_branch,
-            "target_branch": self.target_branch,
-
-            "labels": ", ".join(self.labels),
-            "changed_files": ", ".join(self.changed_files),
-        }
+    @field_serializer(
+        "review_reviewers",
+        "review_reviewers_usernames",
+        "review_assignees",
+        "review_assignees_usernames",
+        "labels",
+        "changed_files",
+        when_used="always"
+    )
+    def list_of_strings_serializer(self, value: list[str]) -> str:
+        return ", ".join(value)
 
     def apply_format(self, prompt: str) -> str:
-        values = {**self.render_values, **settings.prompt.context}
+        values = {**self.model_dump(), **settings.prompt.context}
         return render_template(prompt, values, settings.prompt.context_placeholder)

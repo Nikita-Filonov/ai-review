@@ -2,8 +2,8 @@ import pytest
 from pydantic import HttpUrl, SecretStr
 
 from ai_review.config import settings
-from ai_review.libs.config.claude import ClaudeMetaConfig, ClaudeHTTPClientConfig
-from ai_review.libs.config.llm import ClaudeLLMConfig
+from ai_review.libs.config.llm.base import ClaudeLLMConfig
+from ai_review.libs.config.llm.claude import ClaudeMetaConfig, ClaudeHTTPClientConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 
 
