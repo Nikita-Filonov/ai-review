@@ -36,7 +36,7 @@ class RetryTransport(AsyncBaseTransport):
                 return last_response
 
             self.logger.warning(
-                f"Attempt {attempt}/{self.max_retries} failed "
+                f"Attempt {attempt + 1}/{self.max_retries} failed "
                 f"with status={last_response.status_code} for {request.method} {request.url}. "
                 f"Retrying in {self.retry_delay:.1f}s..."
             )
