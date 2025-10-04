@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -28,20 +28,33 @@ llm:
     # max_tokens: 1200
     # temperature: 0.3
 
+    # --- Ollama ---
+    # model: llama2               # e.g., llama2, mistral, codellama
+    # max_tokens: 512             # Maps to `num_predict`
+    # temperature: 0.3
+    # top_p: 0.9                  # (optional) nucleus sampling
+    # repeat_penalty: 1.1         # (optional) repetition penalty
+    # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
+    # seed: 42                    # (optional) random seed for reproducibility
+
   # HTTP client configuration for LLM.
   http_client:
     timeout: 120                        # Request timeout in seconds
     api_url: https://api.openai.com/v1  # Base URL of the provider API
     api_token: ${OPENAI_API_KEY}        # API token (set in env/CI variables)
 
-    # For Gemini:
+    # --- Gemini ---
     # api_url: https://generativelanguage.googleapis.com
     # api_token: ${GEMINI_API_KEY}
 
-    # For Claude:
+    # --- Claude ---
     # api_url: https://api.anthropic.com
     # api_token: ${CLAUDE_API_KEY}
     # api_version: 2023-06-01
+
+    # --- Ollama ---
+    # api_url: http://localhost:11434   # Local Ollama runtime
+    # (no api_token required)
 
 core:
   # ==============================

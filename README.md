@@ -32,7 +32,7 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, and **Gemini**, or switch anytime.
+- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
 - **VCS integration** — works out of the box with GitLab, GitHub (more providers coming).
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
@@ -134,7 +134,7 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, or Claude
+- **LLM provider** — OpenAI, Gemini, Claude, or Ollama
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab** and **GitHub**.
 - **Review policy** — which files to include/exclude, review modes
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.24.0
+      - uses: Nikita-Filonov/ai-review@v0.25.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -253,6 +253,10 @@ provider** explicitly configured in your `.ai-review.yaml`.
 
 All data is sent **directly** from your CI/CD environment to the selected LLM API endpoint (e.g. OpenAI, Gemini,
 Claude). No intermediary servers or storage layers are involved.
+
+If you use **Ollama**, requests are sent to your **local or self-hosted Ollama runtime**  
+(by default `http://localhost:11434`). This allows you to run reviews completely **offline**, keeping all data strictly
+inside your infrastructure.
 
 > ⚠️ Please ensure you use proper API tokens and avoid exposing corporate or personal secrets.
 > If you accidentally leak private code or credentials due to incorrect configuration (e.g., using a personal key
