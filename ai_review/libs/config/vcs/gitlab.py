@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ai_review.libs.config.http import HTTPClientConfig
+from ai_review.libs.config.http import HTTPClientWithTokenConfig
 
 
 class GitLabPipelineConfig(BaseModel):
@@ -8,5 +8,5 @@ class GitLabPipelineConfig(BaseModel):
     merge_request_id: str
 
 
-class GitLabHTTPClientConfig(HTTPClientConfig):
+class GitLabHTTPClientConfig(HTTPClientWithTokenConfig):
     pass

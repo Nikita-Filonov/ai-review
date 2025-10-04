@@ -2,6 +2,7 @@ from ai_review.config import settings
 from ai_review.libs.constants.llm_provider import LLMProvider
 from ai_review.services.llm.claude.client import ClaudeLLMClient
 from ai_review.services.llm.gemini.client import GeminiLLMClient
+from ai_review.services.llm.ollama.client import OllamaLLMClient
 from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import LLMClientProtocol
 
@@ -14,5 +15,7 @@ def get_llm_client() -> LLMClientProtocol:
             return GeminiLLMClient()
         case LLMProvider.CLAUDE:
             return ClaudeLLMClient()
+        case LLMProvider.OLLAMA:
+            return OllamaLLMClient()
         case _:
             raise ValueError(f"Unsupported LLM provider: {settings.llm.provider}")

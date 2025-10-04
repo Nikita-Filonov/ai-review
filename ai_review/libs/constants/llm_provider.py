@@ -5,3 +5,4 @@ class LLMProvider(StrEnum):
     OPENAI = "OPENAI"
     GEMINI = "GEMINI"
     CLAUDE = "CLAUDE"
+    OLLAMA = "OLLAMA"

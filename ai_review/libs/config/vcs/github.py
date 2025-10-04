@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from ai_review.libs.config.http import HTTPClientConfig
+from ai_review.libs.config.http import HTTPClientWithTokenConfig
 
 
 class GitHubPipelineConfig(BaseModel):
@@ -9,5 +9,5 @@ class GitHubPipelineConfig(BaseModel):
     pull_number: str
 
 
-class GitHubHTTPClientConfig(HTTPClientConfig):
+class GitHubHTTPClientConfig(HTTPClientWithTokenConfig):
     pass
