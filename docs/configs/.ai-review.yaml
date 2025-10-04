@@ -56,6 +56,43 @@ llm:
     # api_url: http://localhost:11434   # Local Ollama runtime
     # (no api_token required)
 
+vcs:
+  # Version control system provider.
+  # Options: GITLAB | GITHUB | BITBUCKET
+  provider: GITLAB
+
+  # Pipeline/MR/PR context.
+  pipeline:
+    # --- GitLab ---
+    project_id: ${CI_PROJECT_ID}               # GitLab project ID (auto-populated in CI)
+    merge_request_id: ${CI_MERGE_REQUEST_IID}  # Merge Request IID (auto-populated in CI)
+
+    # --- GitHub ---
+    # owner: ${GITHUB_REPOSITORY_OWNER}  # Repo owner (e.g. "my-org")
+    # repo: ${GITHUB_REPOSITORY_NAME}    # Repo name  (e.g. "my-service")
+    # pull_number: ${PR_NUMBER}          # Pull Request number
+
+    # --- Bitbucket ---
+    # workspace: ${BITBUCKET_WORKSPACE}         # Workspace ID (e.g. "myteam")
+    # repo_slug: ${BITBUCKET_REPO_SLUG}         # Repository slug (short name, e.g. "my-service")
+    # pull_request_id: ${BITBUCKET_PR_ID}       # Pull Request ID (numeric, e.g. "42")
+
+  # HTTP client configuration for VCS.
+  http_client:
+    timeout: 120
+
+    # --- GitLab ---
+    api_url: ${CI_SERVER_URL}       # Base GitLab server URL
+    api_token: ${CI_JOB_TOKEN}      # Job token or personal access token
+
+    # --- GitHub ---
+    # api_url: https://api.github.com
+    # api_token: ${GITHUB_TOKEN}      # GitHub Actions token or PAT
+
+    # --- Bitbucket ---
+    # api_url: https://api.bitbucket.org/2.0
+    # api_token: ${BITBUCKET_TOKEN}   # App password or OAuth token
+
 core:
   # ==============================
   # Core engine configuration
@@ -69,22 +106,6 @@ core:
   #
   # Recommended: 5–10 for LLM requests, depending on model rate limits.
   concurrency: 7
-
-vcs:
-  # Version control system provider.
-  # Options: GITLAB (currently only GitLab is supported)
-  provider: GITLAB
-
-  # Pipeline/MR context.
-  pipeline:
-    project_id: ${CI_PROJECT_ID}               # GitLab project ID (auto-populated in CI)
-    merge_request_id: ${CI_MERGE_REQUEST_IID}  # MR IID (auto-populated in CI)
-
-  # HTTP client configuration for VCS.
-  http_client:
-    timeout: 120
-    api_url: ${CI_SERVER_URL}   # Base GitLab server URL
-    api_token: ${CI_JOB_TOKEN}  # Job token or personal access token
 
 prompt:
   # ==============================

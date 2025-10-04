@@ -15,4 +15,5 @@ pytest_plugins = (
     "ai_review.tests.fixtures.clients.gemini",
     "ai_review.tests.fixtures.clients.claude",
     "ai_review.tests.fixtures.clients.ollama",
+    "ai_review.tests.fixtures.clients.bitbucket",
 )
