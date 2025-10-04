@@ -1,6 +1,7 @@
 from httpx import AsyncClient, Response, AsyncHTTPTransport
 
 from ai_review.clients.ollama.schema import OllamaChatRequestSchema, OllamaChatResponseSchema
+from ai_review.clients.ollama.types import OllamaHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
@@ -13,7 +14,7 @@ class OllamaHTTPClientError(HTTPClientError):
     pass
 
 
-class OllamaHTTPClient(HTTPClient):
+class OllamaHTTPClient(HTTPClient, OllamaHTTPClientProtocol):
     @handle_http_error(client="OllamaHTTPClient", exception=OllamaHTTPClientError)
     async def chat_api(self, request: OllamaChatRequestSchema) -> Response:
         return await self.post("/api/chat", json=request.model_dump())

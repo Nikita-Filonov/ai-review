@@ -1,6 +1,7 @@
 from httpx import Response, AsyncHTTPTransport, AsyncClient
 
 from ai_review.clients.gemini.schema import GeminiChatRequestSchema, GeminiChatResponseSchema
+from ai_review.clients.gemini.types import GeminiHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
@@ -13,7 +14,7 @@ class GeminiHTTPClientError(HTTPClientError):
     pass
 
 
-class GeminiHTTPClient(HTTPClient):
+class GeminiHTTPClient(HTTPClient, GeminiHTTPClientProtocol):
     @handle_http_error(client="GeminiHTTPClient", exception=GeminiHTTPClientError)
     async def chat_api(self, request: GeminiChatRequestSchema) -> Response:
         meta = settings.llm.meta

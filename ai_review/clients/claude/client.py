@@ -1,6 +1,7 @@
 from httpx import AsyncClient, Response, AsyncHTTPTransport
 
 from ai_review.clients.claude.schema import ClaudeChatRequestSchema, ClaudeChatResponseSchema
+from ai_review.clients.claude.types import ClaudeHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
@@ -13,7 +14,7 @@ class ClaudeHTTPClientError(HTTPClientError):
     pass
 
 
-class ClaudeHTTPClient(HTTPClient):
+class ClaudeHTTPClient(HTTPClient, ClaudeHTTPClientProtocol):
     @handle_http_error(client="ClaudeHTTPClient", exception=ClaudeHTTPClientError)
     async def chat_api(self, request: ClaudeChatRequestSchema) -> Response:
         return await self.post("/v1/messages", json=request.model_dump())

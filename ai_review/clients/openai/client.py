@@ -1,6 +1,7 @@
 from httpx import Response, AsyncHTTPTransport, AsyncClient
 
 from ai_review.clients.openai.schema import OpenAIChatRequestSchema, OpenAIChatResponseSchema
+from ai_review.clients.openai.types import OpenAIHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
@@ -13,7 +14,7 @@ class OpenAIHTTPClientError(HTTPClientError):
     pass
 
 
-class OpenAIHTTPClient(HTTPClient):
+class OpenAIHTTPClient(HTTPClient, OpenAIHTTPClientProtocol):
     @handle_http_error(client='OpenAIHTTPClient', exception=OpenAIHTTPClientError)
     async def chat_api(self, request: OpenAIChatRequestSchema) -> Response:
         return await self.post("/chat/completions", json=request.model_dump())
