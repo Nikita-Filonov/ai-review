@@ -33,7 +33,7 @@ improve code quality, enforce consistency, and speed up the review process.
 ✨ Key features:
 
 - **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
-- **VCS integration** — works out of the box with GitLab, GitHub (more providers coming).
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
 - **AI Review runs fully client-side** — it never proxies or inspects your requests.
@@ -136,7 +136,7 @@ Key things you can customize:
 
 - **LLM provider** — OpenAI, Gemini, Claude, or Ollama
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — works out of the box with **GitLab** and **GitHub**.
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.25.0
+      - uses: Nikita-Filonov/ai-review@v0.26.0
         with:
           review-command: ${{ inputs.review-command }}
         env:

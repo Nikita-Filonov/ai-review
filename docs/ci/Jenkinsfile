@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+
+    environment {
+        // ===============================
+        // LLM provider & model
+        // ===============================
+        LLM__PROVIDER = "OPENAI"
+        LLM__META__MODEL = "gpt-4o-mini"
+        LLM__META__MAX_TOKENS = "15000"
+        LLM__META__TEMPERATURE = "0.3"
+
+        LLM__HTTP_CLIENT__API_URL = "https://api.openai.com/v1"
+        LLM__HTTP_CLIENT__API_TOKEN = credentials('OPENAI_API_KEY')
+
+        // ===============================
+        // VCS (example: GitHub integration)
+        // ===============================
+        VCS__PROVIDER = "GITHUB"
+        VCS__PIPELINE__OWNER = "my-org"
+        VCS__PIPELINE__REPO = "my-service"
+        VCS__PIPELINE__PULL_NUMBER = "${env.CHANGE_ID}" // Jenkins multibranch PR builds
+        VCS__HTTP_CLIENT__API_URL = "https://api.github.com"
+        VCS__HTTP_CLIENT__API_TOKEN = credentials('GITHUB_TOKEN')
+
+        // ===============================
+        // Core settings
+        // ===============================
+        CORE__CONCURRENCY = "7"
+    }
+
+    stages {
+        stage('AI Review - Inline') {
+            steps {
+                sh '''
+                    docker run --rm \
+                      -e LLM__PROVIDER \
+                      -e LLM__META__MODEL \
+                      -e LLM__META__MAX_TOKENS \
+                      -e LLM__META__TEMPERATURE \
+                      -e LLM__HTTP_CLIENT__API_URL \
+                      -e LLM__HTTP_CLIENT__API_TOKEN \
+                      -e VCS__PROVIDER \
+                      -e VCS__PIPELINE__OWNER \
+                      -e VCS__PIPELINE__REPO \
+                      -e VCS__PIPELINE__PULL_NUMBER \
+                      -e VCS__HTTP_CLIENT__API_URL \
+                      -e VCS__HTTP_CLIENT__API_TOKEN \
+                      -e CORE__CONCURRENCY \
+                      -v $(pwd):/app \
+                      nikitafilonov/ai-review:latest run-inline
+                '''
+            }
+        }
+
+        stage('AI Review - Context') {
+            steps {
+                sh '''
+                    docker run --rm \
+                      -v $(pwd):/app \
+                      nikitafilonov/ai-review:latest run-context
+                '''
+            }
+        }
+
+        stage('AI Review - Summary') {
+            steps {
+                sh '''
+                    docker run --rm \
+                      -v $(pwd):/app \
+                      nikitafilonov/ai-review:latest run-summary
+                '''
+            }
+        }
+    }
+}
