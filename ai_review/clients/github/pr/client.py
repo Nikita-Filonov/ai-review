@@ -1,6 +1,7 @@
 from httpx import Response, QueryParams
 
 from ai_review.clients.github.pr.schema.comments import (
+    GitHubPRCommentSchema,
     GitHubGetPRCommentsQuerySchema,
     GitHubGetPRCommentsResponseSchema,
     GitHubCreateIssueCommentRequestSchema,
@@ -9,17 +10,22 @@ from ai_review.clients.github.pr.schema.comments import (
     GitHubCreateReviewCommentResponseSchema
 )
 from ai_review.clients.github.pr.schema.files import (
+    GitHubPRFileSchema,
     GitHubGetPRFilesQuerySchema,
     GitHubGetPRFilesResponseSchema
 )
 from ai_review.clients.github.pr.schema.pull_request import GitHubGetPRResponseSchema
 from ai_review.clients.github.pr.schema.reviews import (
+    GitHubPRReviewSchema,
     GitHubGetPRReviewsQuerySchema,
     GitHubGetPRReviewsResponseSchema
 )
 from ai_review.clients.github.pr.types import GitHubPullRequestsHTTPClientProtocol
+from ai_review.clients.github.tools import github_has_next_page
+from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import HTTPClientError, handle_http_error
+from ai_review.libs.http.paginate import paginate
 
 
 class GitHubPullRequestsHTTPClientError(HTTPClientError):
@@ -114,24 +120,72 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
         return GitHubGetPRResponseSchema.model_validate_json(response.text)
 
     async def get_files(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRFilesResponseSchema:
-        query = GitHubGetPRFilesQuerySchema(per_page=100)
-        response = await self.get_files_api(owner, repo, pull_number, query)
-        return GitHubGetPRFilesResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitHubGetPRFilesQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_files_api(owner, repo, pull_number, query)
+
+        def extract_items(response: Response) -> list[GitHubPRFileSchema]:
+            result = GitHubGetPRFilesResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=github_has_next_page
+        )
+        return GitHubGetPRFilesResponseSchema(root=items)
 
     async def get_issue_comments(self, owner: str, repo: str, issue_number: str) -> GitHubGetPRCommentsResponseSchema:
-        query = GitHubGetPRCommentsQuerySchema(per_page=100)
-        response = await self.get_issue_comments_api(owner, repo, issue_number, query)
-        return GitHubGetPRCommentsResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitHubGetPRCommentsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_issue_comments_api(owner, repo, issue_number, query)
+
+        def extract_items(response: Response) -> list[GitHubPRCommentSchema]:
+            result = GitHubGetPRCommentsResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=github_has_next_page
+        )
+        return GitHubGetPRCommentsResponseSchema(root=items)
 
     async def get_review_comments(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRCommentsResponseSchema:
-        query = GitHubGetPRCommentsQuerySchema(per_page=100)
-        response = await self.get_review_comments_api(owner, repo, pull_number, query)
-        return GitHubGetPRCommentsResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitHubGetPRCommentsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_review_comments_api(owner, repo, pull_number, query)
+
+        def extract_items(response: Response) -> list[GitHubPRCommentSchema]:
+            result = GitHubGetPRCommentsResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=github_has_next_page
+        )
+        return GitHubGetPRCommentsResponseSchema(root=items)
 
     async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRReviewsResponseSchema:
-        query = GitHubGetPRReviewsQuerySchema(per_page=100)
-        response = await self.get_reviews_api(owner, repo, pull_number, query)
-        return GitHubGetPRReviewsResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitHubGetPRReviewsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_reviews_api(owner, repo, pull_number, query)
+
+        def extract_items(response: Response) -> list[GitHubPRReviewSchema]:
+            result = GitHubGetPRReviewsResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=github_has_next_page
+        )
+        return GitHubGetPRReviewsResponseSchema(root=items)
 
     async def create_review_comment(
             self,

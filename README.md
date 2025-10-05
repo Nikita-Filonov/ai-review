@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.26.0
+      - uses: Nikita-Filonov/ai-review@v0.27.0
         with:
           review-command: ${{ inputs.review-command }}
         env:

@@ -22,15 +22,20 @@ class BitbucketPRCommentSchema(BaseModel):
 
 
 class BitbucketGetPRCommentsQuerySchema(BaseModel):
-    pagelen: int = 100
+    model_config = ConfigDict(populate_by_name=True)
+
+    page: int = 1
+    page_len: int = Field(alias="pagelen", default=100)
 
 
 class BitbucketGetPRCommentsResponseSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     size: int
     page: int | None = None
     next: str | None = None
     values: list[BitbucketPRCommentSchema]
-    pagelen: int
+    page_len: int = Field(alias="pagelen")
 
 
 class BitbucketCreatePRCommentRequestSchema(BaseModel):

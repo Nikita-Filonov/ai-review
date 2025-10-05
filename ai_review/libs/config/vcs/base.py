@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field
 from ai_review.libs.config.vcs.bitbucket import BitbucketPipelineConfig, BitbucketHTTPClientConfig
 from ai_review.libs.config.vcs.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.config.vcs.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
+from ai_review.libs.config.vcs.pagination import VCSPaginationConfig
 from ai_review.libs.constants.vcs_provider import VCSProvider
 
 
 class VCSConfigBase(BaseModel):
     provider: VCSProvider
+    pagination: VCSPaginationConfig = VCSPaginationConfig()
 
 
 class GitLabVCSConfig(VCSConfigBase):

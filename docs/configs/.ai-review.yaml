@@ -93,6 +93,11 @@ vcs:
     # api_url: https://api.bitbucket.org/2.0
     # api_token: ${BITBUCKET_TOKEN}   # App password or OAuth token
 
+  # Pagination settings for API calls.
+  pagination:
+    per_page: 100  # Number of items per API page (default: 100)
+    max_pages: 5   # Maximum number of pages to fetch before stopping (default: 5)
+
 core:
   # ==============================
   # Core engine configuration

@@ -23,6 +23,10 @@
       "timeout": 120,
       "api_url": "${CI_SERVER_URL}",
       "api_token": "${CI_JOB_TOKEN}"
+    },
+    "pagination": {
+      "per_page": 100,
+      "max_pages": 5
     }
   },
   "core": {

@@ -2,20 +2,25 @@ from httpx import Response, QueryParams
 
 from ai_review.clients.gitlab.mr.schema.changes import GitLabGetMRChangesResponseSchema
 from ai_review.clients.gitlab.mr.schema.discussions import (
+    GitLabDiscussionSchema,
     GitLabGetMRDiscussionsQuerySchema,
     GitLabGetMRDiscussionsResponseSchema,
     GitLabCreateMRDiscussionRequestSchema,
     GitLabCreateMRDiscussionResponseSchema
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
+    GitLabNoteSchema,
     GitLabGetMRNotesQuerySchema,
     GitLabGetMRNotesResponseSchema,
     GitLabCreateMRNoteRequestSchema,
     GitLabCreateMRNoteResponseSchema,
 )
 from ai_review.clients.gitlab.mr.types import GitLabMergeRequestsHTTPClientProtocol
+from ai_review.clients.gitlab.tools import gitlab_has_next_page
+from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
+from ai_review.libs.http.paginate import paginate
 
 
 class GitLabMergeRequestsHTTPClientError(HTTPClientError):
@@ -86,18 +91,42 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             project_id: str,
             merge_request_id: str
     ) -> GitLabGetMRNotesResponseSchema:
-        query = GitLabGetMRNotesQuerySchema(per_page=100)
-        response = await self.get_notes_api(project_id, merge_request_id, query)
-        return GitLabGetMRNotesResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitLabGetMRNotesQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_notes_api(project_id, merge_request_id, query)
+
+        def extract_items(response: Response) -> list[GitLabNoteSchema]:
+            result = GitLabGetMRNotesResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=gitlab_has_next_page
+        )
+        return GitLabGetMRNotesResponseSchema(root=items)
 
     async def get_discussions(
             self,
             project_id: str,
             merge_request_id: str
     ) -> GitLabGetMRDiscussionsResponseSchema:
-        query = GitLabGetMRDiscussionsQuerySchema(per_page=100)
-        response = await self.get_discussions_api(project_id, merge_request_id, query)
-        return GitLabGetMRDiscussionsResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = GitLabGetMRDiscussionsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_discussions_api(project_id, merge_request_id, query)
+
+        def extract_items(response: Response) -> list[GitLabDiscussionSchema]:
+            result = GitLabGetMRDiscussionsResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=gitlab_has_next_page
+        )
+        return GitLabGetMRDiscussionsResponseSchema(root=items)
 
     async def create_note(
             self,
