@@ -1,4 +1,4 @@
-# AI Review Configuration
+# 📘 AI Review Configuration
 
 AI Review supports multiple configuration formats and sources. All of them are automatically detected at runtime.
 

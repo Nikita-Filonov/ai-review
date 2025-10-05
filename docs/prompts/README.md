@@ -1,4 +1,4 @@
-# AI Review Prompts
+# 📘 AI Review Prompts
 
 This folder contains **ready-to-use prompt templates** for AI Review.
 They extend the built-in global

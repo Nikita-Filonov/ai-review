@@ -1,4 +1,4 @@
-# AI Review Hooks
+# 📘 AI Review Hooks
 
 AI Review provides a **lightweight asynchronous hooks system** that lets you subscribe to internal lifecycle events.
 
