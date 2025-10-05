@@ -18,7 +18,8 @@ class GitLabDiscussionPositionSchema(BaseModel):
 
 
 class GitLabGetMRDiscussionsQuerySchema(BaseModel):
-    per_page: int
+    page: int = 1
+    per_page: int = 100
 
 
 class GitLabGetMRDiscussionsResponseSchema(RootModel[list[GitLabDiscussionSchema]]):

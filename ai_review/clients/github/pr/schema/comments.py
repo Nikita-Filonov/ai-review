@@ -9,7 +9,8 @@ class GitHubPRCommentSchema(BaseModel):
 
 
 class GitHubGetPRCommentsQuerySchema(BaseModel):
-    per_page: int
+    page: int = 1
+    per_page: int = 100
 
 
 class GitHubGetPRCommentsResponseSchema(RootModel[list[GitHubPRCommentSchema]]):

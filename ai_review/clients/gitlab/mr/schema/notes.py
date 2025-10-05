@@ -7,7 +7,8 @@ class GitLabNoteSchema(BaseModel):
 
 
 class GitLabGetMRNotesQuerySchema(BaseModel):
-    per_page: int
+    page: int = 1
+    per_page: int = 100
 
 
 class GitLabGetMRNotesResponseSchema(RootModel[list[GitLabNoteSchema]]):

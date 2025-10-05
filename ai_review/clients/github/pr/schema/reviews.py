@@ -10,7 +10,8 @@ class GitHubPRReviewSchema(BaseModel):
 
 
 class GitHubGetPRReviewsQuerySchema(BaseModel):
-    per_page: int
+    page: int = 1
+    per_page: int = 100
 
 
 class GitHubGetPRReviewsResponseSchema(RootModel[list[GitHubPRReviewSchema]]):

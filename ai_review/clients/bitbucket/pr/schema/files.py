@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class BitbucketPRFilePathSchema(BaseModel):
@@ -14,12 +14,17 @@ class BitbucketPRFileSchema(BaseModel):
 
 
 class BitbucketGetPRFilesQuerySchema(BaseModel):
-    pagelen: int = 100
+    model_config = ConfigDict(populate_by_name=True)
+
+    page: int = 1
+    page_len: int = Field(alias="pagelen", default=100)
 
 
 class BitbucketGetPRFilesResponseSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     size: int
     page: int | None = None
     next: str | None = None
     values: list[BitbucketPRFileSchema]
-    pagelen: int
+    page_len: int = Field(alias="pagelen")

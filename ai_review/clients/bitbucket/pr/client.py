@@ -1,19 +1,24 @@
 from httpx import Response, QueryParams
 
 from ai_review.clients.bitbucket.pr.schema.comments import (
+    BitbucketPRCommentSchema,
     BitbucketGetPRCommentsQuerySchema,
     BitbucketGetPRCommentsResponseSchema,
     BitbucketCreatePRCommentRequestSchema,
     BitbucketCreatePRCommentResponseSchema,
 )
 from ai_review.clients.bitbucket.pr.schema.files import (
+    BitbucketPRFileSchema,
     BitbucketGetPRFilesQuerySchema,
     BitbucketGetPRFilesResponseSchema,
 )
 from ai_review.clients.bitbucket.pr.schema.pull_request import BitbucketGetPRResponseSchema
 from ai_review.clients.bitbucket.pr.types import BitbucketPullRequestsHTTPClientProtocol
+from ai_review.clients.bitbucket.tools import bitbucket_has_next_page
+from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
+from ai_review.libs.http.paginate import paginate
 
 
 class BitbucketPullRequestsHTTPClientError(HTTPClientError):
@@ -35,7 +40,7 @@ class BitbucketPullRequestsHTTPClient(HTTPClient, BitbucketPullRequestsHTTPClien
     ) -> Response:
         return await self.get(
             f"/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/diffstat",
-            query=QueryParams(**query.model_dump()),
+            query=QueryParams(**query.model_dump(by_alias=True)),
         )
 
     @handle_http_error(client="BitbucketPullRequestsHTTPClient", exception=BitbucketPullRequestsHTTPClientError)
@@ -48,7 +53,7 @@ class BitbucketPullRequestsHTTPClient(HTTPClient, BitbucketPullRequestsHTTPClien
     ) -> Response:
         return await self.get(
             f"/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments",
-            query=QueryParams(**query.model_dump()),
+            query=QueryParams(**query.model_dump(by_alias=True)),
         )
 
     @handle_http_error(client="BitbucketPullRequestsHTTPClient", exception=BitbucketPullRequestsHTTPClientError)
@@ -79,9 +84,25 @@ class BitbucketPullRequestsHTTPClient(HTTPClient, BitbucketPullRequestsHTTPClien
             repo_slug: str,
             pull_request_id: str
     ) -> BitbucketGetPRFilesResponseSchema:
-        query = BitbucketGetPRFilesQuerySchema(pagelen=100)
-        resp = await self.get_diffstat_api(workspace, repo_slug, pull_request_id, query)
-        return BitbucketGetPRFilesResponseSchema.model_validate_json(resp.text)
+        async def fetch_page(page: int) -> Response:
+            query = BitbucketGetPRFilesQuerySchema(page=page, page_len=settings.vcs.pagination.per_page)
+            return await self.get_diffstat_api(workspace, repo_slug, pull_request_id, query)
+
+        def extract_items(response: Response) -> list[BitbucketPRFileSchema]:
+            result = BitbucketGetPRFilesResponseSchema.model_validate_json(response.text)
+            return result.values
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=bitbucket_has_next_page
+        )
+        return BitbucketGetPRFilesResponseSchema(
+            size=len(items),
+            values=items,
+            page_len=settings.vcs.pagination.per_page
+        )
 
     async def get_comments(
             self,
@@ -89,9 +110,25 @@ class BitbucketPullRequestsHTTPClient(HTTPClient, BitbucketPullRequestsHTTPClien
             repo_slug: str,
             pull_request_id: str
     ) -> BitbucketGetPRCommentsResponseSchema:
-        query = BitbucketGetPRCommentsQuerySchema(pagelen=100)
-        response = await self.get_comments_api(workspace, repo_slug, pull_request_id, query)
-        return BitbucketGetPRCommentsResponseSchema.model_validate_json(response.text)
+        async def fetch_page(page: int) -> Response:
+            query = BitbucketGetPRCommentsQuerySchema(page=page, page_len=settings.vcs.pagination.per_page)
+            return await self.get_comments_api(workspace, repo_slug, pull_request_id, query)
+
+        def extract_items(response: Response) -> list[BitbucketPRCommentSchema]:
+            result = BitbucketGetPRCommentsResponseSchema.model_validate_json(response.text)
+            return result.values
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=bitbucket_has_next_page
+        )
+        return BitbucketGetPRCommentsResponseSchema(
+            size=len(items),
+            values=items,
+            page_len=settings.vcs.pagination.per_page
+        )
 
     async def create_comment(
             self,
