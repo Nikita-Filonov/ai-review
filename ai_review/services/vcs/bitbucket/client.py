@@ -1,17 +1,20 @@
+from collections import defaultdict
+
 from ai_review.clients.bitbucket.client import get_bitbucket_http_client
 from ai_review.clients.bitbucket.pr.schema.comments import (
     BitbucketCommentInlineSchema,
     BitbucketCommentContentSchema,
-    BitbucketCreatePRCommentRequestSchema,
+    BitbucketCreatePRCommentRequestSchema, BitbucketParentSchema,
 )
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
+from ai_review.services.vcs.bitbucket.adapter import get_review_comment_from_bitbucket_pr_comment
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     UserSchema,
     BranchRefSchema,
     ReviewInfoSchema,
-    ReviewCommentSchema,
+    ReviewCommentSchema, ReviewThreadSchema, ThreadKind,
 )
 
 logger = get_logger("BITBUCKET_VCS_CLIENT")
@@ -23,7 +26,9 @@ class BitbucketVCSClient(VCSClientProtocol):
         self.workspace = settings.vcs.pipeline.workspace
         self.repo_slug = settings.vcs.pipeline.repo_slug
         self.pull_request_id = settings.vcs.pipeline.pull_request_id
+        self.pull_request_ref = f"{self.workspace}/{self.repo_slug}#{self.pull_request_id}"
 
+    # --- Review info ---
     async def get_review_info(self) -> ReviewInfoSchema:
         try:
             pr = await self.http_client.pr.get_pull_request(
@@ -37,7 +42,7 @@ class BitbucketVCSClient(VCSClientProtocol):
                 pull_request_id=self.pull_request_id,
             )
 
-            logger.info(f"Fetched PR info for {self.workspace}/{self.repo_slug}#{self.pull_request_id}")
+            logger.info(f"Fetched PR info for {self.pull_request_ref}")
 
             return ReviewInfoSchema(
                 id=pr.id,
@@ -81,11 +86,10 @@ class BitbucketVCSClient(VCSClientProtocol):
                 ],
             )
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch PR info {self.workspace}/{self.repo_slug}#{self.pull_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch PR info {self.pull_request_ref}: {error}")
             return ReviewInfoSchema()
 
+    # --- Comments ---
     async def get_general_comments(self) -> list[ReviewCommentSchema]:
         try:
             response = await self.http_client.pr.get_comments(
@@ -93,18 +97,15 @@ class BitbucketVCSClient(VCSClientProtocol):
                 repo_slug=self.repo_slug,
                 pull_request_id=self.pull_request_id,
             )
-            logger.info(f"Fetched general comments for {self.workspace}/{self.repo_slug}#{self.pull_request_id}")
+            logger.info(f"Fetched general comments for {self.pull_request_ref}")
 
             return [
-                ReviewCommentSchema(id=comment.id, body=comment.content.raw)
+                get_review_comment_from_bitbucket_pr_comment(comment)
                 for comment in response.values
                 if comment.inline is None
             ]
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch general comments for "
-                f"{self.workspace}/{self.repo_slug}#{self.pull_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch general comments for {self.pull_request_ref}: {error}")
             return []
 
     async def get_inline_comments(self) -> list[ReviewCommentSchema]:
@@ -114,30 +115,20 @@ class BitbucketVCSClient(VCSClientProtocol):
                 repo_slug=self.repo_slug,
                 pull_request_id=self.pull_request_id,
             )
-            logger.info(f"Fetched inline comments for {self.workspace}/{self.repo_slug}#{self.pull_request_id}")
+            logger.info(f"Fetched inline comments for {self.pull_request_ref}")
 
             return [
-                ReviewCommentSchema(
-                    id=comment.id,
-                    body=comment.content.raw,
-                    file=comment.inline.path,
-                    line=comment.inline.to_line,
-                )
+                get_review_comment_from_bitbucket_pr_comment(comment)
                 for comment in response.values
                 if comment.inline is not None
             ]
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch inline comments for "
-                f"{self.workspace}/{self.repo_slug}#{self.pull_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch inline comments for {self.pull_request_ref}: {error}")
             return []
 
     async def create_general_comment(self, message: str) -> None:
         try:
-            logger.info(
-                f"Posting general comment to PR {self.workspace}/{self.repo_slug}#{self.pull_request_id}: {message}"
-            )
+            logger.info(f"Posting general comment to PR {self.pull_request_ref}: {message}")
             request = BitbucketCreatePRCommentRequestSchema(
                 content=BitbucketCommentContentSchema(raw=message)
             )
@@ -147,22 +138,14 @@ class BitbucketVCSClient(VCSClientProtocol):
                 pull_request_id=self.pull_request_id,
                 request=request,
             )
-            logger.info(
-                f"Created general comment in PR {self.workspace}/{self.repo_slug}#{self.pull_request_id}"
-            )
+            logger.info(f"Created general comment in PR {self.pull_request_ref}")
         except Exception as error:
-            logger.exception(
-                f"Failed to create general comment in PR "
-                f"{self.workspace}/{self.repo_slug}#{self.pull_request_id}: {error}"
-            )
+            logger.exception(f"Failed to create general comment in PR {self.pull_request_ref}: {error}")
             raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         try:
-            logger.info(
-                f"Posting inline comment in {self.workspace}/{self.repo_slug}#{self.pull_request_id} "
-                f"at {file}:{line}: {message}"
-            )
+            logger.info(f"Posting inline comment in {self.pull_request_ref} at {file}:{line}: {message}")
             request = BitbucketCreatePRCommentRequestSchema(
                 content=BitbucketCommentContentSchema(raw=message),
                 inline=BitbucketCommentInlineSchema(path=file, to_line=line),
@@ -173,13 +156,95 @@ class BitbucketVCSClient(VCSClientProtocol):
                 pull_request_id=self.pull_request_id,
                 request=request,
             )
-            logger.info(
-                f"Created inline comment in {self.workspace}/{self.repo_slug}#{self.pull_request_id} "
-                f"at {file}:{line}"
+            logger.info(f"Created inline comment in {self.pull_request_ref} at {file}:{line}")
+        except Exception as error:
+            logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
+            raise
+
+    # --- Replies ---
+    async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
+        try:
+            logger.info(f"Replying to inline thread {thread_id=} in PR {self.pull_request_ref}")
+            request = BitbucketCreatePRCommentRequestSchema(
+                parent=BitbucketParentSchema(id=int(thread_id)),
+                content=BitbucketCommentContentSchema(raw=message),
             )
+            await self.http_client.pr.create_comment(
+                workspace=self.workspace,
+                repo_slug=self.repo_slug,
+                pull_request_id=self.pull_request_id,
+                request=request,
+            )
+            logger.info(f"Created inline reply to thread {thread_id=} in PR {self.pull_request_ref}")
         except Exception as error:
             logger.exception(
-                f"Failed to create inline comment in {self.workspace}/{self.repo_slug}#{self.pull_request_id} "
-                f"at {file}:{line}: {error}"
+                f"Failed to create inline reply to thread {thread_id=} in PR {self.pull_request_ref}: {error}"
             )
             raise
+
+    async def create_summary_reply(self, thread_id: int | str, message: str) -> None:
+        try:
+            logger.info(f"Replying to summary thread {thread_id=} in PR {self.pull_request_ref}")
+            request = BitbucketCreatePRCommentRequestSchema(
+                content=BitbucketCommentContentSchema(raw=message),
+                parent=BitbucketParentSchema(id=int(thread_id)),
+            )
+            await self.http_client.pr.create_comment(
+                workspace=self.workspace,
+                repo_slug=self.repo_slug,
+                pull_request_id=self.pull_request_id,
+                request=request,
+            )
+            logger.info(f"Created summary reply to thread {thread_id=} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(
+                f"Failed to create summary reply to thread {thread_id=} in PR {self.pull_request_ref}: {error}"
+            )
+            raise
+
+    # --- Threads ---
+    async def get_inline_threads(self) -> list[ReviewThreadSchema]:
+        try:
+            comments = await self.get_inline_comments()
+
+            threads: dict[str | int, list[ReviewCommentSchema]] = defaultdict(list)
+            for comment in comments:
+                threads[comment.thread_id].append(comment)
+
+            logger.info(f"Built {len(threads)} inline threads for {self.pull_request_ref}")
+
+            return [
+                ReviewThreadSchema(
+                    id=thread_id,
+                    kind=ThreadKind.INLINE,
+                    file=thread[0].file,
+                    line=thread[0].line,
+                    comments=sorted(thread, key=lambda c: int(c.id)),
+                )
+                for thread_id, thread in threads.items()
+            ]
+        except Exception as error:
+            logger.exception(f"Failed to fetch inline threads for {self.pull_request_ref}: {error}")
+            return []
+
+    async def get_general_threads(self) -> list[ReviewThreadSchema]:
+        try:
+            comments = await self.get_general_comments()
+
+            threads: dict[str | int, list[ReviewCommentSchema]] = defaultdict(list)
+            for comment in comments:
+                threads[comment.thread_id].append(comment)
+
+            logger.info(f"Built {len(threads)} general threads for {self.pull_request_ref}")
+
+            return [
+                ReviewThreadSchema(
+                    id=thread_id,
+                    kind=ThreadKind.SUMMARY,
+                    comments=sorted(thread, key=lambda c: int(c.id)),
+                )
+                for thread_id, thread in threads.items()
+            ]
+        except Exception as error:
+            logger.exception(f"Failed to fetch general threads for {self.pull_request_ref}: {error}")
+            return []
