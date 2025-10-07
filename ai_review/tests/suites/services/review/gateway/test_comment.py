@@ -51,7 +51,7 @@ async def test_get_summary_threads_filters_by_tag(
         ReviewThreadSchema(
             id="10",
             kind=ThreadKind.SUMMARY,
-            comments=[ReviewCommentSchema(id="1", body=f"AI {settings.review.inline_reply_tag}")]
+            comments=[ReviewCommentSchema(id="1", body=f"AI {settings.review.summary_reply_tag}")]
         ),
         ReviewThreadSchema(
             id="11",
