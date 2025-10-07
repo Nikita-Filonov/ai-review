@@ -1,6 +1,6 @@
 from ai_review.libs.logger import get_logger
-from ai_review.services.review.summary.schema import SummaryCommentSchema
-from ai_review.services.review.summary.types import SummaryCommentServiceProtocol
+from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
+from ai_review.services.review.internal.summary.types import SummaryCommentServiceProtocol
 
 logger = get_logger("SUMMARY_COMMENT_SERVICE")
 

@@ -2,11 +2,12 @@ import fnmatch
 
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
+from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
 
 logger = get_logger("REVIEW_POLICY_SERVICE")
 
 
-class ReviewPolicyService:
+class ReviewPolicyService(ReviewPolicyServiceProtocol):
     @classmethod
     def should_review_file(cls, file: str) -> bool:
         review = settings.review

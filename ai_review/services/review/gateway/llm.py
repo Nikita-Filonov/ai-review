@@ -3,11 +3,12 @@ from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.hook import hook
 from ai_review.services.llm.types import LLMClientProtocol
+from ai_review.services.review.gateway.types import ReviewLLMGatewayProtocol
 
 logger = get_logger("REVIEW_LLM_GATEWAY")
 
 
-class ReviewLLMGateway:
+class ReviewLLMGateway(ReviewLLMGatewayProtocol):
     def __init__(
             self,
             llm: LLMClientProtocol,
