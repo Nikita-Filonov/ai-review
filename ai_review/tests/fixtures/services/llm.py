@@ -13,11 +13,14 @@ class FakeLLMClient(LLMClientProtocol):
     async def chat(self, prompt: str, prompt_system: str) -> ChatResultSchema:
         self.calls.append(("chat", {"prompt": prompt, "prompt_system": prompt_system}))
 
-        return ChatResultSchema(
-            text=self.responses.get("text", "FAKE_RESPONSE"),
-            total_tokens=self.responses.get("total_tokens", 42),
-            prompt_tokens=self.responses.get("prompt_tokens", 21),
-            completion_tokens=self.responses.get("completion_tokens", 21),
+        return self.responses.get(
+            "chat",
+            ChatResultSchema(
+                text="FAKE_RESPONSE",
+                total_tokens=42,
+                prompt_tokens=21,
+                completion_tokens=21,
+            )
         )
 
 

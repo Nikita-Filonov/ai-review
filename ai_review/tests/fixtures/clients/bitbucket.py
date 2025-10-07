@@ -81,7 +81,7 @@ class FakeBitbucketPullRequestsHTTPClient(BitbucketPullRequestsHTTPClientProtoco
         return BitbucketGetPRFilesResponseSchema(
             size=2,
             page=1,
-            pagelen=100,
+            page_len=100,
             next=None,
             values=[
                 BitbucketPRFileSchema(
@@ -129,7 +129,7 @@ class FakeBitbucketPullRequestsHTTPClient(BitbucketPullRequestsHTTPClientProtoco
                     content=BitbucketCommentContentSchema(raw="Inline comment"),
                 ),
             ],
-            pagelen=100,
+            page_len=100,
         )
 
     async def create_comment(

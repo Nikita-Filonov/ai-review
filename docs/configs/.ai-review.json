@@ -49,6 +49,12 @@
     "summary_prompt_files": [
       "./prompts/default_summary.md"
     ],
+    "inline_reply_prompt_files": [
+      "./prompts/default_inline_reply.md"
+    ],
+    "summary_reply_prompt_files": [
+      "./prompts/default_summary_reply.md"
+    ],
     "system_inline_prompt_files": [
       "./prompts/default_system_inline.md"
     ],
@@ -58,14 +64,24 @@
     "system_summary_prompt_files": [
       "./prompts/default_system_summary.md"
     ],
+    "system_inline_reply_prompt_files": [
+      "./prompts/default_system_inline_reply.md"
+    ],
+    "system_summary_reply_prompt_files": [
+      "./prompts/default_system_summary_reply.md"
+    ],
     "include_inline_system_prompts": true,
     "include_context_system_prompts": true,
-    "include_summary_system_prompts": true
+    "include_summary_system_prompts": true,
+    "include_inline_reply_system_prompts": true,
+    "include_summary_reply_system_prompts": true
   },
   "review": {
     "mode": "FULL_FILE_DIFF",
     "inline_tag": "#ai-review-inline",
+    "inline_reply_tag": "#ai-review-inline-reply",
     "summary_tag": "#ai-review-summary",
+    "summary_reply_tag": "#ai-review-summary-reply",
     "context_lines": 10,
     "allow_changes": [],
     "ignore_changes": [],

@@ -6,7 +6,9 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabGetMRDiscussionsQuerySchema,
     GitLabGetMRDiscussionsResponseSchema,
     GitLabCreateMRDiscussionRequestSchema,
-    GitLabCreateMRDiscussionResponseSchema
+    GitLabCreateMRDiscussionResponseSchema,
+    GitLabCreateMRDiscussionReplyRequestSchema,
+    GitLabCreateMRDiscussionReplyResponseSchema
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
@@ -82,6 +84,19 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             json=request.model_dump(),
         )
 
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def create_discussion_reply_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            discussion_id: str,
+            request: GitLabCreateMRDiscussionReplyRequestSchema,
+    ) -> Response:
+        return await self.post(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/discussions/{discussion_id}/notes",
+            json=request.model_dump(),
+        )
+
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         response = await self.get_changes_api(project_id, merge_request_id)
         return GitLabGetMRChangesResponseSchema.model_validate_json(response.text)
@@ -154,3 +169,19 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             merge_request_id=merge_request_id
         )
         return GitLabCreateMRDiscussionResponseSchema.model_validate_json(response.text)
+
+    async def create_discussion_reply(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            discussion_id: str,
+            body: str,
+    ) -> GitLabCreateMRDiscussionReplyResponseSchema:
+        request = GitLabCreateMRDiscussionReplyRequestSchema(body=body)
+        response = await self.create_discussion_reply_api(
+            project_id=project_id,
+            merge_request_id=merge_request_id,
+            discussion_id=discussion_id,
+            request=request,
+        )
+        return GitLabCreateMRDiscussionReplyResponseSchema.model_validate_json(response.text)

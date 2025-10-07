@@ -1,9 +1,12 @@
 from pydantic import BaseModel, RootModel
 
+from ai_review.clients.gitlab.mr.schema.user import GitLabUserSchema
+
 
 class GitLabNoteSchema(BaseModel):
     id: int
     body: str
+    author: GitLabUserSchema | None = None
 
 
 class GitLabGetMRNotesQuerySchema(BaseModel):

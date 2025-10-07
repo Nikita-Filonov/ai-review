@@ -21,3 +21,7 @@ prompt:
   inline_prompt_files: [ ./docs/prompts/inline_python_strict.md ]
   context_prompt_files: [ ./docs/prompts/inline_python_strict.md ]
   summary_prompt_files: [ ./docs/prompts/summary_python_strict.md ]
+
+artifacts:
+  llm_dir: ./artifacts/llm
+  llm_enabled: true

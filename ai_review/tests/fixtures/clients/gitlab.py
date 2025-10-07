@@ -12,6 +12,7 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabGetMRDiscussionsResponseSchema,
     GitLabCreateMRDiscussionRequestSchema,
     GitLabCreateMRDiscussionResponseSchema,
+    GitLabCreateMRDiscussionReplyResponseSchema, GitLabDiscussionPositionSchema,
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
@@ -75,6 +76,13 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
                         GitLabNoteSchema(id=10, body="Inline comment A"),
                         GitLabNoteSchema(id=11, body="Inline comment B"),
                     ],
+                    position=GitLabDiscussionPositionSchema(
+                        base_sha="abc123",
+                        head_sha="def456",
+                        start_sha="ghi789",
+                        new_path="src/app.py",
+                        new_line=12,
+                    ),
                 )
             ]
         )
@@ -100,7 +108,30 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
                 {"project_id": project_id, "merge_request_id": merge_request_id, "body": request.body}
             )
         )
-        return GitLabCreateMRDiscussionResponseSchema(id="discussion-new", body=request.body)
+        return GitLabCreateMRDiscussionResponseSchema(
+            id="discussion-new",
+            notes=[GitLabNoteSchema(id=1, body=request.body)]
+        )
+
+    async def create_discussion_reply(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            discussion_id: str,
+            body: str,
+    ) -> GitLabCreateMRDiscussionReplyResponseSchema:
+        self.calls.append(
+            (
+                "create_discussion_reply",
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "discussion_id": discussion_id,
+                    "body": body,
+                },
+            )
+        )
+        return GitLabCreateMRDiscussionReplyResponseSchema(id=100, body=body)
 
 
 class FakeGitLabHTTPClient:

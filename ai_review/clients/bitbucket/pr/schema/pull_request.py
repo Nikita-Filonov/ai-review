@@ -1,10 +1,6 @@
 from pydantic import BaseModel, Field
 
-
-class BitbucketUserSchema(BaseModel):
-    uuid: str
-    nickname: str
-    display_name: str
+from ai_review.clients.bitbucket.pr.schema.user import BitbucketUserSchema
 
 
 class BitbucketBranchSchema(BaseModel):

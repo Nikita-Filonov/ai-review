@@ -1,4 +1,4 @@
-# AI Review CI/CD Integration
+# 📘 AI Review CI/CD Integration
 
 This folder contains **ready-to-use CI/CD templates** for running AI Review automatically on **Pull Requests** (GitHub,
 Bitbucket, Jenkins) or **Merge Requests** (GitLab).

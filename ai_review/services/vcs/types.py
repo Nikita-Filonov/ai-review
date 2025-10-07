@@ -1,6 +1,12 @@
+from enum import StrEnum
 from typing import Protocol
 
 from pydantic import BaseModel, Field
+
+
+class ThreadKind(StrEnum):
+    INLINE = "INLINE"
+    SUMMARY = "SUMMARY"
 
 
 class UserSchema(BaseModel):
@@ -35,10 +41,16 @@ class ReviewCommentSchema(BaseModel):
     body: str
     file: str | None = None
     line: int | None = None
+    author: UserSchema = Field(default_factory=UserSchema)
+    parent_id: str | int | None = None
+    thread_id: str | int | None = None
 
 
 class ReviewThreadSchema(BaseModel):
     id: str | int
+    kind: ThreadKind
+    file: str | None = None
+    line: int | None = None
     comments: list[ReviewCommentSchema]
 
 
@@ -48,9 +60,11 @@ class VCSClientProtocol(Protocol):
     Designed for code review automation: fetching review info, comments, and posting feedback.
     """
 
+    # --- Review info ---
     async def get_review_info(self) -> ReviewInfoSchema:
         """Fetch general information about the current review (PR/MR)."""
 
+    # --- Comments ---
     async def get_general_comments(self) -> list[ReviewCommentSchema]:
         """Fetch all top-level (non-inline) comments."""
 
@@ -62,3 +76,23 @@ class VCSClientProtocol(Protocol):
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         """Post a comment attached to a specific line in file."""
+
+    # --- Replies ---
+    async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
+        """Reply to an existing inline comment thread."""
+
+    async def create_summary_reply(self, thread_id: int | str, message: str) -> None:
+        """Reply to a summary/general comment (flat if VCS doesn't support threads)."""
+
+    # --- Threads ---
+    async def get_inline_threads(self) -> list[ReviewThreadSchema]:
+        """
+        Fetch grouped inline comment threads.
+        If VCS doesn't support threads natively, group by file+line.
+        """
+
+    async def get_general_threads(self) -> list[ReviewThreadSchema]:
+        """
+        Fetch grouped general (summary-level) comment threads.
+        If VCS is flat (e.g. GitHub issues), each comment is a separate thread.
+        """

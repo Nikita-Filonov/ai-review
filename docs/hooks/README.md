@@ -1,4 +1,4 @@
-# AI Review Hooks
+# 📘 AI Review Hooks
 
 AI Review provides a **lightweight asynchronous hooks system** that lets you subscribe to internal lifecycle events.
 
@@ -34,9 +34,9 @@ Hooks are registered via decorators from the global hook instance:
 
 ```python
 # ./hooks.py
-from ai_review.services.hook import hook
 from ai_review.services.cost.schema import CostReportSchema
-from ai_review.services.review.inline.schema import InlineCommentSchema
+from ai_review.services.hook import hook
+from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 
 
 @hook.on_chat_start
