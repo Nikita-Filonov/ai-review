@@ -55,7 +55,7 @@ class InlineReplyReviewRunner(ReviewRunnerProtocol):
 
         prompt_context = build_prompt_context_from_review_info(review_info)
         prompt = self.prompt.build_inline_reply_request(rendered_file, thread, prompt_context)
-        prompt_system = self.prompt.build_system_inline_request(prompt_context)
+        prompt_system = self.prompt.build_system_inline_reply_request(prompt_context)
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
 
         reply = self.inline_comment_reply.parse_model_output(prompt_result)
