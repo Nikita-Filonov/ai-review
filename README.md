@@ -35,12 +35,14 @@ improve code quality, enforce consistency, and speed up the review process.
 - **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
+- **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
+  summary discussions.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
 - **AI Review runs fully client-side** — it never proxies or inspects your requests.
 
-AI Review runs automatically in your CI/CD pipeline and posts both **inline comments** and **summary reviews** right
-inside your merge requests. This makes reviews faster, more consistent, and less error-prone — while still leaving the
-final decision to human reviewers.
+AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now *
+*AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
+fully under human control.
 
 ---
 
@@ -175,7 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.27.0
+      - uses: Nikita-Filonov/ai-review@v0.28.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -240,6 +242,7 @@ ai-review:
 See these folders for reference templates and full configuration options:
 
 - [./docs/ci](./docs/ci) — CI/CD integration templates (GitHub Actions, GitLab CI)
+- [./docs/cli](./docs/cli) — CLI command reference and usage examples
 - [./docs/hooks](./docs/hooks) — hook reference and lifecycle events
 - [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
