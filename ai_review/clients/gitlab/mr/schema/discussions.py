@@ -1,11 +1,6 @@
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, RootModel, Field
 
 from ai_review.clients.gitlab.mr.schema.notes import GitLabNoteSchema
-
-
-class GitLabDiscussionSchema(BaseModel):
-    id: str
-    notes: list[GitLabNoteSchema]
 
 
 class GitLabDiscussionPositionSchema(BaseModel):
@@ -15,6 +10,12 @@ class GitLabDiscussionPositionSchema(BaseModel):
     start_sha: str
     new_path: str
     new_line: int
+
+
+class GitLabDiscussionSchema(BaseModel):
+    id: str
+    notes: list[GitLabNoteSchema]
+    position: GitLabDiscussionPositionSchema | None = None
 
 
 class GitLabGetMRDiscussionsQuerySchema(BaseModel):
@@ -33,4 +34,13 @@ class GitLabCreateMRDiscussionRequestSchema(BaseModel):
 
 class GitLabCreateMRDiscussionResponseSchema(BaseModel):
     id: str
-    body: str | None = None
+    notes: list[GitLabNoteSchema] = Field(default_factory=list)
+
+
+class GitLabCreateMRDiscussionReplyRequestSchema(BaseModel):
+    body: str
+
+
+class GitLabCreateMRDiscussionReplyResponseSchema(BaseModel):
+    id: int
+    body: str
