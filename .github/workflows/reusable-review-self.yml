@@ -29,7 +29,7 @@ jobs:
       - name: Install ai-review
         run: pip install .
 
-      - name: Run ai-review
+      - name: Run AI Review
         env:
           AI_REVIEW_CONFIG_FILE_YAML: ./ci/review/config.yaml
 
@@ -42,4 +42,12 @@ jobs:
         run: |
           ai-review show-config
           ai-review ${{ inputs.review-command }}
+
+      - name: Upload AI Review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-review-llm-artifacts
+          path: ./artifacts/llm
+          retention-days: 7
     runs-on: ubuntu-latest
