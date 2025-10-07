@@ -7,6 +7,7 @@ from ai_review.clients.github.pr.schema.comments import (
     GitHubGetPRCommentsResponseSchema,
     GitHubGetIssueCommentsResponseSchema,
     GitHubCreateIssueCommentResponseSchema,
+    GitHubCreateReviewReplyRequestSchema,
     GitHubCreateReviewCommentRequestSchema,
     GitHubCreateReviewCommentResponseSchema,
 )
@@ -111,16 +112,16 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
             self,
             owner: str,
             repo: str,
-            comment_id: str,
-            body: str,
+            pull_number: str,
+            request: GitHubCreateReviewReplyRequestSchema,
     ) -> GitHubCreateReviewCommentResponseSchema:
         self.calls.append(
             (
                 "create_review_reply",
-                {"owner": owner, "repo": repo, "comment_id": comment_id, "body": body}
+                {"owner": owner, "repo": repo, "pull_number": pull_number, **request.model_dump()}
             )
         )
-        return GitHubCreateReviewCommentResponseSchema(id=12, body=body)
+        return GitHubCreateReviewCommentResponseSchema(id=12, body=request.body)
 
     async def create_review_comment(
             self,

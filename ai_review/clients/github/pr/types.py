@@ -4,6 +4,7 @@ from ai_review.clients.github.pr.schema.comments import (
     GitHubGetPRCommentsResponseSchema,
     GitHubGetIssueCommentsResponseSchema,
     GitHubCreateIssueCommentResponseSchema,
+    GitHubCreateReviewReplyRequestSchema,
     GitHubCreateReviewCommentResponseSchema,
     GitHubCreateReviewCommentRequestSchema,
 )
@@ -38,7 +39,7 @@ class GitHubPullRequestsHTTPClientProtocol(Protocol):
             owner: str,
             repo: str,
             comment_id: str,
-            body: str,
+            request: GitHubCreateReviewReplyRequestSchema,
     ) -> GitHubCreateReviewCommentResponseSchema: ...
 
     async def create_review_comment(

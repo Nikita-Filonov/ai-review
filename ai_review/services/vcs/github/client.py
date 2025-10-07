@@ -1,7 +1,10 @@
 from collections import defaultdict
 
 from ai_review.clients.github.client import get_github_http_client
-from ai_review.clients.github.pr.schema.comments import GitHubCreateReviewCommentRequestSchema
+from ai_review.clients.github.pr.schema.comments import (
+    GitHubCreateReviewReplyRequestSchema,
+    GitHubCreateReviewCommentRequestSchema
+)
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.github.adapter import (
@@ -151,11 +154,15 @@ class GitHubVCSClient(VCSClientProtocol):
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         try:
             logger.info(f"Replying to inline comment {thread_id=} in PR {self.pull_request_ref}")
+            request = GitHubCreateReviewReplyRequestSchema(
+                body=message,
+                in_reply_to=thread_id
+            )
             await self.http_client.pr.create_review_reply(
                 owner=self.owner,
                 repo=self.repo,
-                comment_id=thread_id,
-                body=message,
+                pull_number=self.pull_number,
+                request=request,
             )
             logger.info(f"Created inline reply to comment {thread_id=} in PR {self.pull_request_ref}")
         except Exception as error:

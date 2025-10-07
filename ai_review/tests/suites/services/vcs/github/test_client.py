@@ -130,10 +130,11 @@ async def test_create_inline_reply_posts_comment(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["comment_id"] == thread_id
+    assert call_args["in_reply_to"] == thread_id
     assert call_args["body"] == message
     assert call_args["repo"] == "repo"
     assert call_args["owner"] == "owner"
+    assert call_args["pull_number"] == "pull_number"
 
 
 @pytest.mark.asyncio
