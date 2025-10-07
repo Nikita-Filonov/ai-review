@@ -1,5 +1,5 @@
 from ai_review.config import settings
-from ai_review.services.review.summary.schema import SummaryCommentSchema
+from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 
 
 def test_normalize_text_strips_whitespace():

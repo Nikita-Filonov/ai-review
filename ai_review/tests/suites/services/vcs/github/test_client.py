@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.services.vcs.github.client import GitHubVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema
+from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
 from ai_review.tests.fixtures.clients.github import FakeGitHubPullRequestsHTTPClient
 
 
@@ -111,4 +111,90 @@ async def test_create_inline_comment_posts_comment(
     assert call_args["path"] == "file.py"
     assert call_args["line"] == 10
     assert call_args["body"] == "Looks good"
-    assert call_args["commit_id"] == "def456"  # from fake PR head
+    assert call_args["commit_id"] == "def456"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_create_inline_reply_posts_comment(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should post a reply to an existing inline comment."""
+    thread_id = 3
+    message = "I agree with this suggestion."
+
+    await github_vcs_client.create_inline_reply(thread_id, message)
+
+    calls = [args for name, args in fake_github_pull_requests_http_client.calls if name == "create_review_reply"]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["comment_id"] == thread_id
+    assert call_args["body"] == message
+    assert call_args["repo"] == "repo"
+    assert call_args["owner"] == "owner"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_create_summary_reply_reuses_general_comment_method(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should call create_issue_comment internally (since GitHub summary comments are flat)."""
+    thread_id = 11
+    message = "Thanks for clarifying."
+
+    await github_vcs_client.create_summary_reply(thread_id, message)
+
+    calls = [args for name, args in fake_github_pull_requests_http_client.calls if name == "create_issue_comment"]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["body"] == message
+    assert call_args["repo"] == "repo"
+    assert call_args["owner"] == "owner"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_get_inline_threads_returns_grouped_threads(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should group inline review comments into threads by file and line."""
+    threads = await github_vcs_client.get_inline_threads()
+
+    assert all(isinstance(t, ReviewThreadSchema) for t in threads)
+    assert len(threads) == 2  # 2 comments with unique IDs
+
+    first = threads[0]
+    assert first.kind == ThreadKind.INLINE
+    assert isinstance(first.comments[0], ReviewCommentSchema)
+    assert first.file == "file.py"
+    assert first.line == 5
+
+    called_methods = [name for name, _ in fake_github_pull_requests_http_client.calls]
+    assert "get_review_comments" in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_get_general_threads_wraps_comments_in_threads(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should wrap each general comment as a separate SUMMARY thread."""
+    threads = await github_vcs_client.get_general_threads()
+
+    assert all(isinstance(thread, ReviewThreadSchema) for thread in threads)
+    assert all(thread.kind == ThreadKind.SUMMARY for thread in threads)
+    assert len(threads) == 2
+
+    for thread in threads:
+        assert len(thread.comments) == 1
+        assert isinstance(thread.comments[0], ReviewCommentSchema)
+
+    called_methods = [name for name, _ in fake_github_pull_requests_http_client.calls]
+    assert "get_issue_comments" in called_methods

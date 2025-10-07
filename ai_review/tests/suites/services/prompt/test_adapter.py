@@ -1,4 +1,4 @@
-from ai_review.services.prompt.adapter import build_prompt_context_from_mr_info
+from ai_review.services.prompt.adapter import build_prompt_context_from_review_info
 from ai_review.services.vcs.types import (
     ReviewInfoSchema,
     UserSchema,
@@ -23,7 +23,7 @@ def test_build_prompt_context_from_full_review_info() -> None:
         changed_files=["api/views.py", "api/tests.py"],
     )
 
-    context = build_prompt_context_from_mr_info(review_info)
+    context = build_prompt_context_from_review_info(review_info)
 
     assert context.review_title == "Fix API bug"
     assert context.review_description == "Refactored endpoint"
@@ -52,7 +52,7 @@ def test_build_prompt_context_handles_no_reviewers() -> None:
         reviewers=[],
     )
 
-    context = build_prompt_context_from_mr_info(review_info)
+    context = build_prompt_context_from_review_info(review_info)
 
     assert context.review_reviewer == ""
     assert context.review_reviewers == []

@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.services.vcs.bitbucket.client import BitbucketVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema
+from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
 from ai_review.tests.fixtures.clients.bitbucket import FakeBitbucketPullRequestsHTTPClient
 
 
@@ -115,3 +115,90 @@ async def test_create_inline_comment_posts_comment(
     assert call_args["content"]["raw"] == message
     assert call_args["inline"]["path"] == file
     assert call_args["inline"]["to"] == line
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_http_client_config")
+async def test_create_inline_reply_posts_comment(
+        bitbucket_vcs_client: BitbucketVCSClient,
+        fake_bitbucket_pull_requests_http_client: FakeBitbucketPullRequestsHTTPClient,
+):
+    """Should post a reply to an existing inline thread."""
+    thread_id = 42
+    message = "I agree with this inline comment."
+
+    await bitbucket_vcs_client.create_inline_reply(thread_id, message)
+
+    calls = [args for name, args in fake_bitbucket_pull_requests_http_client.calls if name == "create_comment"]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["parent"]["id"] == thread_id
+    assert call_args["content"]["raw"] == message
+    assert call_args["workspace"] == "workspace"
+    assert call_args["repo_slug"] == "repo"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_http_client_config")
+async def test_create_summary_reply_posts_comment_with_parent(
+        bitbucket_vcs_client: BitbucketVCSClient,
+        fake_bitbucket_pull_requests_http_client: FakeBitbucketPullRequestsHTTPClient,
+):
+    """Should post a reply to a general thread (same API with parent id)."""
+    thread_id = 7
+    message = "Thanks for the clarification."
+
+    await bitbucket_vcs_client.create_summary_reply(thread_id, message)
+
+    calls = [args for name, args in fake_bitbucket_pull_requests_http_client.calls if name == "create_comment"]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["parent"]["id"] == thread_id
+    assert call_args["content"]["raw"] == message
+    assert call_args["workspace"] == "workspace"
+    assert call_args["repo_slug"] == "repo"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_http_client_config")
+async def test_get_inline_threads_groups_by_thread_id(
+        bitbucket_vcs_client: BitbucketVCSClient,
+        fake_bitbucket_pull_requests_http_client: FakeBitbucketPullRequestsHTTPClient,
+):
+    """Should group inline comments into threads."""
+    threads = await bitbucket_vcs_client.get_inline_threads()
+
+    assert all(isinstance(thread, ReviewThreadSchema) for thread in threads)
+    assert len(threads) == 1
+
+    thread = threads[0]
+    assert thread.kind == ThreadKind.INLINE
+    assert thread.file == "file.py"
+    assert thread.line == 5
+    assert len(thread.comments) == 1
+    assert isinstance(thread.comments[0], ReviewCommentSchema)
+
+    called_methods = [name for name, _ in fake_bitbucket_pull_requests_http_client.calls]
+    assert "get_comments" in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_http_client_config")
+async def test_get_general_threads_groups_by_thread_id(
+        bitbucket_vcs_client: BitbucketVCSClient,
+        fake_bitbucket_pull_requests_http_client: FakeBitbucketPullRequestsHTTPClient,
+):
+    """Should group general (non-inline) comments into SUMMARY threads."""
+    threads = await bitbucket_vcs_client.get_general_threads()
+
+    assert all(isinstance(t, ReviewThreadSchema) for t in threads)
+    assert len(threads) == 1
+    thread = threads[0]
+    assert thread.kind == ThreadKind.SUMMARY
+    assert len(thread.comments) == 1
+    assert isinstance(thread.comments[0], ReviewCommentSchema)
+
+    called_methods = [name for name, _ in fake_bitbucket_pull_requests_http_client.calls]
+    assert "get_comments" in called_methods

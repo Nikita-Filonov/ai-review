@@ -1,7 +1,7 @@
 import pytest
 
-from ai_review.services.review.summary.schema import SummaryCommentSchema
-from ai_review.services.review.summary.service import SummaryCommentService
+from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
+from ai_review.services.review.internal.summary.service import SummaryCommentService
 
 
 @pytest.mark.parametrize(

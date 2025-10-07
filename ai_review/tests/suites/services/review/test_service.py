@@ -1,126 +1,93 @@
 import pytest
 
+from ai_review.services.llm.types import ChatResultSchema
 from ai_review.services.review.service import ReviewService
-from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.cost import FakeCostService
-from ai_review.tests.fixtures.services.diff import FakeDiffService
-from ai_review.tests.fixtures.services.git import FakeGitService
-from ai_review.tests.fixtures.services.llm import FakeLLMClient
-from ai_review.tests.fixtures.services.prompt import FakePromptService
-from ai_review.tests.fixtures.services.review.inline import FakeInlineCommentService
-from ai_review.tests.fixtures.services.review.summary import FakeSummaryCommentService
-from ai_review.tests.fixtures.services.vcs import FakeVCSClient
-
-
-@pytest.fixture
-def review_service(
-        monkeypatch: pytest.MonkeyPatch,
-        fake_vcs_client: FakeVCSClient,
-        fake_llm_client: FakeLLMClient,
-        fake_git_service: FakeGitService,
-        fake_diff_service: FakeDiffService,
-        fake_cost_service: FakeCostService,
-        fake_prompt_service: FakePromptService,
-        fake_artifacts_service: FakeArtifactsService,
-        fake_inline_comment_service: FakeInlineCommentService,
-        fake_summary_comment_service: FakeSummaryCommentService,
-):
-    monkeypatch.setattr("ai_review.services.review.service.get_llm_client", lambda: fake_llm_client)
-    monkeypatch.setattr("ai_review.services.review.service.get_vcs_client", lambda: fake_vcs_client)
-    monkeypatch.setattr("ai_review.services.review.service.GitService", lambda: fake_git_service)
-    monkeypatch.setattr("ai_review.services.review.service.DiffService", lambda: fake_diff_service)
-    monkeypatch.setattr("ai_review.services.review.service.PromptService", lambda: fake_prompt_service)
-    monkeypatch.setattr("ai_review.services.review.service.InlineCommentService", lambda: fake_inline_comment_service)
-    monkeypatch.setattr("ai_review.services.review.service.SummaryCommentService", lambda: fake_summary_comment_service)
-    monkeypatch.setattr("ai_review.services.review.service.ArtifactsService", lambda: fake_artifacts_service)
-    monkeypatch.setattr("ai_review.services.review.service.CostService", lambda: fake_cost_service)
-    return ReviewService()
+from ai_review.tests.fixtures.services.review.runner.context import FakeContextReviewRunner
+from ai_review.tests.fixtures.services.review.runner.inline import FakeInlineReviewRunner
+from ai_review.tests.fixtures.services.review.runner.inline_reply import FakeInlineReplyReviewRunner
+from ai_review.tests.fixtures.services.review.runner.summary import FakeSummaryReviewRunner
+from ai_review.tests.fixtures.services.review.runner.summary_reply import FakeSummaryReplyReviewRunner
 
 
 @pytest.mark.asyncio
-async def test_run_inline_review_happy_path(
+async def test_run_inline_review_invokes_runner(
         review_service: ReviewService,
-        fake_vcs_client: FakeVCSClient,
-        fake_llm_client: FakeLLMClient,
-        fake_prompt_service: FakePromptService,
-        fake_git_service: FakeGitService,
-        fake_diff_service: FakeDiffService,
-        fake_cost_service: FakeCostService,
-        fake_artifacts_service: FakeArtifactsService,
+        fake_inline_review_runner: FakeInlineReviewRunner
 ):
-    """Should perform inline review for changed files and create inline comments via VCS."""
-    fake_git_service.responses["get_diff_for_file"] = "FAKE_DIFF"
-
+    """Should call run() on InlineReviewRunner."""
     await review_service.run_inline_review()
-
-    vcs_calls = [c[0] for c in fake_vcs_client.calls]
-    assert "get_review_info" in vcs_calls
-    assert "create_inline_comment" in vcs_calls
-
-    assert (
-               "get_diff_for_file",
-               {"base_sha": "A", "head_sha": "B", "file": "file.py", "unified": 3}
-           ) in fake_git_service.calls
-    assert any(call[0] == "render_file" for call in fake_diff_service.calls)
-
-    assert any(call[0] == "build_inline_request" for call in fake_prompt_service.calls)
-    assert any(call[0] == "chat" for call in fake_llm_client.calls)
-
-    assert len(fake_cost_service.reports) == 1
-    assert any(call[0] == "save_llm_interaction" for call in fake_artifacts_service.calls)
+    assert fake_inline_review_runner.calls == [("run", {})]
 
 
 @pytest.mark.asyncio
-async def test_run_inline_review_skips_when_no_diff(
+async def test_run_context_review_invokes_runner(
         review_service: ReviewService,
-        fake_vcs_client: FakeVCSClient,
-        fake_git_service: FakeGitService,
-        fake_llm_client: FakeLLMClient,
+        fake_context_review_runner: FakeContextReviewRunner
 ):
-    """Should skip inline review when no diffs exist."""
-    fake_git_service.responses["get_diff_for_file"] = ""
-
-    await review_service.run_inline_review()
-
-    assert not any(call[0] == "chat" for call in fake_llm_client.calls)
-    assert not any(call[0] == "create_inline_comment" for call in fake_vcs_client.calls)
-
-
-@pytest.mark.asyncio
-async def test_run_context_review_happy_path(
-        review_service: ReviewService,
-        fake_vcs_client: FakeVCSClient,
-        fake_llm_client: FakeLLMClient,
-        fake_prompt_service: FakePromptService,
-        fake_diff_service: FakeDiffService,
-):
-    """Should perform context review and post inline comments based on rendered files."""
+    """Should call run() on ContextReviewRunner."""
     await review_service.run_context_review()
-
-    vcs_calls = [c[0] for c in fake_vcs_client.calls]
-    assert "get_review_info" in vcs_calls
-    assert "create_inline_comment" in vcs_calls
-
-    assert any(call[0] == "render_files" for call in fake_diff_service.calls)
-    assert any(call[0] == "build_context_request" for call in fake_prompt_service.calls)
-    assert any(call[0] == "chat" for call in fake_llm_client.calls)
+    assert fake_context_review_runner.calls == [("run", {})]
 
 
 @pytest.mark.asyncio
-async def test_run_summary_review_happy_path(
+async def test_run_summary_review_invokes_runner(
         review_service: ReviewService,
-        fake_vcs_client: FakeVCSClient,
-        fake_llm_client: FakeLLMClient,
-        fake_prompt_service: FakePromptService,
-        fake_diff_service: FakeDiffService,
+        fake_summary_review_runner: FakeSummaryReviewRunner
 ):
-    """Should perform summary review and post a single summary comment."""
+    """Should call run() on SummaryReviewRunner."""
     await review_service.run_summary_review()
+    assert fake_summary_review_runner.calls == [("run", {})]
 
-    vcs_calls = [c[0] for c in fake_vcs_client.calls]
-    assert "get_review_info" in vcs_calls
-    assert "create_general_comment" in vcs_calls
 
-    assert any(call[0] == "render_files" for call in fake_diff_service.calls)
-    assert any(call[0] == "build_summary_request" for call in fake_prompt_service.calls)
-    assert any(call[0] == "chat" for call in fake_llm_client.calls)
+@pytest.mark.asyncio
+async def test_run_inline_reply_review_invokes_runner(
+        review_service: ReviewService,
+        fake_inline_reply_review_runner: FakeInlineReplyReviewRunner
+):
+    """Should call run() on InlineReplyReviewRunner."""
+    await review_service.run_inline_reply_review()
+    assert fake_inline_reply_review_runner.calls == [("run", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_summary_reply_review_invokes_runner(
+        review_service: ReviewService,
+        fake_summary_reply_review_runner: FakeSummaryReplyReviewRunner
+):
+    """Should call run() on SummaryReplyReviewRunner."""
+    await review_service.run_summary_reply_review()
+    assert fake_summary_reply_review_runner.calls == [("run", {})]
+
+
+def test_report_total_cost_with_data(
+        capsys,
+        review_service: ReviewService,
+        fake_cost_service: FakeCostService
+):
+    """Should log total cost when cost report exists."""
+    fake_cost_service.reports.append(
+        fake_cost_service.calculate(
+            result=ChatResultSchema(
+                text="result",
+                total_tokens=100,
+                prompt_tokens=50,
+                completion_tokens=10,
+            )
+        )
+    )
+
+    review_service.report_total_cost()
+    output = capsys.readouterr().out
+
+    assert "TOTAL REVIEW COST" in output
+    assert "fake-model" in output
+    assert "0.006" in output
+
+
+def test_report_total_cost_no_data(capsys, review_service: ReviewService):
+    """Should log message when no cost data is available."""
+    review_service.report_total_cost()
+    output = capsys.readouterr().out
+
+    assert "No cost data collected" in output

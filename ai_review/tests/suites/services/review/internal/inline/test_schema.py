@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.config import settings
-from ai_review.services.review.inline.schema import (
+from ai_review.services.review.internal.inline.schema import (
     InlineCommentSchema,
     InlineCommentListSchema,
 )

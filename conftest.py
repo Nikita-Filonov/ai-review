@@ -4,10 +4,22 @@ pytest_plugins = (
     "ai_review.tests.fixtures.services.vcs",
     "ai_review.tests.fixtures.services.diff",
     "ai_review.tests.fixtures.services.cost",
+    "ai_review.tests.fixtures.services.hook",
     "ai_review.tests.fixtures.services.prompt",
     "ai_review.tests.fixtures.services.artifacts",
-    "ai_review.tests.fixtures.services.review.inline",
-    "ai_review.tests.fixtures.services.review.summary",
+    "ai_review.tests.fixtures.services.review.base",
+    "ai_review.tests.fixtures.services.review.runner.inline",
+    "ai_review.tests.fixtures.services.review.runner.context",
+    "ai_review.tests.fixtures.services.review.runner.summary",
+    "ai_review.tests.fixtures.services.review.runner.inline_reply",
+    "ai_review.tests.fixtures.services.review.runner.summary_reply",
+    "ai_review.tests.fixtures.services.review.gateway.llm",
+    "ai_review.tests.fixtures.services.review.gateway.comment",
+    "ai_review.tests.fixtures.services.review.internal.policy",
+    "ai_review.tests.fixtures.services.review.internal.inline",
+    "ai_review.tests.fixtures.services.review.internal.summary",
+    "ai_review.tests.fixtures.services.review.internal.inline_reply",
+    "ai_review.tests.fixtures.services.review.internal.summary_reply",
 
     "ai_review.tests.fixtures.clients.github",
     "ai_review.tests.fixtures.clients.gitlab",
@@ -16,4 +28,6 @@ pytest_plugins = (
     "ai_review.tests.fixtures.clients.claude",
     "ai_review.tests.fixtures.clients.ollama",
     "ai_review.tests.fixtures.clients.bitbucket",
+
+    "ai_review.tests.fixtures.libs.llm.output_json_parser"
 )

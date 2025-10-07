@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.config import settings
-from ai_review.services.review.policy.service import ReviewPolicyService
+from ai_review.services.review.internal.policy.service import ReviewPolicyService
 
 
 @pytest.fixture(autouse=True)

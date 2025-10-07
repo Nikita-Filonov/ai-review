@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema
+from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
 from ai_review.tests.fixtures.clients.gitlab import FakeGitLabMergeRequestsHTTPClient
 
 
@@ -121,3 +121,92 @@ async def test_create_inline_comment_posts_comment(
     assert call_args["body"] == "Looks good!"
     assert call_args["project_id"] == "project-id"
     assert call_args["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_reply_posts_comment(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should reply to an existing inline discussion."""
+    thread_id = "discussion-1"
+    message = "I agree with this point."
+
+    await gitlab_vcs_client.create_inline_reply(thread_id, message)
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion_reply"
+    )
+
+    assert call["discussion_id"] == thread_id
+    assert call["body"] == message
+    assert call["project_id"] == "project-id"
+    assert call["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_summary_reply_uses_general_comment_method(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should reuse create_general_comment when replying to summary thread."""
+    thread_id = "summary-1"
+    message = "Thanks for clarifying."
+
+    await gitlab_vcs_client.create_summary_reply(thread_id, message)
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_note"
+    )
+
+    assert call["body"] == message
+    assert call["project_id"] == "project-id"
+    assert call["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_get_inline_threads_returns_valid_schema(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should transform GitLab discussions into inline threads with proper fields."""
+    threads = await gitlab_vcs_client.get_inline_threads()
+
+    assert all(isinstance(t, ReviewThreadSchema) for t in threads)
+    assert len(threads) == 1
+
+    thread = threads[0]
+    assert thread.id == "discussion-1"
+    assert thread.kind == ThreadKind.INLINE
+    assert thread.file == "src/app.py"
+    assert thread.line == 12
+    assert len(thread.comments) == 2
+    assert isinstance(thread.comments[0], ReviewCommentSchema)
+
+    called = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_discussions" in called
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_get_general_threads_wraps_comments_in_threads(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should wrap each general MR note into its own SUMMARY thread."""
+    threads = await gitlab_vcs_client.get_general_threads()
+
+    assert len(threads) == 2
+    for thread in threads:
+        assert isinstance(thread, ReviewThreadSchema)
+        assert thread.kind == ThreadKind.SUMMARY
+        assert len(thread.comments) == 1
+        assert isinstance(thread.comments[0], ReviewCommentSchema)
+
+    called = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_notes" in called

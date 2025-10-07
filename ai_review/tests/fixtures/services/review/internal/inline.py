@@ -1,7 +1,8 @@
 import pytest
 
-from ai_review.services.review.inline.schema import InlineCommentListSchema, InlineCommentSchema
-from ai_review.services.review.inline.types import InlineCommentServiceProtocol
+from ai_review.services.review.internal.inline.schema import InlineCommentListSchema, InlineCommentSchema
+from ai_review.services.review.internal.inline.service import InlineCommentService
+from ai_review.services.review.internal.inline.types import InlineCommentServiceProtocol
 
 
 class FakeInlineCommentService(InlineCommentServiceProtocol):
@@ -15,11 +16,12 @@ class FakeInlineCommentService(InlineCommentServiceProtocol):
         self.calls.append(("parse_model_output", {"output": output}))
         return InlineCommentListSchema(root=self.comments)
 
-    def try_parse_model_output(self, raw: str) -> InlineCommentListSchema | None:
-        self.calls.append(("try_parse_model_output", {"raw": raw}))
-        return InlineCommentListSchema(root=self.comments)
-
 
 @pytest.fixture
 def fake_inline_comment_service() -> FakeInlineCommentService:
     return FakeInlineCommentService()
+
+
+@pytest.fixture
+def inline_comment_service() -> InlineCommentService:
+    return InlineCommentService()
