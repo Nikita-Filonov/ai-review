@@ -44,6 +44,7 @@ class GitHubCreateIssueCommentResponseSchema(BaseModel):
 
 class GitHubCreateReviewReplyRequestSchema(BaseModel):
     body: str
+    in_reply_to: int
 
 
 class GitHubCreateReviewCommentRequestSchema(BaseModel):

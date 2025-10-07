@@ -84,11 +84,11 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             self,
             owner: str,
             repo: str,
-            comment_id: str,
+            pull_number: str,
             request: GitHubCreateReviewReplyRequestSchema,
     ) -> Response:
         return await self.post(
-            f"/repos/{owner}/{repo}/pulls/comments/{comment_id}/replies",
+            f"/repos/{owner}/{repo}/pulls/{pull_number}/comments",
             json=request.model_dump(),
         )
 
@@ -212,11 +212,10 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             self,
             owner: str,
             repo: str,
-            comment_id: str,
-            body: str,
+            pull_number: str,
+            request: GitHubCreateReviewReplyRequestSchema,
     ) -> GitHubCreateReviewCommentResponseSchema:
-        request = GitHubCreateReviewReplyRequestSchema(body=body)
-        response = await self.create_review_reply_api(owner, repo, comment_id, request)
+        response = await self.create_review_reply_api(owner, repo, pull_number, request)
         return GitHubCreateReviewCommentResponseSchema.model_validate_json(response.text)
 
     async def create_review_comment(
