@@ -31,7 +31,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
     async def get_summary_threads(self) -> list[ReviewThreadSchema]:
         threads = await self.vcs.get_general_threads()
 
-        summary_tags = {settings.review.inline_tag, settings.review.inline_reply_tag}
+        summary_tags = {settings.review.summary_tag, settings.review.summary_reply_tag}
         summary_threads = [
             thread for thread in threads
             if any(any(tag in comment.body for tag in summary_tags) for comment in thread.comments)
