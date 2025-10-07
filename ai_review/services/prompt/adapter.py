@@ -2,7 +2,7 @@ from ai_review.services.prompt.schema import PromptContextSchema
 from ai_review.services.vcs.types import ReviewInfoSchema
 
 
-def build_prompt_context_from_mr_info(review: ReviewInfoSchema) -> PromptContextSchema:
+def build_prompt_context_from_review_info(review: ReviewInfoSchema) -> PromptContextSchema:
     return PromptContextSchema(
         review_title=review.title,
         review_description=review.description,
