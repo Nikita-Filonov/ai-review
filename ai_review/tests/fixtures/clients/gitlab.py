@@ -12,13 +12,14 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabGetMRDiscussionsResponseSchema,
     GitLabCreateMRDiscussionRequestSchema,
     GitLabCreateMRDiscussionResponseSchema,
-    GitLabCreateMRDiscussionReplyResponseSchema, GitLabDiscussionPositionSchema,
+    GitLabCreateMRDiscussionReplyResponseSchema,
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
     GitLabGetMRNotesResponseSchema,
     GitLabCreateMRNoteResponseSchema,
 )
+from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.clients.gitlab.mr.types import GitLabMergeRequestsHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.config.vcs.base import GitLabVCSConfig
@@ -81,17 +82,42 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
                 GitLabDiscussionSchema(
                     id="discussion-1",
                     notes=[
-                        GitLabNoteSchema(id=10, body="Inline comment A"),
-                        GitLabNoteSchema(id=11, body="Inline comment B"),
+                        GitLabNoteSchema(
+                            id=10,
+                            body="Inline comment A",
+                            position=GitLabPositionSchema(
+                                base_sha="abc123",
+                                head_sha="def456",
+                                start_sha="ghi789",
+                                new_path="src/app.py",
+                                new_line=12,
+                            ),
+                        ),
+                        GitLabNoteSchema(
+                            id=11,
+                            body="Inline comment B",
+                            position=GitLabPositionSchema(
+                                base_sha="abc123",
+                                head_sha="def456",
+                                start_sha="ghi789",
+                                new_path="src/app.py",
+                                new_line=14,
+                            ),
+                        ),
                     ],
-                    position=GitLabDiscussionPositionSchema(
+                    position=GitLabPositionSchema(
                         base_sha="abc123",
                         head_sha="def456",
                         start_sha="ghi789",
                         new_path="src/app.py",
                         new_line=12,
                     ),
-                )
+                ),
+                GitLabDiscussionSchema(
+                    id="discussion-2",
+                    notes=[GitLabNoteSchema(id=20, body="Outdated diff comment", position=None)],
+                    position=None,
+                ),
             ]
         )
 

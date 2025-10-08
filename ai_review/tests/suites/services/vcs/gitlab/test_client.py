@@ -71,14 +71,20 @@ async def test_get_inline_comments_returns_expected_list(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
 ):
-    """Should return inline comments from MR discussions."""
+    """Should return inline comments from MR discussions (including ones without position)."""
     comments = await gitlab_vcs_client.get_inline_comments()
 
     assert all(isinstance(c, ReviewCommentSchema) for c in comments)
-    assert len(comments) == 2
+    assert len(comments) == 3
 
     first = comments[0]
     assert first.body == "Inline comment A"
+    assert first.file == "src/app.py"
+    assert first.line == 12
+
+    last = comments[-1]
+    assert last.file is None
+    assert last.line is None
 
     called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
     assert called_methods == ["get_discussions"]
@@ -183,19 +189,25 @@ async def test_get_inline_threads_returns_valid_schema(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
 ):
-    """Should transform GitLab discussions into inline threads with proper fields."""
+    """Should transform GitLab discussions into inline threads, including those without position."""
     threads = await gitlab_vcs_client.get_inline_threads()
 
-    assert all(isinstance(t, ReviewThreadSchema) for t in threads)
-    assert len(threads) == 1
+    assert all(isinstance(thread, ReviewThreadSchema) for thread in threads)
+    assert len(threads) == 2
 
-    thread = threads[0]
-    assert thread.id == "discussion-1"
-    assert thread.kind == ThreadKind.INLINE
-    assert thread.file == "src/app.py"
-    assert thread.line == 12
-    assert len(thread.comments) == 2
-    assert isinstance(thread.comments[0], ReviewCommentSchema)
+    first_thread = threads[0]
+    assert first_thread.id == "discussion-1"
+    assert first_thread.kind == ThreadKind.INLINE
+    assert first_thread.file == "src/app.py"
+    assert first_thread.line == 12
+    assert len(first_thread.comments) == 2
+    assert isinstance(first_thread.comments[0], ReviewCommentSchema)
+
+    second_thread = threads[1]
+    assert second_thread.id == "discussion-2"
+    assert second_thread.file is None
+    assert second_thread.line is None
+    assert len(second_thread.comments) == 1
 
     called = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
     assert "get_discussions" in called

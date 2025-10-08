@@ -1,8 +1,6 @@
 from ai_review.clients.gitlab.client import get_gitlab_http_client
-from ai_review.clients.gitlab.mr.schema.discussions import (
-    GitLabDiscussionPositionSchema,
-    GitLabCreateMRDiscussionRequestSchema,
-)
+from ai_review.clients.gitlab.mr.schema.discussions import GitLabCreateMRDiscussionRequestSchema
+from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
@@ -135,7 +133,7 @@ class GitLabVCSClient(VCSClientProtocol):
 
             request = GitLabCreateMRDiscussionRequestSchema(
                 body=message,
-                position=GitLabDiscussionPositionSchema(
+                position=GitLabPositionSchema(
                     position_type="text",
                     base_sha=response.diff_refs.base_sha,
                     head_sha=response.diff_refs.head_sha,
@@ -191,19 +189,28 @@ class GitLabVCSClient(VCSClientProtocol):
             )
             logger.info(f"Fetched inline threads for MR {self.merge_request_ref}")
 
-            threads = [
-                ReviewThreadSchema(
-                    id=discussion.id,
-                    kind=ThreadKind.INLINE,
-                    file=discussion.position.new_path if discussion.position else None,
-                    line=discussion.position.new_line if discussion.position else None,
-                    comments=[
-                        get_review_comment_from_gitlab_note(note, discussion)
-                        for note in discussion.notes
-                    ]
+            threads: list[ReviewThreadSchema] = []
+            for discussion in response.root:
+                if not discussion.notes:
+                    continue
+
+                position = discussion.position or (
+                    discussion.notes[0].position if discussion.notes else None
                 )
-                for discussion in response.root if discussion.notes
-            ]
+
+                threads.append(
+                    ReviewThreadSchema(
+                        id=discussion.id,
+                        kind=ThreadKind.INLINE,
+                        file=position.new_path if position else None,
+                        line=position.new_line if position else None,
+                        comments=[
+                            get_review_comment_from_gitlab_note(note, discussion)
+                            for note in discussion.notes
+                        ],
+                    )
+                )
+
             logger.info(f"Built {len(threads)} inline threads for MR {self.merge_request_ref}")
             return threads
         except Exception as error:

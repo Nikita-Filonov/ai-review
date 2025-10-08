@@ -1,5 +1,6 @@
 from pydantic import BaseModel, RootModel
 
+from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.clients.gitlab.mr.schema.user import GitLabUserSchema
 
 
@@ -7,6 +8,7 @@ class GitLabNoteSchema(BaseModel):
     id: int
     body: str
     author: GitLabUserSchema | None = None
+    position: GitLabPositionSchema | None = None
 
 
 class GitLabGetMRNotesQuerySchema(BaseModel):

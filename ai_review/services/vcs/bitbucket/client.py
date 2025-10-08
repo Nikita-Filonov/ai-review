@@ -207,22 +207,33 @@ class BitbucketVCSClient(VCSClientProtocol):
         try:
             comments = await self.get_inline_comments()
 
-            threads: dict[str | int, list[ReviewCommentSchema]] = defaultdict(list)
+            threads_by_id: dict[str | int, list[ReviewCommentSchema]] = defaultdict(list)
             for comment in comments:
-                threads[comment.thread_id].append(comment)
+                if not comment.file:
+                    continue
 
-            logger.info(f"Built {len(threads)} inline threads for {self.pull_request_ref}")
+                threads_by_id[comment.thread_id].append(comment)
 
-            return [
-                ReviewThreadSchema(
-                    id=thread_id,
-                    kind=ThreadKind.INLINE,
-                    file=thread[0].file,
-                    line=thread[0].line,
-                    comments=sorted(thread, key=lambda c: int(c.id)),
+            logger.info(f"Built {len(threads_by_id)} inline threads for {self.pull_request_ref}")
+
+            threads: list[ReviewThreadSchema] = []
+            for thread_id, thread in threads_by_id.items():
+                file = thread[0].file
+                line = thread[0].line
+                if not file:
+                    continue
+
+                threads.append(
+                    ReviewThreadSchema(
+                        id=thread_id,
+                        kind=ThreadKind.INLINE,
+                        file=file,
+                        line=line,
+                        comments=sorted(thread, key=lambda t: int(t.id)),
+                    )
                 )
-                for thread_id, thread in threads.items()
-            ]
+
+            return threads
         except Exception as error:
             logger.exception(f"Failed to fetch inline threads for {self.pull_request_ref}: {error}")
             return []
