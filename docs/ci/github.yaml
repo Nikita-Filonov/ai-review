@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.28.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.29.0
 # ===============================
 
 name: AI Review
@@ -22,7 +22,7 @@ on:
         required: true
         default: "run"
         description: "Review command (mode)"
-        options: [ run, run-inline, run-context, run-summary ]
+        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
 
       pull-request-number:
         type: string
@@ -45,7 +45,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.28.0
+        uses: Nikita-Filonov/ai-review@v0.29.0
         env:
           # ===============================
           # LLM provider & model
@@ -147,6 +147,20 @@ jobs:
           # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES: '["./prompts/system_summary.md"]'
           # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
 
+          # Inline reply prompts (used when replying to inline code review comments).
+          # PROMPT__INLINE_REPLY_PROMPT_FILES: '["./prompts/inline_reply.md"]'
+
+          # Inline reply system prompts (format/contract rules).
+          # PROMPT__SYSTEM_INLINE_REPLY_PROMPT_FILES: '["./prompts/system_inline_reply.md"]'
+          # PROMPT__INCLUDE_INLINE_REPLY_SYSTEM_PROMPTS: "true"
+
+          # Summary reply prompts (used when replying in summary review threads).
+          # PROMPT__SUMMARY_REPLY_PROMPT_FILES: '["./prompts/summary_reply.md"]'
+
+          # Summary reply system prompts (format/contract rules).
+          # PROMPT__SYSTEM_SUMMARY_REPLY_PROMPT_FILES: '["./prompts/system_summary_reply.md"]'
+          # PROMPT__INCLUDE_SUMMARY_REPLY_SYSTEM_PROMPTS: "true"
+
           # ===============================
           # Custom context variables
           # ===============================
@@ -201,7 +215,9 @@ jobs:
 
           # Tags used to mark AI-generated comments in PR.
           REVIEW__INLINE_TAG: "#ai-review-inline"
+          REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
           REVIEW__SUMMARY_TAG: "#ai-review-summary"
+          REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
 
           # Context lines (only for *_WITH_CONTEXT modes).
           REVIEW__CONTEXT_LINES: "10"

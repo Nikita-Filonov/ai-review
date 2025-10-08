@@ -1,8 +1,6 @@
-from ai_review.clients.gitlab.mr.schema.discussions import (
-    GitLabDiscussionSchema,
-    GitLabDiscussionPositionSchema,
-)
+from ai_review.clients.gitlab.mr.schema.discussions import GitLabDiscussionSchema
 from ai_review.clients.gitlab.mr.schema.notes import GitLabNoteSchema
+from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.clients.gitlab.mr.schema.user import GitLabUserSchema
 from ai_review.services.vcs.gitlab.adapter import get_review_comment_from_gitlab_note
 from ai_review.services.vcs.types import ReviewCommentSchema, UserSchema
@@ -18,7 +16,7 @@ def test_maps_all_fields_correctly():
     discussion = GitLabDiscussionSchema(
         id="42",
         notes=[note],
-        position=GitLabDiscussionPositionSchema(
+        position=GitLabPositionSchema(
             base_sha="AAA000",
             head_sha="BBB111",
             start_sha="CCC222",
@@ -48,7 +46,7 @@ def test_maps_with_missing_author():
     discussion = GitLabDiscussionSchema(
         id="7",
         notes=[note],
-        position=GitLabDiscussionPositionSchema(
+        position=GitLabPositionSchema(
             base_sha="AAA000",
             head_sha="BBB111",
             start_sha="CCC222",
@@ -103,3 +101,34 @@ def test_maps_with_empty_body_and_defaults():
     assert result.line is None
     assert result.thread_id == "100"
     assert isinstance(result.author, UserSchema)
+
+
+def test_maps_with_note_position_fallback():
+    """Should use note.position when discussion.position is missing."""
+    note = GitLabNoteSchema(
+        id=77,
+        body="Inline note with its own position",
+        author=GitLabUserSchema(id=2, name="Carol", username="carol"),
+        position=GitLabPositionSchema(
+            base_sha="aaa",
+            head_sha="bbb",
+            start_sha="ccc",
+            new_path="module/utils.py",
+            new_line=42,
+        ),
+    )
+    discussion = GitLabDiscussionSchema(
+        id="200",
+        notes=[note],
+        position=None,
+    )
+
+    result = get_review_comment_from_gitlab_note(note, discussion)
+
+    assert isinstance(result, ReviewCommentSchema)
+    assert result.id == 77
+    assert result.file == "module/utils.py"
+    assert result.line == 42
+    assert result.thread_id == "200"
+    assert result.body == "Inline note with its own position"
+    assert result.author.name == "Carol"

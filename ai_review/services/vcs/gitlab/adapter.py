@@ -16,11 +16,13 @@ def get_review_comment_from_gitlab_note(
         note: GitLabNoteSchema,
         discussion: GitLabDiscussionSchema
 ) -> ReviewCommentSchema:
+    position = note.position or discussion.position
+
     return ReviewCommentSchema(
         id=note.id,
         body=note.body or "",
-        file=discussion.position.new_path if discussion.position else None,
-        line=discussion.position.new_line if discussion.position else None,
+        file=position.new_path if position else None,
+        line=position.new_line if position else None,
         author=get_user_from_gitlab_user(note.author),
         thread_id=discussion.id,
     )
