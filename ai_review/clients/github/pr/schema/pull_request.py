@@ -1,9 +1,6 @@
 from pydantic import BaseModel, Field
 
-
-class GitHubUserSchema(BaseModel):
-    id: int
-    login: str
+from ai_review.clients.github.pr.schema.user import GitHubUserSchema
 
 
 class GitHubLabelSchema(BaseModel):

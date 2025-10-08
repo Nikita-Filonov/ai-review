@@ -1,10 +1,6 @@
 from pydantic import BaseModel, Field
 
-
-class GitLabUserSchema(BaseModel):
-    id: int
-    name: str
-    username: str
+from ai_review.clients.gitlab.mr.schema.user import GitLabUserSchema
 
 
 class GitLabDiffRefsSchema(BaseModel):

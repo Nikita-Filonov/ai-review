@@ -2,7 +2,9 @@ from typing import Protocol
 
 from ai_review.clients.github.pr.schema.comments import (
     GitHubGetPRCommentsResponseSchema,
+    GitHubGetIssueCommentsResponseSchema,
     GitHubCreateIssueCommentResponseSchema,
+    GitHubCreateReviewReplyRequestSchema,
     GitHubCreateReviewCommentResponseSchema,
     GitHubCreateReviewCommentRequestSchema,
 )
@@ -21,7 +23,7 @@ class GitHubPullRequestsHTTPClientProtocol(Protocol):
             owner: str,
             repo: str,
             issue_number: str
-    ) -> GitHubGetPRCommentsResponseSchema: ...
+    ) -> GitHubGetIssueCommentsResponseSchema: ...
 
     async def get_review_comments(
             self,
@@ -31,6 +33,14 @@ class GitHubPullRequestsHTTPClientProtocol(Protocol):
     ) -> GitHubGetPRCommentsResponseSchema: ...
 
     async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRReviewsResponseSchema: ...
+
+    async def create_review_reply(
+            self,
+            owner: str,
+            repo: str,
+            comment_id: str,
+            request: GitHubCreateReviewReplyRequestSchema,
+    ) -> GitHubCreateReviewCommentResponseSchema: ...
 
     async def create_review_comment(
             self,

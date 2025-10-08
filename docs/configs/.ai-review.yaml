@@ -253,6 +253,69 @@ prompt:
   # false → only user-provided system_summary_prompt_files are used
   include_summary_system_prompts: true
 
+  # ==============================
+  # Inline reply prompts
+  # ==============================
+  # inline_reply_prompt_files (joined in order).
+  # These provide *local instructions* for AI reply generation
+  # inside existing inline comment threads.
+  #
+  # Useful when the AI should continue discussions or explain prior feedback.
+  #
+  # Defaults (if not defined):
+  #   - default_inline_reply.md
+  #
+  inline_reply_prompt_files:
+    - ./prompts/default_inline_reply.md  # MR-specific inline reply prompt
+
+  # system_inline_reply_prompt_files (joined in order).
+  # These define the *contract* with the model for inline reply generation:
+  # - enforce plain-text output (single reply per thread),
+  # - restrict replies only to comments authored by AI Review,
+  # - define response tone and content structure.
+  #
+  # Defaults (if not defined):
+  #   - default_system_inline_reply.md
+  #
+  system_inline_reply_prompt_files:
+    - ./prompts/default_system_inline_reply.md  # System inline reply prompt
+
+  # Whether to include built-in default system inline reply prompts.
+  # true  (default) → always prepend default_system_inline_reply.md
+  # false → only user-provided system_inline_reply_prompt_files are used
+  include_inline_reply_system_prompts: true
+
+  # ==============================
+  # Summary reply prompts
+  # ==============================
+  # summary_reply_prompt_files (joined in order).
+  # These provide *local instructions* for generating AI replies
+  # to summary review comments (e.g. reviewer discussion threads).
+  #
+  # Useful for collaborative or follow-up review workflows.
+  #
+  # Defaults (if not defined):
+  #   - default_summary_reply.md
+  #
+  summary_reply_prompt_files:
+    - ./prompts/default_summary_reply.md  # MR-specific summary reply prompt
+
+  # system_summary_reply_prompt_files (joined in order).
+  # These define the *contract* with the model for summary reply generation:
+  # - enforce plain-text output,
+  # - restrict replies to summary threads started by AI Review,
+  # - define reply tone (short, factual, concise).
+  #
+  # Defaults (if not defined):
+  #   - default_system_summary_reply.md
+  #
+  system_summary_reply_prompt_files:
+    - ./prompts/default_system_summary_reply.md  # System summary reply prompt
+
+  # Whether to include built-in default system summary reply prompts.
+  # true  (default) → always prepend default_system_summary_reply.md
+  # false → only user-provided system_summary_reply_prompt_files are used
+  include_summary_reply_system_prompts: true
 
 review:
   # Review mode determines which parts of files are reviewed.
@@ -272,7 +335,9 @@ review:
 
   # Tags used to mark AI-generated comments in MR.
   inline_tag: "#ai-review-inline"
+  inline_reply_tag: "#ai-review-inline-reply"
   summary_tag: "#ai-review-summary"
+  summary_reply_tag: "#ai-review-summary-reply"
 
   # Number of context lines around changes (only used in *_WITH_CONTEXT modes).
   context_lines: 10

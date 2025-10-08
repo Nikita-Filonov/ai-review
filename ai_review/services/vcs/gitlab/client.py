@@ -5,11 +5,14 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
 )
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
+from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     UserSchema,
+    ThreadKind,
     BranchRefSchema,
     ReviewInfoSchema,
+    ReviewThreadSchema,
     ReviewCommentSchema,
 )
 
@@ -21,16 +24,16 @@ class GitLabVCSClient(VCSClientProtocol):
         self.http_client = get_gitlab_http_client()
         self.project_id = settings.vcs.pipeline.project_id
         self.merge_request_id = settings.vcs.pipeline.merge_request_id
+        self.merge_request_ref = f"project_id={self.project_id} merge_request_id={self.merge_request_id}"
 
+    # --- Review info ---
     async def get_review_info(self) -> ReviewInfoSchema:
         try:
             response = await self.http_client.mr.get_changes(
                 project_id=self.project_id,
                 merge_request_id=self.merge_request_id,
             )
-            logger.info(
-                f"Fetched MR info for project_id={self.project_id} merge_request_id={self.merge_request_id}"
-            )
+            logger.info(f"Fetched MR info for {self.merge_request_ref}")
 
             return ReviewInfoSchema(
                 id=response.iid,
@@ -66,32 +69,29 @@ class GitLabVCSClient(VCSClientProtocol):
                 ],
             )
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch MR info for project_id={self.project_id} "
-                f"merge_request_id={self.merge_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch MR info for {self.merge_request_ref}: {error}")
             return ReviewInfoSchema()
 
+    # --- Comments ---
     async def get_general_comments(self) -> list[ReviewCommentSchema]:
         try:
             response = await self.http_client.mr.get_notes(
                 project_id=self.project_id,
                 merge_request_id=self.merge_request_id,
             )
-            logger.info(
-                f"Fetched general comments for project_id={self.project_id} "
-                f"merge_request_id={self.merge_request_id}"
-            )
+            logger.info(f"Fetched general comments for {self.merge_request_ref}")
 
             return [
-                ReviewCommentSchema(id=note.id, body=note.body or "")
+                ReviewCommentSchema(
+                    id=note.id,
+                    body=note.body or "",
+                    author=get_user_from_gitlab_user(note.author),
+                    thread_id=note.id
+                )
                 for note in response.root
             ]
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch general comments project_id={self.project_id} "
-                f"merge_request_id={self.merge_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch general comments {self.merge_request_ref}: {error}")
             return []
 
     async def get_inline_comments(self) -> list[ReviewCommentSchema]:
@@ -100,45 +100,33 @@ class GitLabVCSClient(VCSClientProtocol):
                 project_id=self.project_id,
                 merge_request_id=self.merge_request_id,
             )
-            logger.info(
-                f"Fetched inline discussions for project_id={self.project_id} "
-                f"merge_request_id={self.merge_request_id}"
-            )
+            logger.info(f"Fetched inline discussions for {self.merge_request_ref}")
 
             return [
-                ReviewCommentSchema(id=note.id, body=note.body or "")
+                get_review_comment_from_gitlab_note(note, discussion)
                 for discussion in response.root
                 for note in discussion.notes
             ]
         except Exception as error:
-            logger.exception(
-                f"Failed to fetch inline discussions project_id={self.project_id} "
-                f"merge_request_id={self.merge_request_id}: {error}"
-            )
+            logger.exception(f"Failed to fetch inline discussions {self.merge_request_ref}: {error}")
             return []
 
     async def create_general_comment(self, message: str) -> None:
         try:
-            logger.info(
-                f"Posting general comment to merge_request_id={self.merge_request_id}: {message}"
-            )
+            logger.info(f"Posting general comment to {self.merge_request_ref}: {message}")
             await self.http_client.mr.create_note(
                 body=message,
                 project_id=self.project_id,
                 merge_request_id=self.merge_request_id,
             )
-            logger.info(f"Created general comment in merge_request_id={self.merge_request_id}")
+            logger.info(f"Created general comment in {self.merge_request_ref}")
         except Exception as error:
-            logger.exception(
-                f"Failed to create general comment in merge_request_id={self.merge_request_id}: {error}"
-            )
+            logger.exception(f"Failed to create general comment in {self.merge_request_ref}: {error}")
             raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         try:
-            logger.info(
-                f"Posting inline comment in merge_request_id={self.merge_request_id} at {file}:{line}: {message}"
-            )
+            logger.info(f"Posting inline comment in {self.merge_request_ref} at {file}:{line}: {message}")
 
             response = await self.http_client.mr.get_changes(
                 project_id=self.project_id,
@@ -161,12 +149,77 @@ class GitLabVCSClient(VCSClientProtocol):
                 project_id=self.project_id,
                 merge_request_id=self.merge_request_id,
             )
+            logger.info(f"Created inline comment in {self.merge_request_ref} at {file}:{line}")
+        except Exception as error:
+            logger.exception(f"Failed to create inline comment in {self.merge_request_ref} at {file}:{line}: {error}")
+            raise
+
+    # --- Replies ---
+    async def create_inline_reply(self, thread_id: str | int, message: str) -> None:
+        try:
+            logger.info(f"Replying to discussion {thread_id=} in MR {self.merge_request_ref}")
+            await self.http_client.mr.create_discussion_reply(
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+                discussion_id=str(thread_id),
+                body=message,
+            )
             logger.info(
-                f"Created inline comment in merge_request_id={self.merge_request_id} at {file}:{line}"
+                f"Created inline reply to discussion {thread_id=} in MR {self.merge_request_ref}"
             )
         except Exception as error:
             logger.exception(
-                f"Failed to create inline comment in merge_request_id={self.merge_request_id} "
-                f"at {file}:{line}: {error}"
+                f"Failed to create inline reply to discussion {thread_id=} in MR {self.merge_request_ref}: {error}"
             )
             raise
+
+    async def create_summary_reply(self, thread_id: int | str, message: str) -> None:
+        try:
+            logger.info(f"Replying to general comment {thread_id=} in MR {self.merge_request_ref}")
+            await self.create_general_comment(message)
+        except Exception as error:
+            logger.exception(
+                f"Failed to reply to general comment {thread_id=} in MR {self.merge_request_ref}: {error}"
+            )
+            raise
+
+    async def get_inline_threads(self) -> list[ReviewThreadSchema]:
+        try:
+            response = await self.http_client.mr.get_discussions(
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+            )
+            logger.info(f"Fetched inline threads for MR {self.merge_request_ref}")
+
+            threads = [
+                ReviewThreadSchema(
+                    id=discussion.id,
+                    kind=ThreadKind.INLINE,
+                    file=discussion.position.new_path if discussion.position else None,
+                    line=discussion.position.new_line if discussion.position else None,
+                    comments=[
+                        get_review_comment_from_gitlab_note(note, discussion)
+                        for note in discussion.notes
+                    ]
+                )
+                for discussion in response.root if discussion.notes
+            ]
+            logger.info(f"Built {len(threads)} inline threads for MR {self.merge_request_ref}")
+            return threads
+        except Exception as error:
+            logger.exception(f"Failed to fetch inline threads for MR {self.merge_request_ref}: {error}")
+            return []
+
+    async def get_general_threads(self) -> list[ReviewThreadSchema]:
+        try:
+            comments = await self.get_general_comments()
+
+            threads = [
+                ReviewThreadSchema(id=comment.id, kind=ThreadKind.SUMMARY, comments=[comment])
+                for comment in comments
+            ]
+            logger.info(f"Built {len(threads)} general threads for MR {self.merge_request_ref}")
+            return threads
+        except Exception as error:
+            logger.exception(f"Failed to build general threads for MR {self.merge_request_ref}: {error}")
+            return []

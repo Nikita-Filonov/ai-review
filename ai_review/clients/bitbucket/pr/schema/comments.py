@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 
+from ai_review.clients.bitbucket.pr.schema.user import BitbucketUserSchema
+
 
 class BitbucketCommentContentSchema(BaseModel):
     raw: str
@@ -15,8 +17,14 @@ class BitbucketCommentInlineSchema(BaseModel):
     from_line: int | None = Field(alias="from", default=None)
 
 
+class BitbucketCommentParentSchema(BaseModel):
+    id: int
+
+
 class BitbucketPRCommentSchema(BaseModel):
     id: int
+    user: BitbucketUserSchema | None = None
+    parent: BitbucketCommentParentSchema | None = None
     inline: BitbucketCommentInlineSchema | None = None
     content: BitbucketCommentContentSchema
 
@@ -38,12 +46,18 @@ class BitbucketGetPRCommentsResponseSchema(BaseModel):
     page_len: int = Field(alias="pagelen")
 
 
+class BitbucketParentSchema(BaseModel):
+    id: int
+
+
 class BitbucketCreatePRCommentRequestSchema(BaseModel):
+    parent: BitbucketParentSchema | None = None
     inline: BitbucketCommentInlineSchema | None = None
     content: BitbucketCommentContentSchema
 
 
 class BitbucketCreatePRCommentResponseSchema(BaseModel):
     id: int
+    parent: BitbucketParentSchema | None = None
     inline: BitbucketCommentInlineSchema | None = None
     content: BitbucketCommentContentSchema

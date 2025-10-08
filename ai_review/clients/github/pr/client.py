@@ -2,10 +2,13 @@ from httpx import Response, QueryParams
 
 from ai_review.clients.github.pr.schema.comments import (
     GitHubPRCommentSchema,
+    GitHubIssueCommentSchema,
     GitHubGetPRCommentsQuerySchema,
     GitHubGetPRCommentsResponseSchema,
+    GitHubGetIssueCommentsResponseSchema,
     GitHubCreateIssueCommentRequestSchema,
     GitHubCreateIssueCommentResponseSchema,
+    GitHubCreateReviewReplyRequestSchema,
     GitHubCreateReviewCommentRequestSchema,
     GitHubCreateReviewCommentResponseSchema
 )
@@ -77,6 +80,19 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
         )
 
     @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
+    async def create_review_reply_api(
+            self,
+            owner: str,
+            repo: str,
+            pull_number: str,
+            request: GitHubCreateReviewReplyRequestSchema,
+    ) -> Response:
+        return await self.post(
+            f"/repos/{owner}/{repo}/pulls/{pull_number}/comments",
+            json=request.model_dump(),
+        )
+
+    @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
     async def create_review_comment_api(
             self,
             owner: str,
@@ -136,13 +152,18 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
         )
         return GitHubGetPRFilesResponseSchema(root=items)
 
-    async def get_issue_comments(self, owner: str, repo: str, issue_number: str) -> GitHubGetPRCommentsResponseSchema:
+    async def get_issue_comments(
+            self,
+            owner: str,
+            repo: str,
+            issue_number: str
+    ) -> GitHubGetIssueCommentsResponseSchema:
         async def fetch_page(page: int) -> Response:
             query = GitHubGetPRCommentsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
             return await self.get_issue_comments_api(owner, repo, issue_number, query)
 
-        def extract_items(response: Response) -> list[GitHubPRCommentSchema]:
-            result = GitHubGetPRCommentsResponseSchema.model_validate_json(response.text)
+        def extract_items(response: Response) -> list[GitHubIssueCommentSchema]:
+            result = GitHubGetIssueCommentsResponseSchema.model_validate_json(response.text)
             return result.root
 
         items = await paginate(
@@ -151,7 +172,7 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             extract_items=extract_items,
             has_next_page=github_has_next_page
         )
-        return GitHubGetPRCommentsResponseSchema(root=items)
+        return GitHubGetIssueCommentsResponseSchema(root=items)
 
     async def get_review_comments(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRCommentsResponseSchema:
         async def fetch_page(page: int) -> Response:
@@ -186,6 +207,16 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             has_next_page=github_has_next_page
         )
         return GitHubGetPRReviewsResponseSchema(root=items)
+
+    async def create_review_reply(
+            self,
+            owner: str,
+            repo: str,
+            pull_number: str,
+            request: GitHubCreateReviewReplyRequestSchema,
+    ) -> GitHubCreateReviewCommentResponseSchema:
+        response = await self.create_review_reply_api(owner, repo, pull_number, request)
+        return GitHubCreateReviewCommentResponseSchema.model_validate_json(response.text)
 
     async def create_review_comment(
             self,

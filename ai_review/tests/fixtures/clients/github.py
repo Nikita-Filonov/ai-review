@@ -3,8 +3,11 @@ from pydantic import HttpUrl, SecretStr
 
 from ai_review.clients.github.pr.schema.comments import (
     GitHubPRCommentSchema,
+    GitHubIssueCommentSchema,
     GitHubGetPRCommentsResponseSchema,
+    GitHubGetIssueCommentsResponseSchema,
     GitHubCreateIssueCommentResponseSchema,
+    GitHubCreateReviewReplyRequestSchema,
     GitHubCreateReviewCommentRequestSchema,
     GitHubCreateReviewCommentResponseSchema,
 )
@@ -30,7 +33,6 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
 
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRResponseSchema:
         self.calls.append(("get_pull_request", {"owner": owner, "repo": repo, "pull_number": pull_number}))
-
         return GitHubGetPRResponseSchema(
             id=1,
             number=1,
@@ -72,19 +74,31 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
             ]
         )
 
-    async def get_issue_comments(self, owner: str, repo: str, issue_number: str) -> GitHubGetPRCommentsResponseSchema:
+    async def get_issue_comments(
+            self,
+            owner: str,
+            repo: str,
+            issue_number: str
+    ) -> GitHubGetIssueCommentsResponseSchema:
         self.calls.append(("get_issue_comments", {"owner": owner, "repo": repo, "issue_number": issue_number}))
 
-        return GitHubGetPRCommentsResponseSchema(
+        return GitHubGetIssueCommentsResponseSchema(
             root=[
-                GitHubPRCommentSchema(id=1, body="General comment"),
-                GitHubPRCommentSchema(id=2, body="Another general comment"),
+                GitHubIssueCommentSchema(
+                    id=1,
+                    body="General comment",
+                    user=GitHubUserSchema(id=201, login="alice")
+                ),
+                GitHubIssueCommentSchema(
+                    id=2,
+                    body="Another general comment",
+                    user=GitHubUserSchema(id=202, login="bob"),
+                ),
             ]
         )
 
     async def get_review_comments(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRCommentsResponseSchema:
         self.calls.append(("get_review_comments", {"owner": owner, "repo": repo, "pull_number": pull_number}))
-
         return GitHubGetPRCommentsResponseSchema(
             root=[
                 GitHubPRCommentSchema(id=3, body="Inline comment", path="file.py", line=5),
@@ -101,6 +115,21 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
                 GitHubPRReviewSchema(id=2, body="Needs changes", state="CHANGES_REQUESTED"),
             ]
         )
+
+    async def create_review_reply(
+            self,
+            owner: str,
+            repo: str,
+            pull_number: str,
+            request: GitHubCreateReviewReplyRequestSchema,
+    ) -> GitHubCreateReviewCommentResponseSchema:
+        self.calls.append(
+            (
+                "create_review_reply",
+                {"owner": owner, "repo": repo, "pull_number": pull_number, **request.model_dump()}
+            )
+        )
+        return GitHubCreateReviewCommentResponseSchema(id=12, body=request.body)
 
     async def create_review_comment(
             self,
