@@ -18,25 +18,19 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
     async def get_inline_threads(self) -> list[ReviewThreadSchema]:
         threads = await self.vcs.get_inline_threads()
-
-        inline_tags = {settings.review.inline_tag, settings.review.inline_reply_tag}
         inline_threads = [
             thread for thread in threads
-            if any(any(tag in comment.body for tag in inline_tags) for comment in thread.comments)
+            if any(settings.review.inline_reply_tag in comment.body for comment in thread.comments)
         ]
-
         logger.info(f"Detected {len(inline_threads)}/{len(threads)} AI inline threads")
         return inline_threads
 
     async def get_summary_threads(self) -> list[ReviewThreadSchema]:
         threads = await self.vcs.get_general_threads()
-
-        summary_tags = {settings.review.summary_tag, settings.review.summary_reply_tag}
         summary_threads = [
             thread for thread in threads
-            if any(any(tag in comment.body for tag in summary_tags) for comment in thread.comments)
+            if any(settings.review.summary_reply_tag in comment.body for comment in thread.comments)
         ]
-
         logger.info(f"Detected {len(summary_threads)}/{len(threads)} AI summary threads")
         return summary_threads
 

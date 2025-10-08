@@ -23,7 +23,7 @@ async def test_get_inline_threads_filters_by_tag(
             id="1",
             kind=ThreadKind.INLINE,
             file="a.py",
-            comments=[ReviewCommentSchema(id="1", body=f"Hello {settings.review.inline_tag}")]
+            comments=[ReviewCommentSchema(id="1", body=f"Hello {settings.review.inline_reply_tag}")]
         ),
         ReviewThreadSchema(
             id="2",
