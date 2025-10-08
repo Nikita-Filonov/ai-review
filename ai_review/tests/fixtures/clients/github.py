@@ -84,8 +84,16 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
 
         return GitHubGetIssueCommentsResponseSchema(
             root=[
-                GitHubIssueCommentSchema(id=1, body="General comment"),
-                GitHubIssueCommentSchema(id=2, body="Another general comment"),
+                GitHubIssueCommentSchema(
+                    id=1,
+                    body="General comment",
+                    user=GitHubUserSchema(id=201, login="alice")
+                ),
+                GitHubIssueCommentSchema(
+                    id=2,
+                    body="Another general comment",
+                    user=GitHubUserSchema(id=202, login="bob"),
+                ),
             ]
         )
 

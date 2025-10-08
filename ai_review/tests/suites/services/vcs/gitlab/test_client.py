@@ -52,6 +52,15 @@ async def test_get_general_comments_returns_expected_list(
     assert "General comment" in bodies
     assert "Another note" in bodies
 
+    authors = {comment.author.username for comment in comments}
+    assert authors == {"charlie", "diana"}
+
+    for comment in comments:
+        assert comment.thread_id == comment.id
+        assert comment.author.id is not None
+        assert comment.author.name != ""
+        assert comment.author.username != ""
+
     called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
     assert called_methods == ["get_notes"]
 

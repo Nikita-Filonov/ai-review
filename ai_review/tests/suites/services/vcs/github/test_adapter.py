@@ -121,3 +121,42 @@ def test_maps_issue_comment_with_empty_body():
     assert result.id == 666
     assert result.body == ""
     assert result.thread_id == 666
+
+
+def test_issue_comment_without_user_is_handled():
+    """Should create empty UserSchema when GitHub issue comment has no user."""
+    comment = GitHubIssueCommentSchema(
+        id=777,
+        body="General feedback",
+        user=None,
+    )
+
+    result = get_review_comment_from_github_issue_comment(comment)
+
+    assert isinstance(result.author, UserSchema)
+    assert result.author.id is None
+    assert result.author.name == ""
+    assert result.author.username == ""
+    assert result.body == "General feedback"
+    assert result.thread_id == 777
+
+
+def test_pr_comment_with_parent_and_missing_file_line():
+    """Should handle replies without path/line gracefully."""
+    comment = GitHubPRCommentSchema(
+        id=999,
+        body="Follow-up question",
+        path=None,
+        line=None,
+        user=GitHubUserSchema(id=10, login="eve"),
+        in_reply_to_id=101,
+    )
+
+    result = get_review_comment_from_github_pr_comment(comment)
+
+    assert result.parent_id == 101
+    assert result.thread_id == 101
+    assert result.file is None
+    assert result.line is None
+    assert result.body == "Follow-up question"
+    assert result.author.username == "eve"

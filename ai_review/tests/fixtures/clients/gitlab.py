@@ -61,8 +61,16 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
         self.calls.append(("get_notes", {"project_id": project_id, "merge_request_id": merge_request_id}))
         return GitLabGetMRNotesResponseSchema(
             root=[
-                GitLabNoteSchema(id=1, body="General comment"),
-                GitLabNoteSchema(id=2, body="Another note"),
+                GitLabNoteSchema(
+                    id=1,
+                    body="General comment",
+                    author=GitLabUserSchema(id=301, name="Charlie", username="charlie"),
+                ),
+                GitLabNoteSchema(
+                    id=2,
+                    body="Another note",
+                    author=GitLabUserSchema(id=302, name="Diana", username="diana"),
+                ),
             ]
         )
 
