@@ -1,7 +1,13 @@
 import pytest
 
 from ai_review.services.vcs.github.client import GitHubVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
+from ai_review.services.vcs.types import (
+    ThreadKind,
+    UserSchema,
+    ReviewInfoSchema,
+    ReviewThreadSchema,
+    ReviewCommentSchema,
+)
 from ai_review.tests.fixtures.clients.github import FakeGitHubPullRequestsHTTPClient
 
 
@@ -193,9 +199,16 @@ async def test_get_general_threads_wraps_comments_in_threads(
     assert all(thread.kind == ThreadKind.SUMMARY for thread in threads)
     assert len(threads) == 2
 
+    authors = {t.comments[0].author.username for t in threads}
+    assert authors == {"alice", "bob"}
+
     for thread in threads:
-        assert len(thread.comments) == 1
-        assert isinstance(thread.comments[0], ReviewCommentSchema)
+        comment = thread.comments[0]
+        assert isinstance(comment, ReviewCommentSchema)
+        assert isinstance(comment.author, UserSchema)
+        assert comment.author.id is not None
+        assert comment.author.username != ""
+        assert comment.thread_id == comment.id
 
     called_methods = [name for name, _ in fake_github_pull_requests_http_client.calls]
     assert "get_issue_comments" in called_methods

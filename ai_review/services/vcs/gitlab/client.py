@@ -5,7 +5,7 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
 )
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
-from ai_review.services.vcs.gitlab.adapter import get_review_comment_from_gitlab_note
+from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     UserSchema,
@@ -82,7 +82,12 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.info(f"Fetched general comments for {self.merge_request_ref}")
 
             return [
-                ReviewCommentSchema(id=note.id, body=note.body or "")
+                ReviewCommentSchema(
+                    id=note.id,
+                    body=note.body or "",
+                    author=get_user_from_gitlab_user(note.author),
+                    thread_id=note.id
+                )
                 for note in response.root
             ]
         except Exception as error:
