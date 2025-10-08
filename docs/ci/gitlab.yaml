@@ -120,6 +120,20 @@
     # PROMPT__SYSTEM_SUMMARY_PROMPT_FILES: '["./prompts/system_summary.md"]'
     # PROMPT__INCLUDE_SUMMARY_SYSTEM_PROMPTS: "true"
 
+    # Inline reply prompts (used when replying to inline code review comments).
+    # PROMPT__INLINE_REPLY_PROMPT_FILES: '["./prompts/inline_reply.md"]'
+
+    # Inline reply system prompts (format/contract rules).
+    # PROMPT__SYSTEM_INLINE_REPLY_PROMPT_FILES: '["./prompts/system_inline_reply.md"]'
+    # PROMPT__INCLUDE_INLINE_REPLY_SYSTEM_PROMPTS: "true"
+
+    # Summary reply prompts (used when replying in summary review threads).
+    # PROMPT__SUMMARY_REPLY_PROMPT_FILES: '["./prompts/summary_reply.md"]'
+
+    # Summary reply system prompts (format/contract rules).
+    # PROMPT__SYSTEM_SUMMARY_REPLY_PROMPT_FILES: '["./prompts/system_summary_reply.md"]'
+    # PROMPT__INCLUDE_SUMMARY_REPLY_SYSTEM_PROMPTS: "true"
+
     # ===============================
     # Custom context variables
     # ===============================
@@ -174,7 +188,9 @@
 
     # Tags used to mark AI-generated comments in MR.
     REVIEW__INLINE_TAG: "#ai-review-inline"
+    REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
     REVIEW__SUMMARY_TAG: "#ai-review-summary"
+    REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
 
     # Context lines (only for *_WITH_CONTEXT modes).
     REVIEW__CONTEXT_LINES: "10"
@@ -219,4 +235,14 @@
 .ai-review-summary:
   script:
     - ai-review run-summary
+  extends: .ai-review-base
+
+.ai-review-inline-reply:
+  script:
+    - ai-review run-inline-reply
+  extends: .ai-review-base
+
+.ai-review-summary-reply:
+  script:
+    - ai-review run-summary-reply
   extends: .ai-review-base
