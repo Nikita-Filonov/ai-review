@@ -51,11 +51,13 @@ fully under human control.
 Curious how **AI Review** works in practice? Here are three real Pull Requests reviewed entirely by the tool — one per
 mode:
 
-| Mode       | Description                                        | 🐙 GitHub                                                            | 🦊 GitLab                                                                  |
-|------------|----------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 🧩 Inline  | Adds line-by-line comments directly in the diff    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/4) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/2) |
-| 🧠 Context | Performs broader analysis across multiple files    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/5) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/3) |
-| 📄 Summary | Posts a concise summary review with key highlights | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/6) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/4) |
+| Mode             | Description                                                                                                                                  | 🐙 GitHub                                                             | 🦊 GitLab                                                                  |
+|------------------|----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------|
+| 🧩 Inline        | Adds **line-by-line comments** directly in the diff. Focuses on specific code changes.                                                       | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/4)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/2) |
+| 🧠 Context       | Performs a **broader analysis across multiple files**, detecting cross-file issues and inconsistencies.                                      | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/5)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/3) |
+| 📄 Summary       | Posts a **concise high-level summary** with key highlights, strengths, and major issues.                                                     | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/6)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/4) |
+| 💬 Inline Reply  | Generates a **context-aware reply** to an existing inline comment thread. Can clarify decisions, propose fixes, or provide code suggestions. | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/16) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/5) |
+| 💬 Summary Reply | Continues the **summary-level review discussion**, responding to reviewer comments with clarifications, rationale, or actionable next steps. | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/17) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/6) |
 
 👉 Each review was generated automatically via GitHub Actions using the corresponding mode:
 
@@ -63,6 +65,8 @@ mode:
 ai-review run-inline
 ai-review run-summary
 ai-review run-context
+ai-review run-inline-reply
+ai-review run-summary-reply
 ```
 
 ---
@@ -128,6 +132,8 @@ vcs:
 > - ai-review run-inline
 > - ai-review run-context
 > - ai-review run-summary
+> - ai-review run-inline-reply
+> - ai-review run-summary-reply
 
 ---
 
@@ -168,7 +174,7 @@ on:
       review-command:
         type: choice
         default: run
-        options: [ run, run-inline, run-context, run-summary ]
+        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
       pull-request-number:
         type: string
         required: true
