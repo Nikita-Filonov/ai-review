@@ -1,3 +1,4 @@
+from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.service import ArtifactsService
 from ai_review.services.cost.service import CostService
@@ -5,8 +6,9 @@ from ai_review.services.diff.service import DiffService
 from ai_review.services.git.service import GitService
 from ai_review.services.llm.factory import get_llm_client
 from ai_review.services.prompt.service import PromptService
-from ai_review.services.review.gateway.comment import ReviewCommentGateway
-from ai_review.services.review.gateway.llm import ReviewLLMGateway
+from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
+from ai_review.services.review.gateway.review_llm_gateway import ReviewLLMGateway
 from ai_review.services.review.internal.inline.service import InlineCommentService
 from ai_review.services.review.internal.inline_reply.service import InlineCommentReplyService
 from ai_review.services.review.internal.policy.service import ReviewPolicyService
@@ -42,7 +44,11 @@ class ReviewService:
             cost=self.cost,
             artifacts=self.artifacts
         )
-        self.review_comment_gateway = ReviewCommentGateway(vcs=self.vcs)
+        self.review_comment_gateway = (
+            ReviewDryRunCommentGateway(vcs=self.vcs)
+            if settings.review.dry_run
+            else ReviewCommentGateway(vcs=self.vcs)
+        )
 
         self.inline_review_runner = InlineReviewRunner(
             vcs=self.vcs,

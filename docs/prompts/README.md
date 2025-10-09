@@ -1,60 +1,68 @@
 # 📘 AI Review Prompts
 
-This folder contains **ready-to-use prompt templates** for AI Review.
-They extend the built-in global
-prompts ([prompts/default_system_inline.md](../../ai_review/prompts/default_system_inline.md),
-[prompts/default_system_summary.md](../../ai_review/prompts/default_system_summary.md),
-[prompts/default_system_context.md](../../ai_review/prompts/default_system_context.md)) and define style & tone of the
-review.
+This folder contains **language-specific prompt templates** for AI Review. Each language has its own subfolder with
+inline and summary review instructions, separated by style (e.g. light, strict).
+
+Prompts extend the built-in system templates:
+
+- [default_system_inline.md](../../ai_review/prompts/default_system_inline.md)
+- [default_system_summary.md](../../ai_review/prompts/default_system_summary.md)
+- [default_system_context.md](../../ai_review/prompts/default_system_context.md)
+
+and define the style, tone, and structure of the review.
 
 ---
 
 ## 📂 Available Prompt Sets
 
-| Language | Style  | Inline Prompt                                        | Summary Prompt                                         |
-|----------|--------|------------------------------------------------------|--------------------------------------------------------|
-| Python   | Light  | [inline_python_light.md](./inline_python_light.md)   | [summary_python_light.md](./summary_python_light.md)   |
-| Python   | Strict | [inline_python_strict.md](./inline_python_strict.md) | [summary_python_strict.md](./summary_python_strict.md) |
-| Go       | Light  | [inline_go_light.md](./inline_go_light.md)           | [summary_go_light.md](./summary_go_light.md)           |
-| Go       | Strict | [inline_go_strict.md](./inline_go_strict.md)         | [summary_go_strict.md](./summary_go_strict.md)         |
+| Language | Style  | Inline                                                 | Inline Replу                                                       | Summary                                                  | Summary Reply                                                        |
+|----------|--------|--------------------------------------------------------|--------------------------------------------------------------------|----------------------------------------------------------|----------------------------------------------------------------------|
+| Python   | Light  | [./python/inline/light.md](./python/inline/light.md)   | [./python/inline_reply/light.md](./python/inline_reply/light.md)   | [./python/summary/light.md](./python/summary/light.md)   | [./python/summary_reply/light.md](./python/summary_reply/light.md)   |
+| Python   | Strict | [./python/inline/strict.md](./python/inline/strict.md) | [./python/inline_reply/strict.md](./python/inline_reply/strict.md) | [./python/summary/strict.md](./python/summary/strict.md) | [./python/summary_reply/strict.md](./python/summary_reply/strict.md) |
+| Go       | Light  | [./go/inline/light.md](./go/inline/light.md)           | [./go/inline_reply/light.md](./go/inline_reply/light.md)           | [./go/summary/light.md](./go/summary/light.md)           | [./go/summary_reply/light.md](./go/summary_reply/light.md)           |
+| Go       | Strict | [./go/inline/strict.md](./go/inline/strict.md)         | [./go/inline_reply/strict.md](./go/inline_reply/strict.md)         | [./go/summary/strict.md](./go/summary/strict.md)         | [./go/summary_reply/strict.md](./go/summary_reply/strict.md)         |
+
+> 🧩 Each prompt file defines review instructions, evaluation criteria, and output format (e.g. JSON for inline comments
+> or plain text for summaries).
+> Reply prompts (inline_reply / summary_reply) handle contextual AI responses during ongoing discussions.
 
 ---
 
 ## 🔧 How to use
 
-In your `.ai-review.yaml`, point to the desired inline, context, and summary prompts.
-Each section supports multiple files — they will be concatenated in order.
+Specify desired prompt files in your `.ai-review.yaml` (or `.json`, `.env`). Each section supports multiple files — they
+will be concatenated in order.
 
 ```yaml
 prompt:
   inline_prompt_files:
-    - ./docs/prompts/inline_python_light.md
+    - ./docs/prompts/python/inline/light.md
   context_prompt_files:
-    - ./docs/prompts/inline_python_light.md
+    - ./docs/prompts/python/inline/light.md
   summary_prompt_files:
-    - ./docs/prompts/summary_python_light.md
+    - ./docs/prompts/python/summary/light.md
 ```
 
-or, for a stricter Go review:
+For a strict Go review:
 
 ```yaml
 prompt:
   inline_prompt_files:
-    - ./docs/prompts/inline_go_strict.md
+    - ./docs/prompts/go/inline/strict.md
   context_prompt_files:
-    - ./docs/prompts/inline_go_strict.md
+    - ./docs/prompts/go/inline/strict.md
   summary_prompt_files:
-    - ./docs/prompts/summary_go_strict.md
+    - ./docs/prompts/go/summary/strict.md
 ```
 
 ## 📝 Notes
 
-- System prompts (`default_system_inline.md`, `default_system_context.md`, `default_system_summary.md`) are always
-  included unless disabled with `include_*_system_prompts: false`. They enforce correct output format (JSON / plain
-  text).
-- Project-specific prompts should only define style and tone — not the schema contract.
-- You can **mix & match** (e.g., `inline_go_strict.md` with `summary_python_light.md`).
-- Add your own style guides alongside these defaults (e.g., `./prompts/style.md`).
+- System prompts (`default_system_inline.md`, `default_system_context.md`, `default_system_summary.md`) are
+  **always included** unless disabled with `include_*_system_prompts: false`.
+- System prompts enforce consistent output format (JSON / text).
+- Project-specific prompts define style and tone — not the schema contract.
+- You can mix **languages or styles** (e.g. `inline_go_strict.md` with `summary_python_light.md`).
+- Add your own organization-specific prompts (e.g., `./prompts/js/inline/corporate.md`).
 
 ## 🔀 Prompt Formatting
 

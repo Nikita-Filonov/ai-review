@@ -8,6 +8,8 @@ __pycache__/
 
 .idea
 .DS_Store
+/.ai-review.json
+/.ai-review.yaml
 
 # Distribution / packaging
 .Python

@@ -1,24 +1,10 @@
 import pytest
 
 from ai_review.services.llm.types import ChatResultSchema
-from ai_review.services.review.gateway.llm import ReviewLLMGateway
+from ai_review.services.review.gateway.review_llm_gateway import ReviewLLMGateway
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
-
-
-@pytest.fixture
-def review_llm_gateway(
-        fake_llm_client: FakeLLMClient,
-        fake_cost_service: FakeCostService,
-        fake_artifacts_service: FakeArtifactsService,
-) -> ReviewLLMGateway:
-    """Fixture providing ReviewLLMGateway with fake dependencies."""
-    return ReviewLLMGateway(
-        llm=fake_llm_client,
-        cost=fake_cost_service,
-        artifacts=fake_artifacts_service,
-    )
 
 
 @pytest.mark.asyncio

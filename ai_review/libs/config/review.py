@@ -19,6 +19,7 @@ class ReviewMode(StrEnum):
 
 class ReviewConfig(BaseModel):
     mode: ReviewMode = ReviewMode.FULL_FILE_DIFF
+    dry_run: bool = False
     inline_tag: str = Field(default="#ai-review-inline")
     inline_reply_tag: str = Field(default="#ai-review-inline-reply")
     summary_tag: str = Field(default="#ai-review-summary")

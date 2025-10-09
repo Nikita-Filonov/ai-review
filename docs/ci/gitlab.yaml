@@ -186,6 +186,14 @@
     #   ADDED_AND_REMOVED_WITH_CONTEXT
     REVIEW__MODE: "FULL_FILE_DIFF"
 
+    # Dry-run mode:
+    # When enabled, the review runs fully but does NOT create
+    # any comments or replies in the VCS (GitHub / GitLab / Bitbucket).
+    # Useful for local testing, CI preview, or validation runs.
+    # Example: REVIEW__DRY_RUN: "true"
+    # Default: "false"
+    REVIEW__DRY_RUN: "false"
+
     # Tags used to mark AI-generated comments in MR.
     REVIEW__INLINE_TAG: "#ai-review-inline"
     REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"

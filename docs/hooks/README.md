@@ -17,14 +17,18 @@ review.
 
 AI Review triggers hooks at key points in the review pipeline:
 
-| Stage            | Hooks                                                                                 |
-|------------------|---------------------------------------------------------------------------------------|
-| Chat (LLM call)  | `ON_CHAT_START`, `ON_CHAT_ERROR`, `ON_CHAT_COMPLETE`                                  |
-| Inline Review    | `ON_INLINE_REVIEW_START`, `ON_INLINE_REVIEW_COMPLETE`                                 |
-| Context Review   | `ON_CONTEXT_REVIEW_START`, `ON_CONTEXT_REVIEW_COMPLETE`                               |
-| Summary Review   | `ON_SUMMARY_REVIEW_START`, `ON_SUMMARY_REVIEW_COMPLETE`                               |
-| Inline Comments  | `ON_INLINE_COMMENT_START`, `ON_INLINE_COMMENT_ERROR`, `ON_INLINE_COMMENT_COMPLETE`    |
-| Summary Comments | `ON_SUMMARY_COMMENT_START`, `ON_SUMMARY_COMMENT_ERROR`, `ON_SUMMARY_COMMENT_COMPLETE` |
+| Stage                   | Hooks                                                                                                   |
+|-------------------------|---------------------------------------------------------------------------------------------------------|
+| Chat (LLM call)         | `ON_CHAT_START`, `ON_CHAT_ERROR`, `ON_CHAT_COMPLETE`                                                    |
+| Inline Review           | `ON_INLINE_REVIEW_START`, `ON_INLINE_REVIEW_COMPLETE`                                                   |
+| Context Review          | `ON_CONTEXT_REVIEW_START`, `ON_CONTEXT_REVIEW_COMPLETE`                                                 |
+| Summary Review          | `ON_SUMMARY_REVIEW_START`, `ON_SUMMARY_REVIEW_COMPLETE`                                                 |
+| Inline Reply Review     | `ON_INLINE_REPLY_REVIEW_START`, `ON_INLINE_REPLY_REVIEW_COMPLETE`                                       |
+| Summary Reply Review    | `ON_SUMMARY_REPLY_REVIEW_START`, `ON_SUMMARY_REPLY_REVIEW_COMPLETE`                                     |
+| Inline Comments         | `ON_INLINE_COMMENT_START`, `ON_INLINE_COMMENT_ERROR`, `ON_INLINE_COMMENT_COMPLETE`                      |
+| Summary Comments        | `ON_SUMMARY_COMMENT_START`, `ON_SUMMARY_COMMENT_ERROR`, `ON_SUMMARY_COMMENT_COMPLETE`                   |
+| Inline Comment Replies  | `ON_INLINE_COMMENT_REPLY_START`, `ON_INLINE_COMMENT_REPLY_ERROR`, `ON_INLINE_COMMENT_REPLY_COMPLETE`    |
+| Summary Comment Replies | `ON_SUMMARY_COMMENT_REPLY_START`, `ON_SUMMARY_COMMENT_REPLY_ERROR`, `ON_SUMMARY_COMMENT_REPLY_COMPLETE` |
 
 ---
 
@@ -92,6 +96,20 @@ async def log_comment(comment: InlineCommentSchema):
 | `on_summary_review_start`    | `()`                                 |
 | `on_summary_review_complete` | `(report: CostReportSchema \| None)` |
 
+### 🧩 Inline Reply Review
+
+| Hook                              | Args                                 | Description                          |
+|-----------------------------------|--------------------------------------|--------------------------------------|
+| `on_inline_reply_review_start`    | `()`                                 | Before starting inline reply review  |
+| `on_inline_reply_review_complete` | `(report: CostReportSchema \| None)` | After completing inline reply review |
+
+### 🧠 Summary Reply Review
+
+| Hook                               | Args                                 | Description                           |
+|------------------------------------|--------------------------------------|---------------------------------------|
+| `on_summary_reply_review_start`    | `()`                                 | Before starting summary reply review  |
+| `on_summary_reply_review_complete` | `(report: CostReportSchema \| None)` | After completing summary reply review |
+
 ### 💬 Inline Comments
 
 | Hook                         | Args                             |
@@ -107,6 +125,22 @@ async def log_comment(comment: InlineCommentSchema):
 | `on_summary_comment_start`    | `(comment: SummaryCommentSchema)` |
 | `on_summary_comment_error`    | `(comment: SummaryCommentSchema)` |
 | `on_summary_comment_complete` | `(comment: SummaryCommentSchema)` |
+
+### 💬 Inline Comment Replies
+
+| Hook                               | Args                                | Description                   |
+|------------------------------------|-------------------------------------|-------------------------------|
+| `on_inline_comment_reply_start`    | `(reply: InlineCommentReplySchema)` | Before creating inline reply  |
+| `on_inline_comment_reply_error`    | `(reply: InlineCommentReplySchema)` | When inline reply fails       |
+| `on_inline_comment_reply_complete` | `(reply: InlineCommentReplySchema)` | After publishing inline reply |
+
+### 🗒️ Summary Comment Replies
+
+| Hook                                | Args                                 | Description                    |
+|-------------------------------------|--------------------------------------|--------------------------------|
+| `on_summary_comment_reply_start`    | `(reply: SummaryCommentReplySchema)` | Before creating summary reply  |
+| `on_summary_comment_reply_error`    | `(reply: SummaryCommentReplySchema)` | When summary reply fails       |
+| `on_summary_comment_reply_complete` | `(reply: SummaryCommentReplySchema)` | After publishing summary reply |
 
 ---
 
