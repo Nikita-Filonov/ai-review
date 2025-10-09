@@ -4,8 +4,8 @@ from ai_review.services.review.runner.context import ContextReviewRunner
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.prompt import FakePromptService
-from ai_review.tests.fixtures.services.review.gateway.comment import FakeReviewCommentGateway
-from ai_review.tests.fixtures.services.review.gateway.llm import FakeReviewLLMGateway
+from ai_review.tests.fixtures.services.review.gateway.review_comment_gateway import FakeReviewCommentGateway
+from ai_review.tests.fixtures.services.review.gateway.review_llm_gateway import FakeReviewLLMGateway
 from ai_review.tests.fixtures.services.review.internal.inline import FakeInlineCommentService
 from ai_review.tests.fixtures.services.review.internal.policy import FakeReviewPolicyService
 from ai_review.tests.fixtures.services.vcs import FakeVCSClient

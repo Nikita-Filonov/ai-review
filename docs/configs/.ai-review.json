@@ -78,6 +78,7 @@
   },
   "review": {
     "mode": "FULL_FILE_DIFF",
+    "dry_run": false,
     "inline_tag": "#ai-review-inline",
     "inline_reply_tag": "#ai-review-inline-reply",
     "summary_tag": "#ai-review-summary",

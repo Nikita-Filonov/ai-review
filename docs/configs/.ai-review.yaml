@@ -333,6 +333,13 @@ review:
   #   ADDED_AND_REMOVED_WITH_CONTEXT - Both added/removed lines + N lines of context
   mode: FULL_FILE_DIFF
 
+  # --- Dry-run mode ---
+  # When enabled, the review process runs fully but does not create
+  # any comments or replies in the VCS (GitLab/GitHub/Bitbucket).
+  # Useful for local validation, debugging, or safe CI preview runs.
+  # Default: false
+  dry_run: false
+
   # Tags used to mark AI-generated comments in MR.
   inline_tag: "#ai-review-inline"
   inline_reply_tag: "#ai-review-inline-reply"

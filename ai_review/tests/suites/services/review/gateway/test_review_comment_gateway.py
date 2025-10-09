@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.config import settings
-from ai_review.services.review.gateway.comment import ReviewCommentGateway
+from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema

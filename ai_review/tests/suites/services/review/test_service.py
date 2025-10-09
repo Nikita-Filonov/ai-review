@@ -1,6 +1,8 @@
 import pytest
 
 from ai_review.services.llm.types import ChatResultSchema
+from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.service import ReviewService
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.review.runner.context import FakeContextReviewRunner
@@ -91,3 +93,19 @@ def test_report_total_cost_no_data(capsys, review_service: ReviewService):
     output = capsys.readouterr().out
 
     assert "No cost data collected" in output
+
+
+def test_review_service_uses_dry_run_comment_gateway(monkeypatch: pytest.MonkeyPatch):
+    """Should use ReviewDryRunCommentGateway when settings.review.dry_run=True."""
+    monkeypatch.setattr("ai_review.config.settings.review.dry_run", True)
+
+    service = ReviewService()
+    assert type(service.review_comment_gateway) is ReviewDryRunCommentGateway
+
+
+def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatch):
+    """Should use normal ReviewCommentGateway when dry_run=False."""
+    monkeypatch.setattr("ai_review.config.settings.review.dry_run", False)
+
+    service = ReviewService()
+    assert type(service.review_comment_gateway) is ReviewCommentGateway
