@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.30.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.31.0
 # ===============================
 
 name: AI Review
@@ -19,10 +19,10 @@ on:
     inputs:
       review-command:
         type: choice
-        required: true
         default: "run"
-        description: "Review command (mode)"
         options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
+        required: true
+        description: "Review command (mode)"
 
       pull-request-number:
         type: string
@@ -45,7 +45,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.30.0
+        uses: Nikita-Filonov/ai-review@v0.31.0
         env:
           # ===============================
           # LLM provider & model
@@ -215,7 +215,7 @@ jobs:
 
           # Dry-run mode:
           # When enabled, the review runs fully but does NOT create
-          # any comments or replies in the VCS (GitHub / GitLab / Bitbucket).
+          # any comments or replies in the VCS (GitHub / GitLab / Bitbucket / Gitea).
           # Useful for local testing, CI preview, or validation runs.
           # Example: REVIEW__DRY_RUN: "true"
           # Default: "false"

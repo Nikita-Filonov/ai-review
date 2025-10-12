@@ -33,15 +33,15 @@ improve code quality, enforce consistency, and speed up the review process.
 ✨ Key features:
 
 - **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**.
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
 - **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
   summary discussions.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
 - **AI Review runs fully client-side** — it never proxies or inspects your requests.
 
-AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now *
-*AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
+AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now
+**AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
 fully under human control.
 
 ---
@@ -144,7 +144,7 @@ Key things you can customize:
 
 - **LLM provider** — OpenAI, Gemini, Claude, or Ollama
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
@@ -183,7 +183,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.30.0
+        with:
+          fetch-depth: 0
+
+      - uses: Nikita-Filonov/ai-review@v0.31.0
         with:
           review-command: ${{ inputs.review-command }}
         env:

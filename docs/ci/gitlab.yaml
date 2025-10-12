@@ -188,7 +188,7 @@
 
     # Dry-run mode:
     # When enabled, the review runs fully but does NOT create
-    # any comments or replies in the VCS (GitHub / GitLab / Bitbucket).
+    # any comments or replies in the VCS (GitHub / GitLab / Bitbucket / Gitea).
     # Useful for local testing, CI preview, or validation runs.
     # Example: REVIEW__DRY_RUN: "true"
     # Default: "false"

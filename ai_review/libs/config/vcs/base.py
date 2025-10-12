@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from ai_review.libs.config.vcs.bitbucket import BitbucketPipelineConfig, BitbucketHTTPClientConfig
+from ai_review.libs.config.vcs.gitea import GiteaPipelineConfig, GiteaHTTPClientConfig
 from ai_review.libs.config.vcs.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.config.vcs.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
 from ai_review.libs.config.vcs.pagination import VCSPaginationConfig
@@ -12,6 +13,12 @@ from ai_review.libs.constants.vcs_provider import VCSProvider
 class VCSConfigBase(BaseModel):
     provider: VCSProvider
     pagination: VCSPaginationConfig = VCSPaginationConfig()
+
+
+class GiteaVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.GITEA]
+    pipeline: GiteaPipelineConfig
+    http_client: GiteaHTTPClientConfig
 
 
 class GitLabVCSConfig(VCSConfigBase):
@@ -33,6 +40,6 @@ class BitbucketVCSConfig(VCSConfigBase):
 
 
 VCSConfig = Annotated[
-    GitLabVCSConfig | GitHubVCSConfig | BitbucketVCSConfig,
+    GiteaVCSConfig | GitLabVCSConfig | GitHubVCSConfig | BitbucketVCSConfig,
     Field(discriminator="provider")
 ]

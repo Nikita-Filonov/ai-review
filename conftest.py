@@ -22,6 +22,7 @@ pytest_plugins = (
     "ai_review.tests.fixtures.services.review.internal.inline_reply",
     "ai_review.tests.fixtures.services.review.internal.summary_reply",
 
+    "ai_review.tests.fixtures.clients.gitea",
     "ai_review.tests.fixtures.clients.github",
     "ai_review.tests.fixtures.clients.gitlab",
     "ai_review.tests.fixtures.clients.openai",
