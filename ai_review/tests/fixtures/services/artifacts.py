@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from ai_review.services.artifacts.service import ArtifactsService
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 
 
@@ -49,3 +50,8 @@ class FakeArtifactsService(ArtifactsServiceProtocol):
 @pytest.fixture
 def fake_artifacts_service() -> FakeArtifactsService:
     return FakeArtifactsService()
+
+
+@pytest.fixture
+def artifacts_service() -> ArtifactsService:
+    return ArtifactsService()
