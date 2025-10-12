@@ -2,7 +2,10 @@ from ai_review.clients.gitea.client import get_gitea_http_client
 from ai_review.clients.gitea.pr.schema.comments import GiteaCreateCommentRequestSchema
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
-from ai_review.services.vcs.gitea.adapter import get_review_comment_from_gitea_comment, get_user_from_gitea_user
+from ai_review.services.vcs.gitea.adapter import (
+    get_user_from_gitea_user,
+    get_review_comment_from_gitea_comment,
+)
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     ThreadKind,
@@ -67,12 +70,13 @@ class GiteaVCSClient(VCSClientProtocol):
             return []
 
     async def get_inline_comments(self) -> list[ReviewCommentSchema]:
-        try:
-            comments = await self.get_general_comments()
-            return [comment for comment in comments if comment.file]
-        except Exception as error:
-            logger.exception(f"Failed to fetch inline comments for {self.pull_request_ref}: {error}")
-            return []
+        comments = await self.get_general_comments()
+        if comments:
+            logger.warning(
+                f"Gitea API does not support inline comments — "
+                f"returning {len(comments)} general comments as fallback inline comments"
+            )
+        return comments
 
     async def create_general_comment(self, message: str) -> None:
         try:
@@ -90,25 +94,15 @@ class GiteaVCSClient(VCSClientProtocol):
             raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
-        try:
-            logger.info(f"Posting inline comment to {self.pull_request_ref} at {file}:{line}")
-            request = GiteaCreateCommentRequestSchema(
-                body=message,
-                path=file,
-                line=line,
-            )
-            await self.http_client.pr.create_comment(
-                owner=self.owner,
-                repo=self.repo,
-                pull_number=self.pull_number,
-                request=request,
-            )
-            logger.info(f"Created inline comment in {self.pull_request_ref} at {file}:{line}")
-        except Exception as error:
-            logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
-            raise
+        fallback_message = f"[{file}:{line}] {message}"
+        logger.warning(
+            f"Gitea does not support inline comments. "
+            f"Falling back to general comment: {fallback_message}"
+        )
+        await self.create_general_comment(fallback_message)
 
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
+        logger.warning("Gitea does not support threaded replies — posting new general comment instead")
         await self.create_general_comment(message)
 
     async def create_summary_reply(self, thread_id: int | str, message: str) -> None:
@@ -118,17 +112,15 @@ class GiteaVCSClient(VCSClientProtocol):
     async def get_inline_threads(self) -> list[ReviewThreadSchema]:
         try:
             comments = await self.get_inline_comments()
-            threads = {comment.thread_id: [comment] for comment in comments}
-
             return [
                 ReviewThreadSchema(
-                    id=thread_id,
+                    id=comment.thread_id,
                     kind=ThreadKind.INLINE,
-                    file=thread[0].file,
-                    line=thread[0].line,
-                    comments=thread,
+                    file=comment.file,
+                    line=comment.line,
+                    comments=[comment],
                 )
-                for thread_id, thread in threads.items()
+                for comment in comments
             ]
         except Exception as error:
             logger.exception(f"Failed to build inline threads for {self.pull_request_ref}: {error}")
@@ -137,15 +129,14 @@ class GiteaVCSClient(VCSClientProtocol):
     async def get_general_threads(self) -> list[ReviewThreadSchema]:
         try:
             comments = await self.get_general_comments()
-            threads = [
+            return [
                 ReviewThreadSchema(
                     id=comment.thread_id,
                     kind=ThreadKind.SUMMARY,
-                    comments=[comment]
+                    comments=[comment],
                 )
                 for comment in comments
             ]
-            return threads
         except Exception as error:
             logger.exception(f"Failed to build general threads for {self.pull_request_ref}: {error}")
             return []

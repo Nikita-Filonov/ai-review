@@ -28,8 +28,6 @@ class GiteaGetPRCommentsResponseSchema(RootModel[list[GiteaPRCommentSchema]]):
 
 class GiteaCreateCommentRequestSchema(BaseModel):
     body: str
-    path: str | None = None
-    line: int | None = None
 
 
 class GiteaCreateCommentResponseSchema(BaseModel):

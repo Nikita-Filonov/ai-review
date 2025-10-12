@@ -45,13 +45,11 @@ class FakeGiteaPullRequestsHTTPClient(GiteaPullRequestsHTTPClientProtocol):
         return GiteaGetPRFilesResponseSchema(
             root=[
                 GiteaPRFileSchema(
-                    sha="abc",
                     status="modified",
                     filename="src/main.py",
                     patch="@@ -1,2 +1,2 @@\n- old\n+ new",
                 ),
                 GiteaPRFileSchema(
-                    sha="def",
                     status="added",
                     filename="utils/helper.py",
                     patch="+ print('Hello')",
