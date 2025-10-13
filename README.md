@@ -86,7 +86,7 @@ pip install xai-review
 Or run directly via Docker:
 
 ```bash
-docker run --rm -v $(pwd):/app nikitafilonov/ai-review:latest run-summary
+docker run --rm -v $(pwd):/app nikitafilonov/ai-review:latest ai-review run-summary
 ```
 
 🐳 Pull from [DockerHub](https://hub.docker.com/r/nikitafilonov/ai-review)
@@ -112,8 +112,8 @@ vcs:
   provider: GITLAB
 
   pipeline:
-    project_id: 1
-    merge_request_id: 100
+    project_id: "1"
+    merge_request_id: "100"
 
   http_client:
     timeout: 120
