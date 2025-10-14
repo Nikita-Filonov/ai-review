@@ -8,6 +8,9 @@
   script:
     - ai-review run
   variables:
+    # Required: fetch full history so that git diff between base and head SHAs works correctly.
+    GIT_DEPTH: 0
+
     # ===============================
     # LLM provider & model
     # ===============================
