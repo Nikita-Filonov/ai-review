@@ -5,12 +5,26 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xai-review"
 readme = { file = "README.md", content-type = "text/markdown" }
-version = "0.33.0"
+version = "0.34.0"
 license = { text = "Apache-2.0" }
 authors = [
     { name = "Nikita Filonov", email = "nikita.filonov@example.com" }
 ]
-keywords = ["ai", "code review", "llm", "openai", "claude", "gemini"]
+keywords = [
+    "ai",
+    "code review",
+    "llm",
+    "openai",
+    "claude",
+    "gemini",
+    "ollama",
+    "openrouter",
+    "ci/cd",
+    "gitlab",
+    "github",
+    "gitea",
+    "bitbucket"
+]
 maintainers = [
     { name = "Nikita Filonov", email = "nikita.filonov@example.com" }
 ]
@@ -24,7 +38,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
-description = "AI-powered code review tool"
+description = "AI-powered code review tool for GitHub, GitLab, Bitbucket and Gitea — built with LLMs like OpenAI, Claude, Gemini, Ollama, and OpenRouter"
 dependencies = [
     "typer",
     "httpx",

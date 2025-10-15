@@ -72,7 +72,7 @@ async def test_get_summary_threads_filters_by_tag(
 
 @pytest.mark.asyncio
 async def test_has_existing_inline_comments_true(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -118,7 +118,7 @@ async def test_process_inline_reply_happy_path(
 
 @pytest.mark.asyncio
 async def test_process_inline_reply_error(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -151,7 +151,7 @@ async def test_process_summary_reply_success(
 
 @pytest.mark.asyncio
 async def test_process_summary_reply_error(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -184,7 +184,7 @@ async def test_process_inline_comment_happy_path(
 
 @pytest.mark.asyncio
 async def test_process_inline_comment_error_fallback(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -218,7 +218,7 @@ async def test_process_summary_comment_happy_path(
 
 @pytest.mark.asyncio
 async def test_process_summary_comment_error(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):

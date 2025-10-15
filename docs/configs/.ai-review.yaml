@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -37,6 +37,13 @@ llm:
     # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
     # seed: 42                    # (optional) random seed for reproducibility
 
+    # --- OpenRouter ---
+    # model: anthropic/claude-3.5-sonnet   # or any other available model
+    # max_tokens: 1200
+    # temperature: 0.3
+    # title: "AI Review"                   # (optional) project title for analytics
+    # referer: "https://your-domain.com"   # (optional) referer URL for analytics
+
   # HTTP client configuration for LLM.
   http_client:
     timeout: 120                        # Request timeout in seconds
@@ -55,6 +62,10 @@ llm:
     # --- Ollama ---
     # api_url: http://localhost:11434   # Local Ollama runtime
     # (no api_token required)
+
+    # --- OpenRouter ---
+    # api_url: https://openrouter.ai/api/v1
+    # api_token: ${OPENROUTER_API_KEY}
 
 vcs:
   # Version control system provider.

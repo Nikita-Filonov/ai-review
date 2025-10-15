@@ -32,7 +32,8 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
+- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, or **OpenRouter**, and
+  switch anytime.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
 - **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
@@ -142,7 +143,7 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, or Ollama
+- **LLM provider** — OpenAI, Gemini, Claude, Ollama, or OpenRouter
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**
 - **Review policy** — which files to include/exclude, review modes
@@ -186,7 +187,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.33.0
+      - uses: Nikita-Filonov/ai-review@v0.34.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -264,7 +265,7 @@ AI Review does **not store**, **log**, or **transmit** your source code to any e
 provider** explicitly configured in your `.ai-review.yaml`.
 
 All data is sent **directly** from your CI/CD environment to the selected LLM API endpoint (e.g. OpenAI, Gemini,
-Claude). No intermediary servers or storage layers are involved.
+Claude, OpenRouter). No intermediary servers or storage layers are involved.
 
 If you use **Ollama**, requests are sent to your **local or self-hosted Ollama runtime**  
 (by default `http://localhost:11434`). This allows you to run reviews completely **offline**, keeping all data strictly

@@ -30,6 +30,7 @@ pytest_plugins = (
     "ai_review.tests.fixtures.clients.claude",
     "ai_review.tests.fixtures.clients.ollama",
     "ai_review.tests.fixtures.clients.bitbucket",
+    "ai_review.tests.fixtures.clients.openrouter",
 
     "ai_review.tests.fixtures.libs.llm.output_json_parser"
 )

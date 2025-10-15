@@ -27,7 +27,7 @@ async def test_ask_happy_path(
 
 @pytest.mark.asyncio
 async def test_ask_warns_on_empty_response(
-        capsys,
+        capsys: pytest.CaptureFixture,
         review_llm_gateway: ReviewLLMGateway,
         fake_llm_client: FakeLLMClient,
         fake_cost_service: FakeCostService,
@@ -49,7 +49,7 @@ async def test_ask_warns_on_empty_response(
 
 @pytest.mark.asyncio
 async def test_ask_handles_llm_error(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_llm_client: FakeLLMClient,
         review_llm_gateway: ReviewLLMGateway,
 ):
