@@ -48,7 +48,7 @@ pipeline {
                       -e VCS__HTTP_CLIENT__API_TOKEN \
                       -e CORE__CONCURRENCY \
                       -v $(pwd):/app \
-                      nikitafilonov/ai-review:latest run-inline
+                      nikitafilonov/ai-review:latest ai-review run-inline
                 '''
             }
         }
@@ -58,7 +58,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                       -v $(pwd):/app \
-                      nikitafilonov/ai-review:latest run-context
+                      nikitafilonov/ai-review:latest ai-review run-context
                 '''
             }
         }
@@ -68,7 +68,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                       -v $(pwd):/app \
-                      nikitafilonov/ai-review:latest run-summary
+                      nikitafilonov/ai-review:latest ai-review run-summary
                 '''
             }
         }

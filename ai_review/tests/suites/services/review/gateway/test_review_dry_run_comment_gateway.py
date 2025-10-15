@@ -10,7 +10,7 @@ from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 
 @pytest.mark.asyncio
 async def test_process_inline_reply_dry_run_logs_and_no_vcs_calls(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
@@ -26,7 +26,7 @@ async def test_process_inline_reply_dry_run_logs_and_no_vcs_calls(
 
 @pytest.mark.asyncio
 async def test_process_summary_reply_dry_run_logs_and_no_vcs_calls(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
@@ -42,7 +42,7 @@ async def test_process_summary_reply_dry_run_logs_and_no_vcs_calls(
 
 @pytest.mark.asyncio
 async def test_process_inline_comment_dry_run_logs_and_no_vcs_calls(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
@@ -59,7 +59,7 @@ async def test_process_inline_comment_dry_run_logs_and_no_vcs_calls(
 
 @pytest.mark.asyncio
 async def test_process_summary_comment_dry_run_logs_and_no_vcs_calls(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
@@ -75,7 +75,7 @@ async def test_process_summary_comment_dry_run_logs_and_no_vcs_calls(
 
 @pytest.mark.asyncio
 async def test_process_inline_comments_iterates_all(
-        capsys,
+        capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):

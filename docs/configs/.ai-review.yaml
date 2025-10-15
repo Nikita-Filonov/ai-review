@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -37,6 +37,13 @@ llm:
     # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
     # seed: 42                    # (optional) random seed for reproducibility
 
+    # --- OpenRouter ---
+    # model: anthropic/claude-3.5-sonnet   # or any other available model
+    # max_tokens: 1200
+    # temperature: 0.3
+    # title: "AI Review"                   # (optional) project title for analytics
+    # referer: "https://your-domain.com"   # (optional) referer URL for analytics
+
   # HTTP client configuration for LLM.
   http_client:
     timeout: 120                        # Request timeout in seconds
@@ -56,9 +63,13 @@ llm:
     # api_url: http://localhost:11434   # Local Ollama runtime
     # (no api_token required)
 
+    # --- OpenRouter ---
+    # api_url: https://openrouter.ai/api/v1
+    # api_token: ${OPENROUTER_API_KEY}
+
 vcs:
   # Version control system provider.
-  # Options: GITLAB | GITHUB | BITBUCKET
+  # Options: GITLAB | GITHUB | BITBUCKET | GITEA
   provider: GITLAB
 
   # Pipeline/MR/PR context.
@@ -73,9 +84,15 @@ vcs:
     # pull_number: ${PR_NUMBER}          # Pull Request number
 
     # --- Bitbucket ---
-    # workspace: ${BITBUCKET_WORKSPACE}         # Workspace ID (e.g. "myteam")
-    # repo_slug: ${BITBUCKET_REPO_SLUG}         # Repository slug (short name, e.g. "my-service")
-    # pull_request_id: ${BITBUCKET_PR_ID}       # Pull Request ID (numeric, e.g. "42")
+    # workspace: ${BITBUCKET_WORKSPACE}    # Workspace ID (e.g. "myteam")
+    # repo_slug: ${BITBUCKET_REPO_SLUG}    # Repository slug (short name, e.g. "my-service")
+    # pull_request_id: ${BITBUCKET_PR_ID}  # Pull Request ID (numeric, e.g. "42")
+
+    # --- Gitea ---
+    # owner: ${GITEA_REPOSITORY_OWNER}  # Repo owner (e.g. "my-org")
+    # repo: ${GITEA_REPOSITORY_NAME}    # Repo name  (e.g. "my-service")
+    # pull_number: ${PR_NUMBER}         # Pull Request number
+
 
   # HTTP client configuration for VCS.
   http_client:
@@ -92,6 +109,10 @@ vcs:
     # --- Bitbucket ---
     # api_url: https://api.bitbucket.org/2.0
     # api_token: ${BITBUCKET_TOKEN}   # App password or OAuth token
+
+    # --- Gitea ---
+    # api_url: https://gitea.mycompany.com/api/v1
+    # api_token: ${GITEA_TOKEN}       # Personal access token or CI token
 
   # Pagination settings for API calls.
   pagination:

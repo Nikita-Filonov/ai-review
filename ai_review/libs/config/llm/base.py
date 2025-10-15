@@ -8,6 +8,7 @@ from ai_review.libs.config.llm.claude import ClaudeHTTPClientConfig, ClaudeMetaC
 from ai_review.libs.config.llm.gemini import GeminiHTTPClientConfig, GeminiMetaConfig
 from ai_review.libs.config.llm.ollama import OllamaHTTPClientConfig, OllamaMetaConfig
 from ai_review.libs.config.llm.openai import OpenAIHTTPClientConfig, OpenAIMetaConfig
+from ai_review.libs.config.llm.openrouter import OpenRouterHTTPClientConfig, OpenRouterMetaConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 from ai_review.libs.resources import load_resource
 
@@ -62,7 +63,13 @@ class OllamaLLMConfig(LLMConfigBase):
     http_client: OllamaHTTPClientConfig
 
 
+class OpenRouterLLMConfig(LLMConfigBase):
+    meta: OpenRouterMetaConfig
+    provider: Literal[LLMProvider.OPENROUTER]
+    http_client: OpenRouterHTTPClientConfig
+
+
 LLMConfig = Annotated[
-    OpenAILLMConfig | GeminiLLMConfig | ClaudeLLMConfig | OllamaLLMConfig,
+    OpenAILLMConfig | GeminiLLMConfig | ClaudeLLMConfig | OllamaLLMConfig | OpenRouterLLMConfig,
     Field(discriminator="provider")
 ]

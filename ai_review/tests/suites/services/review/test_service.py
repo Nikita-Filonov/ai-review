@@ -63,7 +63,7 @@ async def test_run_summary_reply_review_invokes_runner(
 
 
 def test_report_total_cost_with_data(
-        capsys,
+        capsys: pytest.CaptureFixture,
         review_service: ReviewService,
         fake_cost_service: FakeCostService
 ):
@@ -87,7 +87,7 @@ def test_report_total_cost_with_data(
     assert "0.006" in output
 
 
-def test_report_total_cost_no_data(capsys, review_service: ReviewService):
+def test_report_total_cost_no_data(capsys: pytest.CaptureFixture, review_service: ReviewService):
     """Should log message when no cost data is available."""
     review_service.report_total_cost()
     output = capsys.readouterr().out

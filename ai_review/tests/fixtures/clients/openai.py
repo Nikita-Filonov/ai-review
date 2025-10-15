@@ -39,7 +39,7 @@ class FakeOpenAIHTTPClient(OpenAIHTTPClientProtocol):
 
 
 @pytest.fixture
-def fake_openai_http_client():
+def fake_openai_http_client() -> FakeOpenAIHTTPClient:
     return FakeOpenAIHTTPClient()
 
 

@@ -8,17 +8,22 @@
   script:
     - ai-review run
   variables:
+    # Required: fetch full history so that git diff between base and head SHAs works correctly.
+    GIT_DEPTH: 0
+
     # ===============================
     # LLM provider & model
     # ===============================
     # Which LLM to use.
-    # Options: OPENAI | GEMINI | CLAUDE
+    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER
     LLM__PROVIDER: "OPENAI"
 
     # --- Model metadata ---
     # For OpenAI: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
     # For Gemini: gemini-2.0-pro, gemini-2.0-flash
     # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
+    # For Ollama: llama2, codellama, mistral, etc.
+    # For OpenRouter: anthropic/claude-3.5-sonnet, meta-llama/llama-3-70b-instruct, mistralai/mixtral-8x7b, etc.
     LLM__META__MODEL: "gpt-4o-mini"
 
     # Max tokens for completion.
@@ -40,6 +45,13 @@
     # LLM__HTTP_CLIENT__API_URL: "https://api.anthropic.com"
     # LLM__HTTP_CLIENT__API_TOKEN: "$CLAUDE_API_KEY"
     # LLM__HTTP_CLIENT__API_VERSION: "2023-06-01"
+
+    # Example for Ollama (no token required):
+    # LLM__HTTP_CLIENT__API_URL: "http://localhost:11434"
+      
+    # Example for OpenRouter:
+    # LLM__HTTP_CLIENT__API_URL: "https://openrouter.ai/api/v1"
+    # LLM__HTTP_CLIENT__API_TOKEN: "$OPENROUTER_API_KEY"
 
     # ===============================
     # VCS (GitLab integration)
@@ -188,7 +200,7 @@
 
     # Dry-run mode:
     # When enabled, the review runs fully but does NOT create
-    # any comments or replies in the VCS (GitHub / GitLab / Bitbucket).
+    # any comments or replies in the VCS (GitHub / GitLab / Bitbucket / Gitea).
     # Useful for local testing, CI preview, or validation runs.
     # Example: REVIEW__DRY_RUN: "true"
     # Default: "false"

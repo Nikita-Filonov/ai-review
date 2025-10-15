@@ -32,16 +32,17 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, or **Ollama**, and switch anytime.
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**.
+- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, or **OpenRouter**, and
+  switch anytime.
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
 - **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
   summary discussions.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
 - **AI Review runs fully client-side** — it never proxies or inspects your requests.
 
-AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now *
-*AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
+AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now
+**AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
 fully under human control.
 
 ---
@@ -51,11 +52,13 @@ fully under human control.
 Curious how **AI Review** works in practice? Here are three real Pull Requests reviewed entirely by the tool — one per
 mode:
 
-| Mode       | Description                                        | 🐙 GitHub                                                            | 🦊 GitLab                                                                  |
-|------------|----------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 🧩 Inline  | Adds line-by-line comments directly in the diff    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/4) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/2) |
-| 🧠 Context | Performs broader analysis across multiple files    | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/5) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/3) |
-| 📄 Summary | Posts a concise summary review with key highlights | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/6) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/4) |
+| Mode             | Description                                                                                                                                  | 🐙 GitHub                                                             | 🦊 GitLab                                                                  |
+|------------------|----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------------------|
+| 🧩 Inline        | Adds **line-by-line comments** directly in the diff. Focuses on specific code changes.                                                       | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/4)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/2) |
+| 🧠 Context       | Performs a **broader analysis across multiple files**, detecting cross-file issues and inconsistencies.                                      | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/5)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/3) |
+| 📄 Summary       | Posts a **concise high-level summary** with key highlights, strengths, and major issues.                                                     | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/6)  | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/4) |
+| 💬 Inline Reply  | Generates a **context-aware reply** to an existing inline comment thread. Can clarify decisions, propose fixes, or provide code suggestions. | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/16) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/5) |
+| 💬 Summary Reply | Continues the **summary-level review discussion**, responding to reviewer comments with clarifications, rationale, or actionable next steps. | [View on GitHub](https://github.com/Nikita-Filonov/ai-review/pull/17) | [View on GitLab](https://gitlab.com/core8332439/review/-/merge_requests/6) |
 
 👉 Each review was generated automatically via GitHub Actions using the corresponding mode:
 
@@ -63,6 +66,8 @@ mode:
 ai-review run-inline
 ai-review run-summary
 ai-review run-context
+ai-review run-inline-reply
+ai-review run-summary-reply
 ```
 
 ---
@@ -82,7 +87,7 @@ pip install xai-review
 Or run directly via Docker:
 
 ```bash
-docker run --rm -v $(pwd):/app nikitafilonov/ai-review:latest run-summary
+docker run --rm -v $(pwd):/app nikitafilonov/ai-review:latest ai-review run-summary
 ```
 
 🐳 Pull from [DockerHub](https://hub.docker.com/r/nikitafilonov/ai-review)
@@ -108,8 +113,8 @@ vcs:
   provider: GITLAB
 
   pipeline:
-    project_id: 1
-    merge_request_id: 100
+    project_id: "1"
+    merge_request_id: "100"
 
   http_client:
     timeout: 120
@@ -128,6 +133,8 @@ vcs:
 > - ai-review run-inline
 > - ai-review run-context
 > - ai-review run-summary
+> - ai-review run-inline-reply
+> - ai-review run-summary-reply
 
 ---
 
@@ -136,9 +143,9 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, or Ollama
+- **LLM provider** — OpenAI, Gemini, Claude, Ollama, or OpenRouter
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, and **Bitbucket**
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
@@ -168,7 +175,7 @@ on:
       review-command:
         type: choice
         default: run
-        options: [ run, run-inline, run-context, run-summary ]
+        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
       pull-request-number:
         type: string
         required: true
@@ -177,7 +184,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Nikita-Filonov/ai-review@v0.30.0
+        with:
+          fetch-depth: 0
+
+      - uses: Nikita-Filonov/ai-review@v0.34.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -255,7 +265,7 @@ AI Review does **not store**, **log**, or **transmit** your source code to any e
 provider** explicitly configured in your `.ai-review.yaml`.
 
 All data is sent **directly** from your CI/CD environment to the selected LLM API endpoint (e.g. OpenAI, Gemini,
-Claude). No intermediary servers or storage layers are involved.
+Claude, OpenRouter). No intermediary servers or storage layers are involved.
 
 If you use **Ollama**, requests are sent to your **local or self-hosted Ollama runtime**  
 (by default `http://localhost:11434`). This allows you to run reviews completely **offline**, keeping all data strictly
