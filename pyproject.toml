@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xai-review"
 readme = { file = "README.md", content-type = "text/markdown" }
-version = "0.34.0"
+version = "0.35.0"
 license = { text = "Apache-2.0" }
 authors = [
     { name = "Nikita Filonov", email = "nikita.filonov@example.com" }

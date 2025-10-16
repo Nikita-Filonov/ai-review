@@ -1,4 +1,4 @@
-from ai_review.clients.openai.schema import (
+from ai_review.clients.openai.v1.schema import (
     OpenAIUsageSchema,
     OpenAIMessageSchema,
     OpenAIChoiceSchema,

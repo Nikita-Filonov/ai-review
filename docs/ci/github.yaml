@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.34.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.35.0
 # ===============================
 
 name: AI Review
@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.34.0
+        uses: Nikita-Filonov/ai-review@v0.35.0
         env:
           # ===============================
           # LLM provider & model
@@ -56,14 +56,14 @@ jobs:
           LLM__PROVIDER: "OPENAI"
 
           # --- Model metadata ---
-          # For OpenAI: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+          # For OpenAI: gpt-4o, gpt-4o-mini, gpt-3.5-turbo, gpt-4.1, gpt-4.1-mini, gpt-5
           # For Gemini: gemini-2.0-pro, gemini-2.0-flash
           # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
           # For Ollama: llama2, codellama, mistral, etc.
           # For OpenRouter: anthropic/claude-3.5-sonnet, meta-llama/llama-3-70b-instruct, mistralai/mixtral-8x7b, etc.
           LLM__META__MODEL: "gpt-4o-mini"
 
-          # Max tokens for completion.
+          # Max tokens for completion (optional).
           LLM__META__MAX_TOKENS: "15000"
 
           # Creativity of responses (0 = deterministic, >0 = more creative).

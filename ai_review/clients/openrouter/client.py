@@ -17,7 +17,7 @@ class OpenRouterHTTPClientError(HTTPClientError):
 class OpenRouterHTTPClient(HTTPClient, OpenRouterHTTPClientProtocol):
     @handle_http_error(client="OpenRouterHTTPClient", exception=OpenRouterHTTPClientError)
     async def chat_api(self, request: OpenRouterChatRequestSchema) -> Response:
-        return await self.post("/chat/completions", json=request.model_dump())
+        return await self.post("/chat/completions", json=request.model_dump(exclude_none=True))
 
     async def chat(self, request: OpenRouterChatRequestSchema) -> OpenRouterChatResponseSchema:
         response = await self.chat_api(request)

@@ -8,7 +8,7 @@ from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.openrouter.client import OpenRouterLLMClient
 
 
-@pytest.mark.usefixtures("openai_http_client_config")
+@pytest.mark.usefixtures("openai_v1_http_client_config")
 def test_get_llm_client_returns_openai(monkeypatch: pytest.MonkeyPatch):
     client = get_llm_client()
     assert isinstance(client, OpenAILLMClient)

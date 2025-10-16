@@ -17,7 +17,7 @@ class OllamaHTTPClientError(HTTPClientError):
 class OllamaHTTPClient(HTTPClient, OllamaHTTPClientProtocol):
     @handle_http_error(client="OllamaHTTPClient", exception=OllamaHTTPClientError)
     async def chat_api(self, request: OllamaChatRequestSchema) -> Response:
-        return await self.post("/api/chat", json=request.model_dump())
+        return await self.post("/api/chat", json=request.model_dump(exclude_none=True))
 
     async def chat(self, request: OllamaChatRequestSchema) -> OllamaChatResponseSchema:
         response = await self.chat_api(request)

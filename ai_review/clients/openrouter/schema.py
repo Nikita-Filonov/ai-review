@@ -21,7 +21,7 @@ class OpenRouterChoiceSchema(BaseModel):
 class OpenRouterChatRequestSchema(BaseModel):
     model: str
     messages: list[OpenRouterMessageSchema]
-    max_tokens: int
+    max_tokens: int | None = None
     temperature: float
 
 
