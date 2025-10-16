@@ -2,8 +2,7 @@ llm:
   provider: OPENAI
 
   meta:
-    model: gpt-4o-mini
-    max_tokens: 15000
+    model: gpt-5
     temperature: 0.3
 
   http_client:
