@@ -22,7 +22,7 @@ class OpenAIChatRequestSchema(BaseModel):
     model: str
     messages: list[OpenAIMessageSchema]
     max_tokens: int | None = None
-    temperature: float
+    temperature: float | None = None
 
 
 class OpenAIChatResponseSchema(BaseModel):
