@@ -45,8 +45,8 @@ class GeminiCandidateSchema(BaseModel):
 class GeminiGenerationConfigSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    temperature: float
-    max_output_tokens: int = Field(alias="maxOutputTokens")
+    temperature: float | None = None
+    max_output_tokens: int | None = Field(alias="maxOutputTokens", default=None)
 
 
 class GeminiChatRequestSchema(BaseModel):
