@@ -17,7 +17,7 @@ class ClaudeHTTPClientError(HTTPClientError):
 class ClaudeHTTPClient(HTTPClient, ClaudeHTTPClientProtocol):
     @handle_http_error(client="ClaudeHTTPClient", exception=ClaudeHTTPClientError)
     async def chat_api(self, request: ClaudeChatRequestSchema) -> Response:
-        return await self.post("/v1/messages", json=request.model_dump())
+        return await self.post("/v1/messages", json=request.model_dump(exclude_none=True))
 
     async def chat(self, request: ClaudeChatRequestSchema) -> ClaudeChatResponseSchema:
         response = await self.chat_api(request)
