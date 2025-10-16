@@ -12,8 +12,8 @@ class ClaudeChatRequestSchema(BaseModel):
     model: str
     system: str | None = None
     messages: list[ClaudeMessageSchema]
-    max_tokens: int
-    temperature: float
+    max_tokens: int | None = None
+    temperature: float | None = None
 
 
 class ClaudeContentSchema(BaseModel):
