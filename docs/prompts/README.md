@@ -13,6 +13,18 @@ and define the style, tone, and structure of the review.
 
 ---
 
+## 📑 Table of Contents
+
+- [📂 Available Prompt Sets](#-available-prompt-sets)
+- [🔧 How to use](#-how-to-use)
+- [📝 Notes](#-notes)
+- [🔀 Prompt Formatting](#-prompt-formatting)
+    - [📌 Available Variables](#-available-variables)
+    - [🔧 Custom Variables](#-custom-variables)
+- [🌐 Centralized Prompt Management](#-centralized-prompt-management)
+
+---
+
 ## 📂 Available Prompt Sets
 
 | Language | Style  | Inline                                                 | Inline Replу                                                       | Summary                                                  | Summary Reply                                                        |
@@ -55,6 +67,8 @@ prompt:
     - ./docs/prompts/go/summary/strict.md
 ```
 
+---
+
 ## 📝 Notes
 
 - System prompts (`default_system_inline.md`, `default_system_context.md`, `default_system_summary.md`) are
@@ -63,6 +77,8 @@ prompt:
 - Project-specific prompts define style and tone — not the schema contract.
 - You can mix **languages or styles** (e.g. `inline_go_strict.md` with `summary_python_light.md`).
 - Add your own organization-specific prompts (e.g., `./prompts/js/inline/corporate.md`).
+
+---
 
 ## 🔀 Prompt Formatting
 
@@ -165,3 +181,85 @@ Author: @<<review_author_username>>
 - If a custom key overrides a built-in variable (e.g., `labels`), the custom value wins.
 - To avoid clashes, prefer namespaced keys (e.g. `ci_pipeline_url`, `org_notify_handle`).
 - Non-string values will be stringified automatically.
+
+---
+
+## 🌐 Centralized Prompt Management
+
+`ai-review` intentionally does not support remote prompt URLs. This is a deliberate design choice to keep the tool
+**simple**, **predictable**, **offline-ready**, and **CI/CD-friendly**. Fetching prompts over the network would
+introduce unnecessary complexity — authentication, caching, retries, validation, offline fallback, and more.
+
+If you want to centralize and reuse prompt templates across multiple projects, the recommended solution is to store them
+in a **shared Git repository** and include it as a [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+This gives you all the benefits of centralized prompts without adding network or authentication logic into the tool
+itself.
+
+### ✅ Recommended Workflow: Git Submodules
+
+#### 1. Create a shared repository for prompts
+
+If you don’t have one yet, create a new Git repository (e.g. `ai-review-prompts`) and store your prompt files there.
+
+For example:
+
+```text
+ci-cd/templates/
+  └── ai-review/prompts/
+      ├── inline.md
+      ├── context.md
+      └── summary.md
+```
+
+#### 2. Add this shared prompt repository as a submodule to your project:
+
+```bash
+git submodule add https://gitlab.com/ci-cd/templates.git shared-prompts
+```
+
+After that, your project will include the shared prompts locally:
+
+```text
+/shared-prompts/ai-review/prompts/
+  ├── inline.md
+  ├── context.md
+  └── summary.md
+```
+
+#### 3. Reference these prompt files directly in your `.ai-review.yaml`:
+
+```yaml
+prompt:
+  inline_prompt_files:
+    - ./shared-prompts/ai-review/prompts/inline.md
+  context_prompt_files:
+    - ./shared-prompts/ai-review/prompts/context.md
+  summary_prompt_files:
+    - ./shared-prompts/ai-review/prompts/summary.md
+```
+
+#### 4. Keep prompts up to date by pulling the latest version of the submodule:
+
+```bash
+git submodule update --remote
+```
+
+Or automatically during CI:
+
+```yaml
+before_script:
+  - git submodule update --init --recursive --remote
+```
+
+### 📦 Why This Works Best
+
+- 🧩 **Centralized management** — one shared prompt repository for all projects
+- 🔁 **Easy updates** — update prompts in one place, pull changes everywhere
+- 🧪 **Version control** — prompts evolve alongside code with full Git history
+- 🛡 **No runtime dependencies** — no network calls, tokens, or auth handling required
+- 📦 **Offline support** — works in air-gapped and enterprise environments
+
+### 📌 Summary
+
+`ai-review` expects local prompt files and intentionally avoids remote fetching in its core. Using Git submodules gives
+you centralized, versioned, reusable prompts today — without adding complexity to the tool.
