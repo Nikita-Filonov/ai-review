@@ -46,6 +46,11 @@ llm:
 
   # HTTP client configuration for LLM.
   http_client:
+    # SSL verification:
+    #  - true  → verify SSL certificates (default, recommended)
+    #  - false → disable SSL verification (use ONLY for test / on-prem environments)
+    #  - path  → path to a custom CA bundle, e.g. /etc/ssl/certs/internal_ca.pem
+    verify: true
     timeout: 120                        # Request timeout in seconds
     api_url: https://api.openai.com/v1  # Base URL of the provider API
     api_token: ${OPENAI_API_KEY}        # API token (set in env/CI variables)
@@ -96,7 +101,13 @@ vcs:
 
   # HTTP client configuration for VCS.
   http_client:
-    timeout: 120
+    # SSL verification:
+    #  - true  → verify SSL certificates (default, recommended)
+    #  - false → disable SSL verification (use ONLY for test / on-prem environments)
+    #  - path  → path to a custom CA bundle, e.g. /etc/ssl/certs/internal_ca.pem
+    verify: true
+
+    timeout: 120  # Request timeout in seconds
 
     # --- GitLab ---
     api_url: ${CI_SERVER_URL}       # Base GitLab server URL

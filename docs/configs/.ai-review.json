@@ -8,6 +8,7 @@
       "temperature": 0.3
     },
     "http_client": {
+      "verify": true,
       "timeout": 120,
       "api_url": "https://api.openai.com/v1",
       "api_token": "${OPENAI_API_KEY}"
@@ -20,6 +21,7 @@
       "merge_request_id": "${CI_MERGE_REQUEST_IID}"
     },
     "http_client": {
+      "verify": true,
       "timeout": 120,
       "api_url": "${CI_SERVER_URL}",
       "api_token": "${CI_JOB_TOKEN}"

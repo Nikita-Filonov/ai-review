@@ -71,6 +71,10 @@ claude-3-haiku:
   input: 0.25e-6
   output: 1.25e-6
 
+claude-haiku-4-5:
+  input: 1.00e-6
+  output: 5.00e-6
+
 # --- OpenRouter ---
 o3-mini:
   input: 1.10e-6

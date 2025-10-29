@@ -34,6 +34,7 @@ def get_gemini_http_client() -> GeminiHTTPClient:
     retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
+        verify=settings.llm.http_client.verify,
         timeout=settings.llm.http_client.timeout,
         headers={"x-goog-api-key": settings.llm.http_client.api_token_value},
         base_url=settings.llm.http_client.api_url_value,

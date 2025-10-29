@@ -30,6 +30,7 @@ def get_ollama_http_client() -> OllamaHTTPClient:
     retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
+        verify=settings.llm.http_client.verify,
         timeout=settings.llm.http_client.timeout,
         base_url=settings.llm.http_client.api_url_value,
         transport=retry_transport,
