@@ -1,6 +1,6 @@
-from ai_review.clients.gitea.pr.client import GiteaPullRequestsHTTPClient
 from httpx import AsyncClient, AsyncHTTPTransport
 
+from ai_review.clients.gitea.pr.client import GiteaPullRequestsHTTPClient
 from ai_review.config import settings
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
 from ai_review.libs.http.transports.retry import RetryTransport
@@ -18,9 +18,10 @@ def get_gitea_http_client() -> GiteaHTTPClient:
     retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
-        timeout=settings.llm.http_client.timeout,
+        verify=settings.vcs.http_client.verify,
+        timeout=settings.vcs.http_client.timeout,
         headers={"Authorization": f"token {settings.vcs.http_client.api_token_value}"},
-        base_url=settings.vcs.http_client.api_url_value.rstrip("/"),
+        base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
             "request": [logger_event_hook.request],

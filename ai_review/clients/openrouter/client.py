@@ -37,6 +37,7 @@ def get_openrouter_http_client() -> OpenRouterHTTPClient:
         headers["Referer"] = settings.llm.meta.referer
 
     client = AsyncClient(
+        verify=settings.llm.http_client.verify,
         timeout=settings.llm.http_client.timeout,
         headers=headers,
         base_url=settings.llm.http_client.api_url_value,

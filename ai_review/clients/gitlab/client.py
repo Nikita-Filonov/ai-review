@@ -18,7 +18,8 @@ def get_gitlab_http_client() -> GitLabHTTPClient:
     retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
 
     client = AsyncClient(
-        timeout=settings.llm.http_client.timeout,
+        verify=settings.vcs.http_client.verify,
+        timeout=settings.vcs.http_client.timeout,
         headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
         base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,

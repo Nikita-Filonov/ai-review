@@ -1,7 +1,8 @@
-from pydantic import BaseModel, HttpUrl, SecretStr
+from pydantic import BaseModel, HttpUrl, SecretStr, FilePath
 
 
 class HTTPClientConfig(BaseModel):
+    verify: FilePath | bool | None = True
     timeout: float = 120
     api_url: HttpUrl
 
