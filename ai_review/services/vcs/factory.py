@@ -4,6 +4,7 @@ from ai_review.services.vcs.bitbucket.client import BitbucketVCSClient
 from ai_review.services.vcs.gitea.client import GiteaVCSClient
 from ai_review.services.vcs.github.client import GitHubVCSClient
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
+from ai_review.services.vcs.azure_devops.client import AzureDevOpsVCSClient
 from ai_review.services.vcs.types import VCSClientProtocol
 
 
@@ -17,5 +18,7 @@ def get_vcs_client() -> VCSClientProtocol:
             return GitHubVCSClient()
         case VCSProvider.BITBUCKET:
             return BitbucketVCSClient()
+        case VCSProvider.AZURE_DEVOPS:
+            return AzureDevOpsVCSClient()
         case _:
             raise ValueError(f"Unsupported VCS provider: {settings.vcs.provider}")

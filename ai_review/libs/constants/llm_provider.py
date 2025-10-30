@@ -7,3 +7,4 @@ class LLMProvider(StrEnum):
     CLAUDE = "CLAUDE"
     OLLAMA = "OLLAMA"
     OPENROUTER = "OPENROUTER"
+    AZURE_OPENAI = "AZURE_OPENAI"

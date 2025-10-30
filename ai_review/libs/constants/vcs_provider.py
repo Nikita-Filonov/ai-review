@@ -6,3 +6,4 @@ class VCSProvider(StrEnum):
     GITHUB = "GITHUB"
     GITLAB = "GITLAB"
     BITBUCKET = "BITBUCKET"
+    AZURE_DEVOPS = "AZURE_DEVOPS"

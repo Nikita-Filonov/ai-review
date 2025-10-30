@@ -15,6 +15,7 @@ keywords = [
     "code review",
     "llm",
     "openai",
+    "azure openai",
     "claude",
     "gemini",
     "ollama",
@@ -23,7 +24,8 @@ keywords = [
     "gitlab",
     "github",
     "gitea",
-    "bitbucket"
+    "bitbucket",
+    "azure devops"
 ]
 maintainers = [
     { name = "Nikita Filonov", email = "nikita.filonov@example.com" }
@@ -38,7 +40,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
-description = "AI-powered code review tool for GitHub, GitLab, Bitbucket and Gitea — built with LLMs like OpenAI, Claude, Gemini, Ollama, and OpenRouter"
+description = "AI-powered code review tool for GitHub, GitLab, Bitbucket, Gitea, and Azure DevOps — built with LLMs like OpenAI, Azure OpenAI, Claude, Gemini, Ollama, and OpenRouter"
 dependencies = [
     "typer",
     "httpx",
