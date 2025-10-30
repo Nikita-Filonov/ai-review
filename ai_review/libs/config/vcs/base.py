@@ -6,6 +6,7 @@ from ai_review.libs.config.vcs.bitbucket import BitbucketPipelineConfig, Bitbuck
 from ai_review.libs.config.vcs.gitea import GiteaPipelineConfig, GiteaHTTPClientConfig
 from ai_review.libs.config.vcs.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.config.vcs.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
+from ai_review.libs.config.vcs.azure_devops import AzureDevOpsPipelineConfig, AzureDevOpsHTTPClientConfig
 from ai_review.libs.config.vcs.pagination import VCSPaginationConfig
 from ai_review.libs.constants.vcs_provider import VCSProvider
 
@@ -39,7 +40,13 @@ class BitbucketVCSConfig(VCSConfigBase):
     http_client: BitbucketHTTPClientConfig
 
 
+class AzureDevOpsVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.AZURE_DEVOPS]
+    pipeline: AzureDevOpsPipelineConfig
+    http_client: AzureDevOpsHTTPClientConfig
+
+
 VCSConfig = Annotated[
-    GiteaVCSConfig | GitLabVCSConfig | GitHubVCSConfig | BitbucketVCSConfig,
+    GiteaVCSConfig | GitLabVCSConfig | GitHubVCSConfig | BitbucketVCSConfig | AzureDevOpsVCSConfig,
     Field(discriminator="provider")
 ]

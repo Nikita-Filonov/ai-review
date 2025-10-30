@@ -32,10 +32,10 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, or **OpenRouter**, and
+- **Multiple LLM providers** — choose between **OpenAI**, **Azure OpenAI**, **Claude**, **Gemini**, **Ollama**, or **OpenRouter**, and
   switch anytime.
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**.
-- **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, **Gitea**, and **Azure DevOps**.
+- **Customizable prompts** — adapt inline, context, and summary reviews to match your team's coding guidelines.
 - **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
   summary discussions.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
@@ -143,9 +143,9 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, Ollama, or OpenRouter
+- **LLM provider** — OpenAI, Azure OpenAI, Gemini, Claude, Ollama, or OpenRouter
 - **Model settings** — model name, temperature, max tokens
-- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, and **Gitea**
+- **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket**, **Gitea**, and **Azure DevOps**
 - **Review policy** — which files to include/exclude, review modes
 - **Prompts** — inline/context/summary prompt templates
 
@@ -245,13 +245,76 @@ ai-review:
 
 🔗 Full example: [./docs/ci/gitlab.yaml](./docs/ci/gitlab.yaml)
 
+### 🚀 Azure DevOps Pipelines
+
+For Azure DevOps users:
+
+```yaml
+trigger:
+  - none
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: AIReview
+    displayName: 'AI Code Review'
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    
+    jobs:
+      - job: RunReview
+        variables:
+          system.accesstoken: $(System.AccessToken)
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+
+          - script: pip install xai-review
+            displayName: 'Install AI Review'
+
+          - script: ai-review run
+            displayName: 'Run AI Review'
+            env:
+              # --- LLM configuration (Azure OpenAI) ---
+              LLM__PROVIDER: "AZURE_OPENAI"
+              LLM__META__MODEL: "gpt-4o"
+              LLM__META__DEPLOYMENT_NAME: "$(AZURE_OPENAI_DEPLOYMENT)"
+              LLM__META__API_VERSION: "2024-08-01-preview"
+              LLM__META__MAX_TOKENS: "15000"
+              LLM__META__TEMPERATURE: "0.3"
+              LLM__HTTP_CLIENT__API_URL: "$(AZURE_OPENAI_ENDPOINT)"
+              LLM__HTTP_CLIENT__API_TOKEN: "$(AZURE_OPENAI_API_KEY)"
+
+              # --- Azure DevOps integration ---
+              VCS__PROVIDER: "AZURE_DEVOPS"
+              VCS__PIPELINE__ORGANIZATION: "$(System.TeamFoundationCollectionUri)"
+              VCS__PIPELINE__PROJECT: "$(System.TeamProject)"
+              VCS__PIPELINE__REPOSITORY_ID: "$(Build.Repository.ID)"
+              VCS__PIPELINE__PULL_REQUEST_ID: "$(System.PullRequest.PullRequestId)"
+              VCS__HTTP_CLIENT__API_URL: "https://dev.azure.com"
+              VCS__HTTP_CLIENT__API_TOKEN: "$(System.AccessToken)"
+
+```
+
+🔗 Full example: [./docs/ci/azure-devops.yaml](./docs/ci/azure-devops.yaml)
+
 ---
 
 ## 📘 Documentation
 
 See these folders for reference templates and full configuration options:
 
-- [./docs/ci](./docs/ci) — CI/CD integration templates (GitHub Actions, GitLab CI)
+- [./docs/ci](./docs/ci) — CI/CD integration templates (GitHub Actions, GitLab CI, Azure DevOps)
 - [./docs/cli](./docs/cli) — CLI command reference and usage examples
 - [./docs/hooks](./docs/hooks) — hook reference and lifecycle events
 - [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)

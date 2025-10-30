@@ -1,0 +1,191 @@
+# ===============================
+# AI Review — Azure DevOps Pipeline Integration
+# ===============================
+# This pipeline demonstrates how to integrate AI Review
+# into your Azure DevOps repository for automated pull request reviews.
+#
+# Prerequisites:
+# 1. Create an Azure OpenAI resource and deployment
+# 2. Add the following variables to your pipeline or variable group:
+#    - AZURE_OPENAI_ENDPOINT: Your Azure OpenAI endpoint URL
+#    - AZURE_OPENAI_API_KEY: Your Azure OpenAI API key
+#    - AZURE_OPENAI_DEPLOYMENT: Your deployment name
+#
+# Note: This pipeline uses $(System.AccessToken) for Azure DevOps authentication.
+# 
+# IMPORTANT - One-time setup required:
+# 1. Go to Project Settings → Repositories → Your Repo → Security
+# 2. Find "{Project} Build Service ({Org})" 
+# 3. Grant permissions:
+#    - Contribute to pull requests: Allow
+#    - Read: Allow
+#    - Contribute: Allow
+# 
+# Without these permissions, you'll get 404 errors!
+#
+# Docs: https://github.com/Nikita-Filonov/ai-review
+# ===============================
+
+trigger:
+  - none  # Disable CI triggers, only run on PR
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+  # Run on PR creation and updates
+  drafts: false
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # AI Review mode - choose one:
+  # run              - Full review (inline + context + summary)
+  # run-inline       - Only inline comments on changed lines
+  # run-context      - Only cross-file context analysis
+  # run-summary      - Only high-level summary comment
+  # run-inline-reply - Reply to existing inline comment threads
+  # run-summary-reply - Reply to existing summary comments
+  AI_REVIEW_MODE: 'run'
+
+stages:
+  - stage: AIReview
+    displayName: 'AI Code Review'
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    
+    jobs:
+      - job: RunReview
+        displayName: 'AI Review'
+        
+        # IMPORTANT: This allows the job to use $(System.AccessToken)
+        variables:
+          system.accesstoken: $(System.AccessToken)
+        
+        steps:
+          - script: |
+              echo "=== Azure DevOps Variables ==="
+              echo "Organization: $(System.TeamFoundationCollectionUri)"
+              echo "Project: $(System.TeamProject)"
+              echo "Build.Repository.ID: $(Build.Repository.ID)"
+              echo "BUILD_REPOSITORY_ID: $(BUILD_REPOSITORY_ID)"
+              echo "Build.Repository.Name: $(Build.Repository.Name)"
+              echo "BUILD_REPOSITORY_NAME: $(BUILD_REPOSITORY_NAME)"
+              echo "PR ID: $(System.PullRequest.PullRequestId)"
+              echo "PR Number: $(System.PullRequest.PullRequestNumber)"
+            displayName: 'Debug: Show Azure DevOps Variables'
+          - checkout: self
+            fetchDepth: 0
+            displayName: 'Checkout code with full history'
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+              addToPath: true
+            displayName: 'Use Python 3.11'
+
+          - script: |
+              pip install xai-review
+            displayName: 'Install AI Review'
+
+          - script: |
+              ai-review $(AI_REVIEW_MODE)
+            displayName: 'Run AI Review'
+            env:
+              # --- LLM Configuration (Azure OpenAI) ---
+              LLM__PROVIDER: "AZURE_OPENAI"
+              LLM__META__MODEL: "gpt-4o"
+              LLM__META__DEPLOYMENT_NAME: "$(AZURE_OPENAI_DEPLOYMENT)"
+              LLM__META__API_VERSION: "2024-08-01-preview"
+              LLM__META__MAX_TOKENS: "15000"
+              LLM__META__TEMPERATURE: "0.3"
+              LLM__HTTP_CLIENT__API_URL: "$(AZURE_OPENAI_ENDPOINT)"
+              LLM__HTTP_CLIENT__API_TOKEN: "$(AZURE_OPENAI_API_KEY)"
+              LLM__HTTP_CLIENT__TIMEOUT: "120"
+
+              # --- VCS Configuration (Azure DevOps) ---
+              VCS__PROVIDER: "AZURE_DEVOPS"
+              VCS__PIPELINE__ORGANIZATION: "$(System.TeamFoundationCollectionUri)"
+              VCS__PIPELINE__PROJECT: "$(System.TeamProject)"
+              # Note: Use Build.Repository.ID for repository GUID
+              # Alternative: $(Build.Repository.Name) for repository name
+              VCS__PIPELINE__REPOSITORY_ID: "$(Build.Repository.ID)"
+              VCS__PIPELINE__PULL_REQUEST_ID: "$(System.PullRequest.PullRequestId)"
+              VCS__HTTP_CLIENT__API_URL: "https://dev.azure.com"
+              VCS__HTTP_CLIENT__API_TOKEN: "$(System.AccessToken)"
+              VCS__HTTP_CLIENT__TIMEOUT: "120"
+
+              # --- Review Configuration ---
+              REVIEW__MODE: "FULL_FILE_DIFF"
+              REVIEW__DRY_RUN: "false"
+              REVIEW__MAX_INLINE_COMMENTS: "50"
+              REVIEW__MAX_CONTEXT_COMMENTS: "20"
+              
+              # --- Logger Configuration ---
+              LOGGER__LEVEL: "INFO"
+
+            continueOnError: true
+            # Allow the pipeline to continue even if AI Review fails
+            # to avoid blocking PRs due to AI service issues
+
+---
+
+# Alternative: Manual Trigger Configuration
+# Uncomment this section if you prefer manual review triggers
+
+# trigger:
+#   - none
+# 
+# pr:
+#   - none
+# 
+# pool:
+#   vmImage: 'ubuntu-latest'
+# 
+# parameters:
+#   - name: pullRequestId
+#     type: string
+#     displayName: 'Pull Request ID'
+#   
+#   - name: reviewMode
+#     type: string
+#     displayName: 'Review Mode'
+#     default: 'run'
+#     values:
+#       - run
+#       - run-inline
+#       - run-context
+#       - run-summary
+#       - run-inline-reply
+#       - run-summary-reply
+# 
+# stages:
+#   - stage: AIReview
+#     displayName: 'AI Code Review'
+#     
+#     jobs:
+#       - job: RunReview
+#         displayName: 'AI Review'
+#         
+#         variables:
+#           system.accesstoken: $(System.AccessToken)
+#         
+#         steps:
+#           - checkout: self
+#             fetchDepth: 0
+#           
+#           - task: UsePythonVersion@0
+#             inputs:
+#               versionSpec: '3.11'
+#           
+#           - script: pip install xai-review
+#             displayName: 'Install AI Review'
+#           
+#           - script: ai-review ${{ parameters.reviewMode }}
+#             displayName: 'Run AI Review'
+#             env:
+#               # Same environment variables as above
+#               VCS__PIPELINE__PULL_REQUEST_ID: ${{ parameters.pullRequestId }}
+
