@@ -189,7 +189,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.38.0
+      - uses: Nikita-Filonov/ai-review@v0.39.0
         with:
           review-command: ${{ inputs.review-command }}
         env:

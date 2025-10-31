@@ -78,7 +78,7 @@ class BitbucketServerPullRequestsHTTPClient(HTTPClient, BitbucketServerPullReque
     ) -> Response:
         return await self.post(
             f"/projects/{project_key}/repos/{repo_slug}/pull-requests/{pull_request_id}/comments",
-            json=request.model_dump(by_alias=True),
+            json=request.model_dump(by_alias=True, exclude_none=True),
         )
 
     async def get_pull_request(

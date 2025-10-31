@@ -2,6 +2,6 @@ from pydantic import BaseModel
 
 
 class BitbucketCloudUserSchema(BaseModel):
-    uuid: str
-    nickname: str
-    display_name: str
+    uuid: str | None = None
+    nickname: str | None = None
+    display_name: str | None = None

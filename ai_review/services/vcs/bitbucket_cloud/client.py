@@ -62,8 +62,8 @@ class BitbucketCloudVCSClient(VCSClientProtocol):
                 assignees=[
                     UserSchema(
                         id=user.uuid,
-                        name=user.display_name,
-                        username=user.nickname,
+                        name=user.display_name or "",
+                        username=user.nickname or "",
                     )
                     for user in pr.participants
                 ],

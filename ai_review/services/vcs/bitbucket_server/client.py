@@ -52,17 +52,17 @@ class BitbucketServerVCSClient(VCSClientProtocol):
                 description=pr.description or "",
                 author=UserSchema(
                     id=pr.author.user.id,
-                    name=pr.author.user.display_name,
+                    name=pr.author.user.display_name or "",
                     username=pr.author.user.slug or pr.author.user.name,
                 ),
-                labels=[],  # Bitbucket Server не поддерживает labels напрямую
+                labels=[],
                 base_sha=pr.to_ref.latest_commit,
                 head_sha=pr.from_ref.latest_commit,
-                assignees=[],  # нет отдельного поля в Bitbucket Server API
+                assignees=[],
                 reviewers=[
                     UserSchema(
                         id=user.user.id,
-                        name=user.user.display_name,
+                        name=user.user.display_name or "",
                         username=user.user.slug or user.user.name,
                     )
                     for user in pr.reviewers

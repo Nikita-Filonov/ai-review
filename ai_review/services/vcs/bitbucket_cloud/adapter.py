@@ -9,8 +9,8 @@ def get_review_comment_from_bitbucket_pr_comment(comment: BitbucketCloudPRCommen
     user = comment.user
     author = UserSchema(
         id=user.uuid if user else None,
-        name=user.display_name if user else "",
-        username=user.nickname if user else "",
+        name=(user.display_name or "") if user else "",
+        username=(user.nickname or "") if user else "",
     )
 
     file = comment.inline.path if comment.inline and comment.inline.path else None
