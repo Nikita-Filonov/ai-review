@@ -1,68 +1,145 @@
+# ============================================
+# Bitbucket Pipelines configuration for AI Review
+# ============================================
+
 image: nikitafilonov/ai-review:latest
 
+options:
+  size: 2x
+  max-time: 30
+
+# --------------------------------------------
+# Common base configuration (anchor)
+# --------------------------------------------
+definitions:
+  steps:
+    - step: &ai-review-base
+        name: "AI Review (Base)"
+        trigger: manual
+        script:
+          - echo "🚀 Starting AI Review for Bitbucket PR..."
+          - ai-review run
+        variables:
+          # ===============================
+          # LLM provider & model
+          # ===============================
+          LLM__PROVIDER: "OPENAI"
+          LLM__META__MODEL: "gpt-4o-mini"
+          LLM__META__MAX_TOKENS: "15000"
+          LLM__META__TEMPERATURE: "0.3"
+          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+          LLM__HTTP_CLIENT__API_TOKEN: "${OPENAI_API_KEY}"
+
+          # ===============================
+          # VCS (Bitbucket Cloud integration)
+          # ===============================
+          VCS__PROVIDER: "BITBUCKET_CLOUD"
+
+          # Context: PR metadata available in Bitbucket Pipelines.
+          # Docs: https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
+          VCS__PIPELINE__WORKSPACE: "${BITBUCKET_WORKSPACE}"
+          VCS__PIPELINE__REPO_SLUG: "${BITBUCKET_REPO_SLUG}"
+          VCS__PIPELINE__PULL_REQUEST_ID: "${BITBUCKET_PR_ID}"
+
+          # Bitbucket API access (use App Password or OAuth token)
+          VCS__HTTP_CLIENT__API_URL: "https://api.bitbucket.org/2.0"
+          VCS__HTTP_CLIENT__API_TOKEN: "${BITBUCKET_APP_PASSWORD}"
+
+          # SSL / Timeout
+          VCS__HTTP_CLIENT__VERIFY: "true"
+          VCS__HTTP_CLIENT__TIMEOUT: "120"
+
+          # ===============================
+          # Core settings
+          # ===============================
+          CORE__CONCURRENCY: "7"
+
+          # ===============================
+          # Review configuration
+          # ===============================
+          REVIEW__MODE: "FULL_FILE_DIFF"
+          REVIEW__DRY_RUN: "false"
+
+          REVIEW__INLINE_TAG: "#ai-review-inline"
+          REVIEW__SUMMARY_TAG: "#ai-review-summary"
+          REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
+          REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
+
+          # ===============================
+          # Logging & artifacts
+          # ===============================
+          LOGGER__LEVEL: "INFO"
+          LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+          ARTIFACTS__LLM_DIR: "./artifacts/llm"
+          ARTIFACTS__LLM_ENABLED: "false"
+
+          # ===============================
+          # Optional behavior
+          # ===============================
+          # Limit number of AI comments per run:
+          # REVIEW__MAX_INLINE_COMMENTS: "30"
+          # REVIEW__MAX_CONTEXT_COMMENTS: "50"
+
+          # Example filters (optional):
+          # REVIEW__ALLOW_CHANGES: "src/*,lib/*"
+          # REVIEW__IGNORE_CHANGES: "docs/*,README.md"
+
+# --------------------------------------------
+# Pipelines
+# --------------------------------------------
 pipelines:
   pull-requests:
     '**':
       - step:
-          name: "AI Review"
-          trigger: manual
+          name: "Init pipeline"
           script:
-            - echo "Running AI Review for Bitbucket PR..."
+            - echo "Initializing Bitbucket AI Review..."
+
+  custom:
+    # Run full review
+    ai-review-all:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (All)"
+          script:
             - ai-review run
-          services:
-            - docker
-          caches:
-            - pip
-          variables:
-            # ===============================
-            # LLM provider & model
-            # ===============================
-            LLM__PROVIDER: "OPENAI"
-            LLM__META__MODEL: "gpt-4o-mini"
-            LLM__META__MAX_TOKENS: "15000"
-            LLM__META__TEMPERATURE: "0.3"
-            LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
-            LLM__HTTP_CLIENT__API_TOKEN: "${OPENAI_API_KEY}"
 
-            # ===============================
-            # VCS (Bitbucket Cloud integration)
-            # ===============================
-            VCS__PROVIDER: "BITBUCKET_CLOUD"
+    # Inline review only
+    ai-review-inline:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Inline)"
+          script:
+            - ai-review run-inline
 
-            # Context: PR metadata available in Bitbucket Pipelines.
-            # Docs: https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
-            VCS__PIPELINE__WORKSPACE: "${BITBUCKET_WORKSPACE}"
-            VCS__PIPELINE__REPO_SLUG: "${BITBUCKET_REPO_SLUG}"
-            VCS__PIPELINE__PULL_REQUEST_ID: "${BITBUCKET_PR_ID}"
+    # Context review only
+    ai-review-context:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Context)"
+          script:
+            - ai-review run-context
 
-            # Bitbucket API access
-            VCS__HTTP_CLIENT__API_URL: "https://api.bitbucket.org/2.0"
-            VCS__HTTP_CLIENT__API_TOKEN: "${BITBUCKET_APP_PASSWORD}"
+    # Summary review
+    ai-review-summary:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Summary)"
+          script:
+            - ai-review run-summary
 
-            # SSL / Timeout
-            VCS__HTTP_CLIENT__VERIFY: "true"
-            VCS__HTTP_CLIENT__TIMEOUT: "120"
+    # Inline reply mode
+    ai-review-inline-reply:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Inline Reply)"
+          script:
+            - ai-review run-inline-reply
 
-            # ===============================
-            # Core settings
-            # ===============================
-            CORE__CONCURRENCY: "7"
-
-            # ===============================
-            # Review configuration
-            # ===============================
-            REVIEW__MODE: "FULL_FILE_DIFF"
-            REVIEW__DRY_RUN: "false"
-
-            REVIEW__INLINE_TAG: "#ai-review-inline"
-            REVIEW__SUMMARY_TAG: "#ai-review-summary"
-            REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
-            REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
-
-            # ===============================
-            # Logging & artifacts
-            # ===============================
-            LOGGER__LEVEL: "INFO"
-            LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
-            ARTIFACTS__LLM_DIR: "./artifacts/llm"
-            ARTIFACTS__LLM_ENABLED: "false"
+    # Summary reply mode
+    ai-review-summary-reply:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Summary Reply)"
+          script:
+            - ai-review run-summary-reply
