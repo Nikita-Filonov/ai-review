@@ -1,6 +1,7 @@
 from ai_review.config import settings
 from ai_review.libs.constants.vcs_provider import VCSProvider
-from ai_review.services.vcs.bitbucket.client import BitbucketVCSClient
+from ai_review.services.vcs.bitbucket_cloud.client import BitbucketCloudVCSClient
+from ai_review.services.vcs.bitbucket_server.client import BitbucketServerVCSClient
 from ai_review.services.vcs.gitea.client import GiteaVCSClient
 from ai_review.services.vcs.github.client import GitHubVCSClient
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
@@ -15,7 +16,9 @@ def get_vcs_client() -> VCSClientProtocol:
             return GitLabVCSClient()
         case VCSProvider.GITHUB:
             return GitHubVCSClient()
-        case VCSProvider.BITBUCKET:
-            return BitbucketVCSClient()
+        case VCSProvider.BITBUCKET_CLOUD:
+            return BitbucketCloudVCSClient()
+        case VCSProvider.BITBUCKET_SERVER:
+            return BitbucketServerVCSClient()
         case _:
             raise ValueError(f"Unsupported VCS provider: {settings.vcs.provider}")

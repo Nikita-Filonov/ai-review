@@ -1,6 +1,7 @@
 import pytest
 
-from ai_review.services.vcs.bitbucket.client import BitbucketVCSClient
+from ai_review.services.vcs.bitbucket_cloud.client import BitbucketCloudVCSClient
+from ai_review.services.vcs.bitbucket_server.client import BitbucketServerVCSClient
 from ai_review.services.vcs.factory import get_vcs_client
 from ai_review.services.vcs.gitea.client import GiteaVCSClient
 from ai_review.services.vcs.github.client import GitHubVCSClient
@@ -25,10 +26,16 @@ def test_get_vcs_client_returns_gitlab(monkeypatch: pytest.MonkeyPatch):
     assert isinstance(client, GitLabVCSClient)
 
 
-@pytest.mark.usefixtures("bitbucket_http_client_config")
-def test_get_vcs_client_returns_bitbucket(monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.usefixtures("bitbucket_cloud_http_client_config")
+def test_get_vcs_client_returns_bitbucket_cloud(monkeypatch: pytest.MonkeyPatch):
     client = get_vcs_client()
-    assert isinstance(client, BitbucketVCSClient)
+    assert isinstance(client, BitbucketCloudVCSClient)
+
+
+@pytest.mark.usefixtures("bitbucket_server_http_client_config")
+def test_get_vcs_client_returns_bitbucket_server(monkeypatch: pytest.MonkeyPatch):
+    client = get_vcs_client()
+    assert isinstance(client, BitbucketServerVCSClient)
 
 
 def test_get_vcs_client_unsupported_provider(monkeypatch: pytest.MonkeyPatch):

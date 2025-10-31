@@ -8,7 +8,7 @@ class HTTPClient:
         self.client = client
 
     async def get(self, url: str, query: QueryParams | None = None) -> Response:
-        return await self.client.get(url=url, params=query)
+        return await self.client.get(url=url, params=query, follow_redirects=True)
 
     async def post(self, url: str, json: Any | None = None) -> Response:
         return await self.client.post(url=url, json=json)

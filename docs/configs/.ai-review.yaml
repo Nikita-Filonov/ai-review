@@ -74,7 +74,7 @@ llm:
 
 vcs:
   # Version control system provider.
-  # Options: GITLAB | GITHUB | BITBUCKET | GITEA
+  # Options: GITLAB | GITHUB | BITBUCKET_CLOUD | BITBUCKET_SERVER | GITEA
   provider: GITLAB
 
   # Pipeline/MR/PR context.
@@ -88,10 +88,15 @@ vcs:
     # repo: ${GITHUB_REPOSITORY_NAME}    # Repo name  (e.g. "my-service")
     # pull_number: ${PR_NUMBER}          # Pull Request number
 
-    # --- Bitbucket ---
+    # --- Bitbucket Cloud ---
     # workspace: ${BITBUCKET_WORKSPACE}    # Workspace ID (e.g. "myteam")
     # repo_slug: ${BITBUCKET_REPO_SLUG}    # Repository slug (short name, e.g. "my-service")
     # pull_request_id: ${BITBUCKET_PR_ID}  # Pull Request ID (numeric, e.g. "42")
+
+    # --- Bitbucket Server ---
+    # project_key: ${BITBUCKET_PROJECT_KEY}   # Project key (e.g. "BANK")
+    # repo_slug: ${BITBUCKET_REPO_SLUG}       # Repository slug (short name, e.g. "core-banking")
+    # pull_request_id: ${BITBUCKET_PR_ID}     # Pull Request ID (numeric, e.g. "101")
 
     # --- Gitea ---
     # owner: ${GITEA_REPOSITORY_OWNER}  # Repo owner (e.g. "my-org")
@@ -117,9 +122,13 @@ vcs:
     # api_url: https://api.github.com
     # api_token: ${GITHUB_TOKEN}      # GitHub Actions token or PAT
 
-    # --- Bitbucket ---
+    # --- Bitbucket Cloud ---
     # api_url: https://api.bitbucket.org/2.0
     # api_token: ${BITBUCKET_TOKEN}   # App password or OAuth token
+
+    # --- Bitbucket Server ---
+    # api_url: https://bitbucket.mycompany.com/rest/api/1.0
+    # api_token: ${BITBUCKET_SERVER_TOKEN}  # Personal access token or Basic Auth token (Base64)
 
     # --- Gitea ---
     # api_url: https://gitea.mycompany.com/api/v1
@@ -367,7 +376,7 @@ review:
 
   # --- Dry-run mode ---
   # When enabled, the review process runs fully but does not create
-  # any comments or replies in the VCS (GitLab/GitHub/Bitbucket).
+  # any comments or replies in the VCS (GitLab/GitHub/Bitbucket Cloud/Bitbucket Server/Gitea).
   # Useful for local validation, debugging, or safe CI preview runs.
   # Default: false
   dry_run: false

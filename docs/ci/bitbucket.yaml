@@ -1,0 +1,68 @@
+image: nikitafilonov/ai-review:latest
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: "AI Review"
+          trigger: manual
+          script:
+            - echo "Running AI Review for Bitbucket PR..."
+            - ai-review run
+          services:
+            - docker
+          caches:
+            - pip
+          variables:
+            # ===============================
+            # LLM provider & model
+            # ===============================
+            LLM__PROVIDER: "OPENAI"
+            LLM__META__MODEL: "gpt-4o-mini"
+            LLM__META__MAX_TOKENS: "15000"
+            LLM__META__TEMPERATURE: "0.3"
+            LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+            LLM__HTTP_CLIENT__API_TOKEN: "${OPENAI_API_KEY}"
+
+            # ===============================
+            # VCS (Bitbucket Cloud integration)
+            # ===============================
+            VCS__PROVIDER: "BITBUCKET_CLOUD"
+
+            # Context: PR metadata available in Bitbucket Pipelines.
+            # Docs: https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
+            VCS__PIPELINE__WORKSPACE: "${BITBUCKET_WORKSPACE}"
+            VCS__PIPELINE__REPO_SLUG: "${BITBUCKET_REPO_SLUG}"
+            VCS__PIPELINE__PULL_REQUEST_ID: "${BITBUCKET_PR_ID}"
+
+            # Bitbucket API access
+            VCS__HTTP_CLIENT__API_URL: "https://api.bitbucket.org/2.0"
+            VCS__HTTP_CLIENT__API_TOKEN: "${BITBUCKET_APP_PASSWORD}"
+
+            # SSL / Timeout
+            VCS__HTTP_CLIENT__VERIFY: "true"
+            VCS__HTTP_CLIENT__TIMEOUT: "120"
+
+            # ===============================
+            # Core settings
+            # ===============================
+            CORE__CONCURRENCY: "7"
+
+            # ===============================
+            # Review configuration
+            # ===============================
+            REVIEW__MODE: "FULL_FILE_DIFF"
+            REVIEW__DRY_RUN: "false"
+
+            REVIEW__INLINE_TAG: "#ai-review-inline"
+            REVIEW__SUMMARY_TAG: "#ai-review-summary"
+            REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
+            REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
+
+            # ===============================
+            # Logging & artifacts
+            # ===============================
+            LOGGER__LEVEL: "INFO"
+            LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+            ARTIFACTS__LLM_DIR: "./artifacts/llm"
+            ARTIFACTS__LLM_ENABLED: "false"
