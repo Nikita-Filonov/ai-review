@@ -15,7 +15,10 @@ class GitLabHTTPClient:
 def get_gitlab_http_client() -> GitLabHTTPClient:
     logger = get_logger("GITLAB_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(
+        logger=logger,
+        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify),
+    )
 
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,

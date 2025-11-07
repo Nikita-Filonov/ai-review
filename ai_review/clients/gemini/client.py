@@ -31,7 +31,10 @@ class GeminiHTTPClient(HTTPClient, GeminiHTTPClientProtocol):
 def get_gemini_http_client() -> GeminiHTTPClient:
     logger = get_logger("GEMINI_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(
+        logger=logger,
+        transport=AsyncHTTPTransport(verify=settings.llm.http_client.verify),
+    )
 
     client = AsyncClient(
         verify=settings.llm.http_client.verify,

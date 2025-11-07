@@ -15,7 +15,10 @@ class GitHubHTTPClient:
 def get_github_http_client() -> GitHubHTTPClient:
     logger = get_logger("GITHUB_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(
+        logger=logger,
+        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify),
+    )
 
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,
