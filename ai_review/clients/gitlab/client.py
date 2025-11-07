@@ -20,10 +20,16 @@ def get_gitlab_http_client() -> GitLabHTTPClient:
         transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify),
     )
 
+    headers = {}
+    if settings.vcs.http_client.api_token_value:
+        headers["Authorization"] = f"Bearer {settings.vcs.http_client.api_token_value}"
+    if settings.vcs.http_client.job_token_value:
+        headers["JOB-TOKEN"] = settings.vcs.http_client.job_token_value
+
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,
         timeout=settings.vcs.http_client.timeout,
-        headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
+        headers=headers,
         base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
