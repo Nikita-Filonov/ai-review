@@ -240,7 +240,7 @@ ai-review:
     VCS__PIPELINE__PROJECT_ID: "$CI_PROJECT_ID"
     VCS__PIPELINE__MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
     VCS__HTTP_CLIENT__API_URL: "$CI_SERVER_URL"
-    VCS__HTTP_CLIENT__API_TOKEN: "$CI_JOB_TOKEN"
+    VCS__HTTP_CLIENT__JOB_TOKEN: "$CI_JOB_TOKEN"
   allow_failure: true  # Optional: don't block pipeline if AI review fails
 
 ```
