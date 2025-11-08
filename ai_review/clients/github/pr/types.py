@@ -10,7 +10,6 @@ from ai_review.clients.github.pr.schema.comments import (
 )
 from ai_review.clients.github.pr.schema.files import GitHubGetPRFilesResponseSchema
 from ai_review.clients.github.pr.schema.pull_request import GitHubGetPRResponseSchema
-from ai_review.clients.github.pr.schema.reviews import GitHubGetPRReviewsResponseSchema
 
 
 class GitHubPullRequestsHTTPClientProtocol(Protocol):
@@ -31,8 +30,6 @@ class GitHubPullRequestsHTTPClientProtocol(Protocol):
             repo: str,
             pull_number: str
     ) -> GitHubGetPRCommentsResponseSchema: ...
-
-    async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRReviewsResponseSchema: ...
 
     async def create_review_reply(
             self,

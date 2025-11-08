@@ -1,0 +1,138 @@
+# ===============================
+# AI Review — Azure DevOps Integration
+# ===============================
+# Universal pipeline for running AI Review inside Azure Pipelines.
+# Can be launched manually with parameters for Pull Request, iteration, and command.
+#
+# Supported commands:
+#   - run
+#   - run-inline
+#   - run-summary
+#   - run-context
+#   - run-inline-reply
+#   - run-summary-reply
+#
+# Requirements:
+#   • Variable group "ai-review-secrets" with:
+#       - LLM__HTTP_CLIENT__API_TOKEN  (e.g., OpenAI API key)
+#       - VCS__HTTP_CLIENT__API_TOKEN  (Azure DevOps PAT with Code → Read & Write permissions)
+#   • Docker image: nikitafilonov/ai-review:latest
+# ===============================
+
+trigger: none  # manual run from the UI
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: ai-review-secrets  # contains tokens and private keys
+
+parameters:
+  - name: ORGANIZATION
+    type: string
+    default: 'rqcalculator'
+    displayName: 'Azure DevOps organization (name or URL prefix)'
+
+  - name: PROJECT
+    type: string
+    default: 'test-ai-review'
+    displayName: 'Azure DevOps project'
+
+  - name: REPOSITORY_ID
+    type: string
+    default: 'ai-review-demo'
+    displayName: 'Repository ID (name or GUID)'
+
+  - name: PULL_REQUEST_ID
+    type: string
+    default: '1'
+    displayName: 'Pull Request ID'
+
+  - name: ITERATION_ID
+    type: string
+    default: '1'
+    displayName: 'Iteration ID (PR review iteration)'
+
+  - name: COMMAND
+    type: string
+    default: 'run'
+    displayName: 'AI Review command'
+    values:
+      - run
+      - run-inline
+      - run-summary
+      - run-context
+      - run-inline-reply
+      - run-summary-reply
+
+jobs:
+  - job: ai_review
+    displayName: "AI Review"
+    container:
+      image: nikitafilonov/ai-review:latest
+
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        displayName: "Checkout repository (full history)"
+
+      - script: |
+          echo "🚀 Running AI Review for PR ${{ parameters.PULL_REQUEST_ID }}..."
+          echo "🧠 Using command: ai-review ${{ parameters.COMMAND }}"
+          echo ""
+          echo "🔧 Showing effective configuration..."
+          ai-review show-config
+          echo ""
+          echo "🧩 Starting review..."
+          ai-review ${{ parameters.COMMAND }}
+        env:
+          # ===============================
+          # VCS (Azure DevOps context)
+          # ===============================
+          VCS__PROVIDER: "AZURE_DEVOPS"
+          VCS__PIPELINE__ORGANIZATION: ${{ parameters.ORGANIZATION }}
+          VCS__PIPELINE__PROJECT: ${{ parameters.PROJECT }}
+          VCS__PIPELINE__REPOSITORY_ID: ${{ parameters.REPOSITORY_ID }}
+          VCS__PIPELINE__PULL_REQUEST_ID: ${{ parameters.PULL_REQUEST_ID }}
+          VCS__PIPELINE__ITERATION_ID: ${{ parameters.ITERATION_ID }}
+
+          # --- Azure DevOps HTTP client configuration ---
+          VCS__HTTP_CLIENT__API_URL: "https://dev.azure.com/${{ parameters.ORGANIZATION }}"
+          VCS__HTTP_CLIENT__API_VERSION: "7.0"
+          VCS__HTTP_CLIENT__VERIFY: "true"
+          VCS__HTTP_CLIENT__TIMEOUT: "120"
+          VCS__HTTP_CLIENT__API_TOKEN: $(VCS__HTTP_CLIENT__API_TOKEN)
+
+          # ===============================
+          # LLM provider & model
+          # ===============================
+          LLM__PROVIDER: "OPENAI"
+          LLM__META__MODEL: "gpt-4o-mini"
+          LLM__META__MAX_TOKENS: "15000"
+          LLM__META__TEMPERATURE: "0.3"
+          LLM__HTTP_CLIENT__API_URL: "https://api.openai.com/v1"
+          LLM__HTTP_CLIENT__API_TOKEN: $(LLM__HTTP_CLIENT__API_TOKEN)
+
+          # ===============================
+          # Core & review settings
+          # ===============================
+          CORE__CONCURRENCY: "7"
+          REVIEW__MODE: "FULL_FILE_DIFF"
+          REVIEW__DRY_RUN: "false"
+          REVIEW__INLINE_TAG: "#ai-review-inline"
+          REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
+          REVIEW__SUMMARY_TAG: "#ai-review-summary"
+          REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
+          REVIEW__CONTEXT_LINES: "10"
+          REVIEW__REVIEW_ADDED_MARKER: " # added"
+          REVIEW__REVIEW_REMOVED_MARKER: " # removed"
+
+          # ===============================
+          # Logger & artifacts
+          # ===============================
+          LOGGER__LEVEL: "INFO"
+          LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
+          ARTIFACTS__LLM_DIR: "./artifacts/llm"
+          ARTIFACTS__LLM_ENABLED: "false"
+
+        displayName: "Run AI Review"

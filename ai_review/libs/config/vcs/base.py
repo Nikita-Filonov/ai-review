@@ -2,7 +2,15 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from ai_review.libs.config.vcs.bitbucket import BitbucketPipelineConfig, BitbucketHTTPClientConfig
+from ai_review.libs.config.vcs.azure_devops import AzureDevOpsPipelineConfig, AzureDevOpsHTTPClientConfig
+from ai_review.libs.config.vcs.bitbucket_cloud import (
+    BitbucketCloudPipelineConfig,
+    BitbucketCloudHTTPClientConfig
+)
+from ai_review.libs.config.vcs.bitbucket_server import (
+    BitbucketServerPipelineConfig,
+    BitbucketServerHTTPClientConfig
+)
 from ai_review.libs.config.vcs.gitea import GiteaPipelineConfig, GiteaHTTPClientConfig
 from ai_review.libs.config.vcs.github import GitHubPipelineConfig, GitHubHTTPClientConfig
 from ai_review.libs.config.vcs.gitlab import GitLabPipelineConfig, GitLabHTTPClientConfig
@@ -33,13 +41,30 @@ class GitHubVCSConfig(VCSConfigBase):
     http_client: GitHubHTTPClientConfig
 
 
-class BitbucketVCSConfig(VCSConfigBase):
-    provider: Literal[VCSProvider.BITBUCKET]
-    pipeline: BitbucketPipelineConfig
-    http_client: BitbucketHTTPClientConfig
+class AzureDevOpsVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.AZURE_DEVOPS]
+    pipeline: AzureDevOpsPipelineConfig
+    http_client: AzureDevOpsHTTPClientConfig
+
+
+class BitbucketCloudVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.BITBUCKET_CLOUD]
+    pipeline: BitbucketCloudPipelineConfig
+    http_client: BitbucketCloudHTTPClientConfig
+
+
+class BitbucketServerVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.BITBUCKET_SERVER]
+    pipeline: BitbucketServerPipelineConfig
+    http_client: BitbucketServerHTTPClientConfig
 
 
 VCSConfig = Annotated[
-    GiteaVCSConfig | GitLabVCSConfig | GitHubVCSConfig | BitbucketVCSConfig,
+    GiteaVCSConfig
+    | GitLabVCSConfig
+    | GitHubVCSConfig
+    | AzureDevOpsVCSConfig
+    | BitbucketCloudVCSConfig
+    | BitbucketServerVCSConfig,
     Field(discriminator="provider")
 ]

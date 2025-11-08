@@ -18,7 +18,6 @@ from ai_review.clients.github.pr.schema.pull_request import (
     GitHubBranchSchema,
     GitHubGetPRResponseSchema,
 )
-from ai_review.clients.github.pr.schema.reviews import GitHubGetPRReviewsResponseSchema, GitHubPRReviewSchema
 from ai_review.clients.github.pr.types import GitHubPullRequestsHTTPClientProtocol
 from ai_review.config import settings
 from ai_review.libs.config.vcs.base import GitHubVCSConfig
@@ -103,16 +102,6 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
             root=[
                 GitHubPRCommentSchema(id=3, body="Inline comment", path="file.py", line=5),
                 GitHubPRCommentSchema(id=4, body="Another inline comment", path="utils.py", line=10),
-            ]
-        )
-
-    async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRReviewsResponseSchema:
-        self.calls.append(("get_reviews", {"owner": owner, "repo": repo, "pull_number": pull_number}))
-
-        return GitHubGetPRReviewsResponseSchema(
-            root=[
-                GitHubPRReviewSchema(id=1, body="Looks good", state="APPROVED"),
-                GitHubPRReviewSchema(id=2, body="Needs changes", state="CHANGES_REQUESTED"),
             ]
         )
 
