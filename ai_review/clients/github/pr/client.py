@@ -18,11 +18,6 @@ from ai_review.clients.github.pr.schema.files import (
     GitHubGetPRFilesResponseSchema
 )
 from ai_review.clients.github.pr.schema.pull_request import GitHubGetPRResponseSchema
-from ai_review.clients.github.pr.schema.reviews import (
-    GitHubPRReviewSchema,
-    GitHubGetPRReviewsQuerySchema,
-    GitHubGetPRReviewsResponseSchema
-)
 from ai_review.clients.github.pr.types import GitHubPullRequestsHTTPClientProtocol
 from ai_review.clients.github.tools import github_has_next_page
 from ai_review.config import settings
@@ -118,19 +113,6 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             json=request.model_dump(),
         )
 
-    @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
-    async def get_reviews_api(
-            self,
-            owner: str,
-            repo: str,
-            pull_number: str,
-            query: GitHubGetPRReviewsQuerySchema
-    ) -> Response:
-        return await self.get(
-            f"/repos/{owner}/{repo}/pulls/{pull_number}/reviews",
-            query=QueryParams(**query.model_dump())
-        )
-
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRResponseSchema:
         response = await self.get_pull_request_api(owner, repo, pull_number)
         return GitHubGetPRResponseSchema.model_validate_json(response.text)
@@ -190,23 +172,6 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             has_next_page=github_has_next_page
         )
         return GitHubGetPRCommentsResponseSchema(root=items)
-
-    async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRReviewsResponseSchema:
-        async def fetch_page(page: int) -> Response:
-            query = GitHubGetPRReviewsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
-            return await self.get_reviews_api(owner, repo, pull_number, query)
-
-        def extract_items(response: Response) -> list[GitHubPRReviewSchema]:
-            result = GitHubGetPRReviewsResponseSchema.model_validate_json(response.text)
-            return result.root
-
-        items = await paginate(
-            max_pages=settings.vcs.pagination.max_pages,
-            fetch_page=fetch_page,
-            extract_items=extract_items,
-            has_next_page=github_has_next_page
-        )
-        return GitHubGetPRReviewsResponseSchema(root=items)
 
     async def create_review_reply(
             self,

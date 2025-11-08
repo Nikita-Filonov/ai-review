@@ -1,19 +1,19 @@
 from httpx import AsyncClient, AsyncHTTPTransport
 
-from ai_review.clients.bitbucket_cloud.pr.client import BitbucketCloudPullRequestsHTTPClient
+from ai_review.clients.azure_devops.pr.client import AzureDevOpsPullRequestsHTTPClient
 from ai_review.config import settings
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
 from ai_review.libs.http.transports.retry import RetryTransport
 from ai_review.libs.logger import get_logger
 
 
-class BitbucketCloudHTTPClient:
+class AzureDevOpsHTTPClient:
     def __init__(self, client: AsyncClient):
-        self.pr = BitbucketCloudPullRequestsHTTPClient(client)
+        self.pr = AzureDevOpsPullRequestsHTTPClient(client)
 
 
-def get_bitbucket_cloud_http_client() -> BitbucketCloudHTTPClient:
-    logger = get_logger("BITBUCKET_CLOUD_HTTP_CLIENT")
+def get_azure_devops_http_client() -> AzureDevOpsHTTPClient:
+    logger = get_logger("AZURE_DEVOPS_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
     retry_transport = RetryTransport(
         logger=logger,
@@ -29,7 +29,7 @@ def get_bitbucket_cloud_http_client() -> BitbucketCloudHTTPClient:
         event_hooks={
             "request": [logger_event_hook.request],
             "response": [logger_event_hook.response],
-        }
+        },
     )
 
-    return BitbucketCloudHTTPClient(client=client)
+    return AzureDevOpsHTTPClient(client=client)

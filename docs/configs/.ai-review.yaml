@@ -74,7 +74,7 @@ llm:
 
 vcs:
   # Version control system provider.
-  # Options: GITLAB | GITHUB | BITBUCKET_CLOUD | BITBUCKET_SERVER | GITEA
+  # Options: GITLAB | GITHUB | BITBUCKET_CLOUD | BITBUCKET_SERVER | AZURE_DEVOPS | GITEA
   provider: GITLAB
 
   # Pipeline/MR/PR context.
@@ -97,6 +97,13 @@ vcs:
     # project_key: ${BITBUCKET_PROJECT_KEY}   # Project key (e.g. "BANK")
     # repo_slug: ${BITBUCKET_REPO_SLUG}       # Repository slug (short name, e.g. "core-banking")
     # pull_request_id: ${BITBUCKET_PR_ID}     # Pull Request ID (numeric, e.g. "101")
+
+    # --- Azure DevOps ---
+    # organization: ${SYSTEM_COLLECTIONURI}                 # Organization name or URL prefix (e.g. "my-org")
+    # project: ${SYSTEM_TEAMPROJECT}                        # Project name (e.g. "bank-platform")
+    # repository_id: ${BUILD_REPOSITORY_ID}                 # Repository GUID (unique per repo)
+    # pull_request_id: ${SYSTEM_PULLREQUEST_PULLREQUESTID}  # Pull Request ID (numeric, e.g. "123")
+    # iteration_id: ${SYSTEM_PULLREQUEST_ITERATIONID}       # Review iteration ID (used to fetch comments per iteration)
 
     # --- Gitea ---
     # owner: ${GITEA_REPOSITORY_OWNER}  # Repo owner (e.g. "my-org")
@@ -129,6 +136,11 @@ vcs:
     # --- Bitbucket Server ---
     # api_url: https://bitbucket.mycompany.com/rest/api/1.0
     # api_token: ${BITBUCKET_SERVER_TOKEN}  # Personal access token or Basic Auth token (Base64)
+
+    # --- Azure DevOps ---
+    # api_url: https://dev.azure.com  # Base API endpoint for your organization
+    # api_token: ${AZURE_DEVOPS_PAT}  # Personal Access Token (PAT) with Code → Read & Write permissions
+    # api_version: 7.0                # API version (default: 7.0, can be overridden if needed)
 
     # --- Gitea ---
     # api_url: https://gitea.mycompany.com/api/v1

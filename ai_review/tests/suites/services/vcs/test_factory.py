@@ -1,5 +1,6 @@
 import pytest
 
+from ai_review.services.vcs.azure_devops.client import AzureDevOpsVCSClient
 from ai_review.services.vcs.bitbucket_cloud.client import BitbucketCloudVCSClient
 from ai_review.services.vcs.bitbucket_server.client import BitbucketServerVCSClient
 from ai_review.services.vcs.factory import get_vcs_client
@@ -24,6 +25,12 @@ def test_get_vcs_client_returns_github(monkeypatch: pytest.MonkeyPatch):
 def test_get_vcs_client_returns_gitlab(monkeypatch: pytest.MonkeyPatch):
     client = get_vcs_client()
     assert isinstance(client, GitLabVCSClient)
+
+
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+def test_get_vcs_client_returns_azure_devops(monkeypatch: pytest.MonkeyPatch):
+    client = get_vcs_client()
+    assert isinstance(client, AzureDevOpsVCSClient)
 
 
 @pytest.mark.usefixtures("bitbucket_cloud_http_client_config")

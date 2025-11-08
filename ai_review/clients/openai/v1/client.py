@@ -27,7 +27,10 @@ class OpenAIV1HTTPClient(HTTPClient, OpenAIV1HTTPClientProtocol):
 def get_openai_v1_http_client() -> OpenAIV1HTTPClient:
     logger = get_logger("OPENAI_V1_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(
+        logger=logger,
+        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify)
+    )
 
     client = AsyncClient(
         verify=settings.llm.http_client.verify,

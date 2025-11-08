@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from ai_review.libs.config.vcs.azure_devops import AzureDevOpsPipelineConfig, AzureDevOpsHTTPClientConfig
 from ai_review.libs.config.vcs.bitbucket_cloud import (
     BitbucketCloudPipelineConfig,
     BitbucketCloudHTTPClientConfig
@@ -40,6 +41,12 @@ class GitHubVCSConfig(VCSConfigBase):
     http_client: GitHubHTTPClientConfig
 
 
+class AzureDevOpsVCSConfig(VCSConfigBase):
+    provider: Literal[VCSProvider.AZURE_DEVOPS]
+    pipeline: AzureDevOpsPipelineConfig
+    http_client: AzureDevOpsHTTPClientConfig
+
+
 class BitbucketCloudVCSConfig(VCSConfigBase):
     provider: Literal[VCSProvider.BITBUCKET_CLOUD]
     pipeline: BitbucketCloudPipelineConfig
@@ -56,6 +63,7 @@ VCSConfig = Annotated[
     GiteaVCSConfig
     | GitLabVCSConfig
     | GitHubVCSConfig
+    | AzureDevOpsVCSConfig
     | BitbucketCloudVCSConfig
     | BitbucketServerVCSConfig,
     Field(discriminator="provider")

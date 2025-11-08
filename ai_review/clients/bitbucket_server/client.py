@@ -15,7 +15,10 @@ class BitbucketServerHTTPClient:
 def get_bitbucket_server_http_client() -> BitbucketServerHTTPClient:
     logger = get_logger("BITBUCKET_SERVER_HTTP_CLIENT")
     logger_event_hook = LoggerEventHook(logger=logger)
-    retry_transport = RetryTransport(logger=logger, transport=AsyncHTTPTransport())
+    retry_transport = RetryTransport(
+        logger=logger,
+        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify)
+    )
 
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,

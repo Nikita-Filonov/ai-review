@@ -1,5 +1,6 @@
 from ai_review.config import settings
 from ai_review.libs.constants.vcs_provider import VCSProvider
+from ai_review.services.vcs.azure_devops.client import AzureDevOpsVCSClient
 from ai_review.services.vcs.bitbucket_cloud.client import BitbucketCloudVCSClient
 from ai_review.services.vcs.bitbucket_server.client import BitbucketServerVCSClient
 from ai_review.services.vcs.gitea.client import GiteaVCSClient
@@ -16,6 +17,8 @@ def get_vcs_client() -> VCSClientProtocol:
             return GitLabVCSClient()
         case VCSProvider.GITHUB:
             return GitHubVCSClient()
+        case VCSProvider.AZURE_DEVOPS:
+            return AzureDevOpsVCSClient()
         case VCSProvider.BITBUCKET_CLOUD:
             return BitbucketCloudVCSClient()
         case VCSProvider.BITBUCKET_SERVER:
