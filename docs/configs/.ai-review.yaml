@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER | AZURE_OPENAI
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -44,6 +44,11 @@ llm:
     # title: "AI Review"                   # (optional) project title for analytics
     # referer: "https://your-domain.com"   # (optional) referer URL for analytics
 
+    # --- Azure OpenAI ---
+    # model: gpt-4o-mini  # IMPORTANT: In Azure, the `model` field specifies the *deployment name*, not an OpenAI model ID.
+    # max_tokens: 1200
+    # temperature: 0.3
+
   # HTTP client configuration for LLM.
   http_client:
     # SSL verification:
@@ -71,6 +76,11 @@ llm:
     # --- OpenRouter ---
     # api_url: https://openrouter.ai/api/v1
     # api_token: ${OPENROUTER_API_KEY}
+
+    # --- Azure OpenAI ---
+    # api_url: https://<your-resource>.openai.azure.com
+    # api_token: ${AZURE_OPENAI_API_KEY}
+    # api_version: 2024-06-01
 
 vcs:
   # Version control system provider.

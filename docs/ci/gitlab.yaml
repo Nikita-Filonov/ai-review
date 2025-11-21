@@ -15,7 +15,7 @@
     # LLM provider & model
     # ===============================
     # Which LLM to use.
-    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER
+    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER | AZURE_OPENAI
     LLM__PROVIDER: "OPENAI"
 
     # --- Model metadata ---
@@ -24,6 +24,7 @@
     # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
     # For Ollama: llama2, codellama, mistral, etc.
     # For OpenRouter: anthropic/claude-3.5-sonnet, meta-llama/llama-3-70b-instruct, mistralai/mixtral-8x7b, etc.
+    # For Azure OpenAI: <deployment-name> (NOT model name!)
     LLM__META__MODEL: "gpt-4o-mini"
 
     # (optional) Max tokens for completion.
@@ -52,6 +53,11 @@
     # Example for OpenRouter:
     # LLM__HTTP_CLIENT__API_URL: "https://openrouter.ai/api/v1"
     # LLM__HTTP_CLIENT__API_TOKEN: "$OPENROUTER_API_KEY"
+
+    # Example for Azure OpenAI:
+    # LLM__HTTP_CLIENT__API_URL: "https://<your-resource>.openai.azure.com"
+    # LLM__HTTP_CLIENT__API_TOKEN: "$AZURE_OPENAI_API_KEY"
+    # LLM__HTTP_CLIENT__API_VERSION: "2024-06-01"
 
     # ===============================
     # VCS (GitLab integration)

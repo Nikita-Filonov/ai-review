@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import BaseModel, Field, FilePath
 
+from ai_review.libs.config.llm.azure_openai import AzureOpenAIHTTPClientConfig, AzureOpenAIMetaConfig
 from ai_review.libs.config.llm.claude import ClaudeHTTPClientConfig, ClaudeMetaConfig
 from ai_review.libs.config.llm.gemini import GeminiHTTPClientConfig, GeminiMetaConfig
 from ai_review.libs.config.llm.ollama import OllamaHTTPClientConfig, OllamaMetaConfig
@@ -69,7 +70,18 @@ class OpenRouterLLMConfig(LLMConfigBase):
     http_client: OpenRouterHTTPClientConfig
 
 
+class AzureOpenAILLMConfig(LLMConfigBase):
+    meta: AzureOpenAIMetaConfig
+    provider: Literal[LLMProvider.AZURE_OPENAI]
+    http_client: AzureOpenAIHTTPClientConfig
+
+
 LLMConfig = Annotated[
-    OpenAILLMConfig | GeminiLLMConfig | ClaudeLLMConfig | OllamaLLMConfig | OpenRouterLLMConfig,
+    OpenAILLMConfig
+    | GeminiLLMConfig
+    | ClaudeLLMConfig
+    | OllamaLLMConfig
+    | OpenRouterLLMConfig
+    | AzureOpenAILLMConfig,
     Field(discriminator="provider")
 ]
