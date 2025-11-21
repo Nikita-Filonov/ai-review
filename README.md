@@ -32,8 +32,8 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, or **OpenRouter**, and
-  switch anytime.
+- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, **OpenRouter**,
+  or **Azure OpenAI** and switch anytime.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
@@ -144,7 +144,7 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, Ollama, or OpenRouter
+- **LLM provider** — OpenAI, Gemini, Claude, Ollama, OpenRouter, or Azure OpenAI
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**
@@ -189,7 +189,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.40.0
+      - uses: Nikita-Filonov/ai-review@v0.42.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
