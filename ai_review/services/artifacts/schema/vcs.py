@@ -16,12 +16,12 @@ class VCSSummaryArtifactDataSchema(BaseModel):
 
 
 class VCSInlineReplyArtifactDataSchema(BaseModel):
-    thread_id: str
+    thread_id: str | int
     inline_comment_reply: InlineCommentReplySchema
 
 
 class VCSSummaryReplyArtifactDataSchema(BaseModel):
-    thread_id: str
+    thread_id: str | int
     summary_comment_reply: SummaryCommentReplySchema
 
 
