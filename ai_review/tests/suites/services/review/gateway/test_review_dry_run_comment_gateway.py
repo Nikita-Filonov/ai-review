@@ -5,6 +5,7 @@ from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
+from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 
 
@@ -12,6 +13,7 @@ from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 async def test_process_inline_reply_dry_run_logs_and_no_vcs_calls(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
     """Dry-run: should log the inline reply but not call VCS."""
@@ -23,11 +25,14 @@ async def test_process_inline_reply_dry_run_logs_and_no_vcs_calls(
     assert "Would create inline reply" in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_inline_reply", {"thread_id": "t1", "reply": reply}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_summary_reply_dry_run_logs_and_no_vcs_calls(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
     """Dry-run: should log the summary reply but not call VCS."""
@@ -39,11 +44,14 @@ async def test_process_summary_reply_dry_run_logs_and_no_vcs_calls(
     assert "Would create summary reply" in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_summary_reply", {"thread_id": "t2", "reply": reply}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_inline_comment_dry_run_logs_and_no_vcs_calls(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
     """Dry-run: should log inline comment without creating one."""
@@ -56,11 +64,14 @@ async def test_process_inline_comment_dry_run_logs_and_no_vcs_calls(
     assert "a.py" in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_inline", {"comment": comment}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_summary_comment_dry_run_logs_and_no_vcs_calls(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
     """Dry-run: should log summary comment but not send it."""
@@ -72,11 +83,14 @@ async def test_process_summary_comment_dry_run_logs_and_no_vcs_calls(
     assert "Would create summary comment" in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_summary", {"comment": comment}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_inline_comments_iterates_all(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_dry_run_comment_gateway: ReviewDryRunCommentGateway
 ):
     """Dry-run: should iterate through all inline comments and log each."""
@@ -91,3 +105,6 @@ async def test_process_inline_comments_iterates_all(
     assert "a.py" in output
     assert "b.py" in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
+
+    assert ("save_vcs_inline", {"comment": comments.root[0]}) in fake_artifacts_service.calls
+    assert ("save_vcs_inline", {"comment": comments.root[1]}) in fake_artifacts_service.calls

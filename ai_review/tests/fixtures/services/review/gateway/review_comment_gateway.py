@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 
+from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
@@ -94,5 +95,8 @@ def fake_review_comment_gateway() -> FakeReviewCommentGateway:
 
 
 @pytest.fixture
-def review_comment_gateway(fake_vcs_client: VCSClientProtocol) -> ReviewCommentGateway:
-    return ReviewCommentGateway(vcs=fake_vcs_client)
+def review_comment_gateway(
+        fake_vcs_client: VCSClientProtocol,
+        fake_artifacts_service: ArtifactsServiceProtocol
+) -> ReviewCommentGateway:
+    return ReviewCommentGateway(vcs=fake_vcs_client, artifacts=fake_artifacts_service)

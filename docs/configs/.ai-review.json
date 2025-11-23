@@ -99,6 +99,8 @@
   },
   "artifacts": {
     "llm_dir": "./artifacts/llm",
-    "llm_enabled": false
+    "vcs_dir": "./artifacts/vcs",
+    "llm_enabled": false,
+    "vcs_enabled": false
   }
 }

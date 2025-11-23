@@ -71,7 +71,9 @@ definitions:
           LOGGER__LEVEL: "INFO"
           LOGGER__FORMAT: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
           ARTIFACTS__LLM_DIR: "./artifacts/llm"
+          ARTIFACTS__VCS_DIR: "./artifacts/vcs"
           ARTIFACTS__LLM_ENABLED: "false"
+          ARTIFACTS__VCS_ENABLED: "false"
 
           # ===============================
           # Optional behavior

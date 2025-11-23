@@ -22,7 +22,7 @@ async def test_ask_happy_path(
     assert result == "FAKE_RESPONSE"
     assert any(call[0] == "chat" for call in fake_llm_client.calls)
     assert any(call[0] == "calculate" for call in fake_cost_service.calls)
-    assert any(call[0] == "save_llm_interaction" for call in fake_artifacts_service.calls)
+    assert any(call[0] == "save_llm" for call in fake_artifacts_service.calls)
 
 
 @pytest.mark.asyncio
@@ -44,7 +44,7 @@ async def test_ask_warns_on_empty_response(
 
     assert any(call[0] == "chat" for call in fake_llm_client.calls)
     assert any(call[0] == "calculate" for call in fake_cost_service.calls)
-    assert any(call[0] == "save_llm_interaction" for call in fake_artifacts_service.calls)
+    assert any(call[0] == "save_llm" for call in fake_artifacts_service.calls)
 
 
 @pytest.mark.asyncio

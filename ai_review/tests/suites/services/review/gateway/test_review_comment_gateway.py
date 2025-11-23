@@ -7,6 +7,7 @@ from ai_review.services.review.internal.inline_reply.schema import InlineComment
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 from ai_review.services.vcs.types import ReviewThreadSchema, ReviewCommentSchema, ThreadKind
+from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 
 
@@ -106,6 +107,7 @@ async def test_has_existing_summary_comments_false(
 @pytest.mark.asyncio
 async def test_process_inline_reply_happy_path(
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should create inline reply and emit hook events."""
@@ -115,11 +117,14 @@ async def test_process_inline_reply_happy_path(
 
     assert any(call[0] == "create_inline_reply" for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_inline_reply", {"thread_id": "t1", "reply": reply}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_inline_reply_error(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should log and emit error if VCS fails to create reply."""
@@ -135,18 +140,23 @@ async def test_process_inline_reply_error(
 
     assert "Failed to create inline reply" in output
 
+    assert all(call[0] != "save_vcs_inline_reply" for call in fake_artifacts_service.calls)
+
 
 # === SUMMARY REPLY ===
 
 @pytest.mark.asyncio
 async def test_process_summary_reply_success(
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should create summary reply comment."""
     reply = SummaryCommentReplySchema(text="AI summary reply")
     await review_comment_gateway.process_summary_reply("t42", reply)
     assert any(call[0] == "create_summary_reply" for call in fake_vcs_client.calls)
+
+    assert ("save_vcs_summary_reply", {"thread_id": "t42", "reply": reply}) in fake_artifacts_service.calls
 
 
 @pytest.mark.asyncio
@@ -174,6 +184,7 @@ async def test_process_summary_reply_error(
 @pytest.mark.asyncio
 async def test_process_inline_comment_happy_path(
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should create inline comment via VCS."""
@@ -181,11 +192,16 @@ async def test_process_inline_comment_happy_path(
     await review_comment_gateway.process_inline_comment(comment)
     assert any(call[0] == "create_inline_comment" for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_inline", {"comment": comment}) in fake_artifacts_service.calls
+    assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
+    assert all(call[0] != "save_vcs_summary_reply" for call in fake_artifacts_service.calls)
+
 
 @pytest.mark.asyncio
 async def test_process_inline_comment_error_fallback(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should fall back to summary comment when inline comment fails."""
@@ -202,12 +218,16 @@ async def test_process_inline_comment_error_fallback(
     assert "Falling back to general comment" in output
     assert any(call[0] == "create_general_comment" for call in fake_vcs_client.calls)
 
+    assert all(call[0] != "save_vcs_inline" for call in fake_artifacts_service.calls)
+    assert any(call[0] == "save_vcs_summary" for call in fake_artifacts_service.calls)
+
 
 # === SUMMARY COMMENT ===
 
 @pytest.mark.asyncio
 async def test_process_summary_comment_happy_path(
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should create general summary comment successfully."""
@@ -215,11 +235,14 @@ async def test_process_summary_comment_happy_path(
     await review_comment_gateway.process_summary_comment(comment)
     assert any(call[0] == "create_general_comment" for call in fake_vcs_client.calls)
 
+    assert ("save_vcs_summary", {"comment": comment}) in fake_artifacts_service.calls
+
 
 @pytest.mark.asyncio
 async def test_process_summary_comment_error(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should log error if summary comment creation fails."""
@@ -234,6 +257,8 @@ async def test_process_summary_comment_error(
     output = capsys.readouterr().out
 
     assert "Failed to process summary comment" in output
+
+    assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
 
 
 @pytest.mark.asyncio

@@ -243,7 +243,9 @@
     # Artifacts (optional)
     # ===============================
     ARTIFACTS__LLM_DIR: "./artifacts/llm"
+    ARTIFACTS__VCS_DIR: "./artifacts/vcs"
     ARTIFACTS__LLM_ENABLED: "false"
+    ARTIFACTS__VCS_ENABLED: "false"
 
   allow_failure: true  # Optional: don't block pipeline if AI review fails
 

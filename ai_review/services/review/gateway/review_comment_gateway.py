@@ -1,6 +1,7 @@
 from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
+from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.hook import hook
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentListSchema, InlineCommentSchema
@@ -13,8 +14,9 @@ logger = get_logger("REVIEW_COMMENT_GATEWAY")
 
 
 class ReviewCommentGateway(ReviewCommentGatewayProtocol):
-    def __init__(self, vcs: VCSClientProtocol):
+    def __init__(self, vcs: VCSClientProtocol, artifacts: ArtifactsServiceProtocol):
         self.vcs = vcs
+        self.artifacts = artifacts
 
     async def get_inline_threads(self) -> list[ReviewThreadSchema]:
         threads = await self.vcs.get_inline_threads()
@@ -60,6 +62,8 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
             await hook.emit_inline_comment_reply_start(reply)
             await self.vcs.create_inline_reply(thread_id, reply.body_with_tag)
             await hook.emit_inline_comment_reply_complete(reply)
+
+            await self.artifacts.save_vcs_inline_reply(thread_id, reply)
         except Exception as error:
             logger.exception(f"Failed to create inline reply for thread {thread_id}: {error}")
             await hook.emit_inline_comment_reply_error(reply)
@@ -69,6 +73,8 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
             await hook.emit_summary_comment_reply_start(reply)
             await self.vcs.create_summary_reply(thread_id, reply.body_with_tag)
             await hook.emit_summary_comment_reply_complete(reply)
+
+            await self.artifacts.save_vcs_summary_reply(thread_id, reply)
         except Exception as error:
             logger.exception(f"Failed to create summary reply for thread {thread_id}: {error}")
             await hook.emit_summary_comment_reply_error(reply)
@@ -82,6 +88,8 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
                 message=comment.body_with_tag,
             )
             await hook.emit_inline_comment_complete(comment)
+
+            await self.artifacts.save_vcs_inline(comment)
         except Exception as error:
             logger.exception(
                 f"Failed to process inline comment for {comment.file}:{comment.line} — {error}"
@@ -96,6 +104,8 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
             await hook.emit_summary_comment_start(comment)
             await self.vcs.create_general_comment(comment.body_with_tag)
             await hook.emit_summary_comment_complete(comment)
+
+            await self.artifacts.save_vcs_summary(comment)
         except Exception as error:
             logger.exception(f"Failed to process summary comment: {comment} — {error}")
             await hook.emit_summary_comment_error(comment)
