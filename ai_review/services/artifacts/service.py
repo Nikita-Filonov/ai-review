@@ -48,7 +48,7 @@ class ArtifactsService(ArtifactsServiceProtocol):
             return str(artifact.id)
 
         except Exception as error:
-            logger.exception(f"Failed to save {artifact.type}: {error}")
+            logger.exception(f"Failed to save {artifact.type} → {artifact_file}: {error}")
             return None
 
     @classmethod
