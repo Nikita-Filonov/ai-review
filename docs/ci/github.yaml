@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.42.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.43.0
 # ===============================
 
 name: AI Review
@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.42.0
+        uses: Nikita-Filonov/ai-review@v0.43.0
         env:
           # ===============================
           # LLM provider & model
@@ -251,8 +251,8 @@ jobs:
           REVIEW__REVIEW_REMOVED_MARKER: " # removed"
 
           # Optional filters:
-          # REVIEW__ALLOW_CHANGES: "src/*,lib/*"
-          # REVIEW__IGNORE_CHANGES: "docs/*,README.md"
+          # REVIEW__ALLOW_CHANGES: '["src/*,lib/*"]'
+          # REVIEW__IGNORE_CHANGES: '["docs/*,README.md"]'
 
           # Optional limits for number of AI comments:
           # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)
@@ -268,7 +268,9 @@ jobs:
           # Artifacts (optional)
           # ===============================
           ARTIFACTS__LLM_DIR: "./artifacts/llm"
+          ARTIFACTS__VCS_DIR: "./artifacts/vcs"
           ARTIFACTS__LLM_ENABLED: "false"
+          ARTIFACTS__VCS_ENABLED: "false"
 
         with:
           review-command: ${{ inputs.review-command }}

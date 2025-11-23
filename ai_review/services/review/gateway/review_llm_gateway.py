@@ -33,7 +33,12 @@ class ReviewLLMGateway(ReviewLLMGatewayProtocol):
                 logger.info(report.pretty())
 
             await hook.emit_chat_complete(result, report)
-            await self.artifacts.save_llm_interaction(prompt, prompt_system, result.text)
+            await self.artifacts.save_llm(
+                prompt=prompt,
+                response=result.text,
+                cost_report=report,
+                prompt_system=prompt_system,
+            )
 
             return result.text
         except Exception as error:

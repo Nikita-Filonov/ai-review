@@ -45,9 +45,9 @@ class ReviewService:
             artifacts=self.artifacts
         )
         self.review_comment_gateway = (
-            ReviewDryRunCommentGateway(vcs=self.vcs)
+            ReviewDryRunCommentGateway(vcs=self.vcs, artifacts=self.artifacts)
             if settings.review.dry_run
-            else ReviewCommentGateway(vcs=self.vcs)
+            else ReviewCommentGateway(vcs=self.vcs, artifacts=self.artifacts)
         )
 
         self.inline_review_runner = InlineReviewRunner(

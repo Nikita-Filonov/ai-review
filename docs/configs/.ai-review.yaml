@@ -434,8 +434,16 @@ logger:
   format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {extra[logger_name]} | {message}"
 
 artifacts:
-  # Directory for storing LLM artifacts (created automatically if missing).
+  # Directory for storing LLM artifacts.
+  # Created automatically if missing.
   llm_dir: ./artifacts/llm
 
-  # Whether to enable saving/loading artifacts from this directory.
+  # Directory for storing VCS artifacts (inline comments, summary comments, replies).
+  # Created automatically if missing.
+  vcs_dir: ./artifacts/vcs
+
+  # Enable saving LLM artifacts.
   llm_enabled: false
+
+  # Enable saving VCS artifacts.
+  vcs_enabled: false
