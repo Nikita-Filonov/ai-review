@@ -5,6 +5,7 @@ import yaml
 from pydantic import BaseModel, Field, FilePath
 
 from ai_review.libs.config.llm.azure_openai import AzureOpenAIHTTPClientConfig, AzureOpenAIMetaConfig
+from ai_review.libs.config.llm.bedrock import BedrockHTTPClientConfig, BedrockMetaConfig
 from ai_review.libs.config.llm.claude import ClaudeHTTPClientConfig, ClaudeMetaConfig
 from ai_review.libs.config.llm.gemini import GeminiHTTPClientConfig, GeminiMetaConfig
 from ai_review.libs.config.llm.ollama import OllamaHTTPClientConfig, OllamaMetaConfig
@@ -64,6 +65,12 @@ class OllamaLLMConfig(LLMConfigBase):
     http_client: OllamaHTTPClientConfig
 
 
+class BedrockLLMConfig(LLMConfigBase):
+    meta: BedrockMetaConfig
+    provider: Literal[LLMProvider.BEDROCK]
+    http_client: BedrockHTTPClientConfig
+
+
 class OpenRouterLLMConfig(LLMConfigBase):
     meta: OpenRouterMetaConfig
     provider: Literal[LLMProvider.OPENROUTER]
@@ -81,6 +88,7 @@ LLMConfig = Annotated[
     | GeminiLLMConfig
     | ClaudeLLMConfig
     | OllamaLLMConfig
+    | BedrockLLMConfig
     | OpenRouterLLMConfig
     | AzureOpenAILLMConfig,
     Field(discriminator="provider")
