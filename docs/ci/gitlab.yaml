@@ -15,7 +15,7 @@
     # LLM provider & model
     # ===============================
     # Which LLM to use.
-    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER | AZURE_OPENAI
+    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
     LLM__PROVIDER: "OPENAI"
 
     # --- Model metadata ---
@@ -23,6 +23,7 @@
     # For Gemini: gemini-2.0-pro, gemini-2.0-flash
     # For Claude: claude-3-opus, claude-3-sonnet, claude-3-haiku
     # For Ollama: llama2, codellama, mistral, etc.
+    # For Bedrock: anthropic.claude-3-sonnet-20240229-v1:0, meta.llama3-70b-instruct-v1:0, amazon.titan-text-premier-v1:0, etc.
     # For OpenRouter: anthropic/claude-3.5-sonnet, meta-llama/llama-3-70b-instruct, mistralai/mixtral-8x7b, etc.
     # For Azure OpenAI: <deployment-name> (NOT model name!)
     LLM__META__MODEL: "gpt-4o-mini"
@@ -49,6 +50,13 @@
 
     # Example for Ollama (no token required):
     # LLM__HTTP_CLIENT__API_URL: "http://localhost:11434"
+
+    # Example for Bedrock:
+    # LLM__HTTP_CLIENT__API_URL: "https://bedrock-runtime.us-east-1.amazonaws.com"
+    # LLM__HTTP_CLIENT__REGION: "us-east-1"
+    # LLM__HTTP_CLIENT__ACCESS_KEY: $AWS_ACCESS_KEY_ID
+    # LLM__HTTP_CLIENT__SECRET_KEY: $AWS_SECRET_ACCESS_KEY
+    # LLM__HTTP_CLIENT__SESSION_TOKEN: $AWS_SESSION_TOKEN
 
     # Example for OpenRouter:
     # LLM__HTTP_CLIENT__API_URL: "https://openrouter.ai/api/v1"

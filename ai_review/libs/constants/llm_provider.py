@@ -6,5 +6,6 @@ class LLMProvider(StrEnum):
     GEMINI = "GEMINI"
     CLAUDE = "CLAUDE"
     OLLAMA = "OLLAMA"
+    BEDROCK = "BEDROCK"
     OPENROUTER = "OPENROUTER"
     AZURE_OPENAI = "AZURE_OPENAI"

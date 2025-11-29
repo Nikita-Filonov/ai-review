@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | OPENROUTER | AZURE_OPENAI
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -36,6 +36,11 @@ llm:
     # repeat_penalty: 1.1         # (optional) repetition penalty
     # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
     # seed: 42                    # (optional) random seed for reproducibility
+
+    # --- AWS Bedrock ---
+    # model: anthropic.claude-3-sonnet-20240229-v1:0  # e.g., anthropic.claude-3-opus-20240229-v1:0, amazon.titan-text-premier-v1:0, meta.llama3-70b-instruct-v1:0
+    # max_tokens: 1200
+    # temperature: 0.3
 
     # --- OpenRouter ---
     # model: anthropic/claude-3.5-sonnet   # or any other available model
@@ -72,6 +77,13 @@ llm:
     # --- Ollama ---
     # api_url: http://localhost:11434   # Local Ollama runtime
     # (no api_token required)
+
+    # --- AWS Bedrock ---
+    # api_url: https://bedrock-runtime.<region>.amazonaws.com
+    # region: us-east-1
+    # access_key: ${AWS_ACCESS_KEY_ID}
+    # secret_key: ${AWS_SECRET_ACCESS_KEY}
+    # session_token: ${AWS_SESSION_TOKEN}   # optional, for STS / assumed roles
 
     # --- OpenRouter ---
     # api_url: https://openrouter.ai/api/v1
