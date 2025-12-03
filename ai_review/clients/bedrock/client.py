@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from httpx import Response, AsyncHTTPTransport, AsyncClient
 
 from ai_review.clients.bedrock.schema import BedrockChatRequestSchema, BedrockChatResponseSchema
@@ -19,8 +21,12 @@ class BedrockHTTPClient(HTTPClient, BedrockHTTPClientProtocol):
     @handle_http_error(client="BedrockHTTPClient", exception=BedrockHTTPClientError)
     async def chat_api(self, request: BedrockChatRequestSchema) -> Response:
         body = request.model_dump_json(exclude_none=True)
-        route = f"/model/{settings.llm.meta.model}/invoke"
-        full_url = f"{settings.llm.http_client.api_url_value.rstrip('/')}{route}"
+        model = quote(settings.llm.meta.model, safe="-._~/")
+
+        route = f"/model/{model}/invoke"
+        api_url = settings.llm.http_client.api_url_value.rstrip('/')
+        full_url = f"{api_url}{route}"
+
         return await self.post(
             url=route,
             headers=sign_aws_v4(
