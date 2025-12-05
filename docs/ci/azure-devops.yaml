@@ -15,7 +15,7 @@
 # Requirements:
 #   • Variable group "ai-review-secrets" with:
 #       - LLM__HTTP_CLIENT__API_TOKEN  (e.g., OpenAI API key)
-#       - VCS__HTTP_CLIENT__API_TOKEN  (Azure DevOps PAT with Code → Read & Write permissions)
+#       - VCS__HTTP_CLIENT__API_TOKEN  (Azure DevOps PAT or OAuth2 token with Code → Read & Write permissions)
 #   • Docker image: nikitafilonov/ai-review:latest
 # ===============================
 
@@ -30,33 +30,33 @@ variables:
 parameters:
   - name: ORGANIZATION
     type: string
-    default: 'rqcalculator'
-    displayName: 'Azure DevOps organization (name or URL prefix)'
+    default: "rqcalculator"
+    displayName: "Azure DevOps organization (name or URL prefix)"
 
   - name: PROJECT
     type: string
-    default: 'test-ai-review'
-    displayName: 'Azure DevOps project'
+    default: "test-ai-review"
+    displayName: "Azure DevOps project"
 
   - name: REPOSITORY_ID
     type: string
-    default: 'ai-review-demo'
-    displayName: 'Repository ID (name or GUID)'
+    default: "ai-review-demo"
+    displayName: "Repository ID (name or GUID)"
 
   - name: PULL_REQUEST_ID
     type: string
-    default: '1'
-    displayName: 'Pull Request ID'
+    default: "1"
+    displayName: "Pull Request ID"
 
   - name: ITERATION_ID
     type: string
-    default: '1'
-    displayName: 'Iteration ID (PR review iteration)'
+    default: "1"
+    displayName: "Iteration ID (PR review iteration)"
 
   - name: COMMAND
     type: string
-    default: 'run'
-    displayName: 'AI Review command'
+    default: "run"
+    displayName: "AI Review command"
     values:
       - run
       - run-inline
@@ -102,6 +102,8 @@ jobs:
           VCS__HTTP_CLIENT__VERIFY: "true"
           VCS__HTTP_CLIENT__TIMEOUT: "120"
           VCS__HTTP_CLIENT__API_TOKEN: $(VCS__HTTP_CLIENT__API_TOKEN)
+          # Token type: "OAUTH2" (default, Bearer auth) or "PAT" (Personal Access Token, Basic auth)
+          # VCS__HTTP_CLIENT__API_TOKEN_TYPE: "PAT"  # Uncomment to use PAT authentication
 
           # ===============================
           # LLM provider & model

@@ -161,8 +161,11 @@ vcs:
 
     # --- Azure DevOps ---
     # api_url: https://dev.azure.com  # Base API endpoint for your organization
-    # api_token: ${AZURE_DEVOPS_PAT}  # Personal Access Token (PAT) with Code → Read & Write permissions
+    # api_token: ${AZURE_DEVOPS_PAT}  # Personal Access Token (PAT) or OAuth2 token with Code → Read & Write permissions
     # api_version: 7.0                # API version (default: 7.0, can be overridden if needed)
+    # api_token_type: OAUTH2          # Authentication mode: "OAUTH2" (default, Bearer) or "PAT" (Basic auth)
+    #                                 # - OAUTH2: Uses Bearer token (default, backward compatible)
+    #                                 # - PAT: Uses Personal Access Token with Basic auth (base64 encoded :{token})
 
     # --- Gitea ---
     # api_url: https://gitea.mycompany.com/api/v1

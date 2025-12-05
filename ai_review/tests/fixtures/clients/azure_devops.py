@@ -257,3 +257,27 @@ def azure_devops_http_client_config(monkeypatch: pytest.MonkeyPatch):
         )
     )
     monkeypatch.setattr(settings, "vcs", fake_config)
+
+
+@pytest.fixture
+def azure_devops_http_client_config_with_pat(monkeypatch: pytest.MonkeyPatch):
+    """Azure DevOps config with PAT authentication."""
+    from ai_review.libs.config.vcs.azure_devops import AzureDevOpsTokenType
+    
+    fake_config = AzureDevOpsVCSConfig(
+        provider=VCSProvider.AZURE_DEVOPS,
+        pipeline=AzureDevOpsPipelineConfig(
+            organization="org",
+            project="proj",
+            repository_id="repo123",
+            pull_request_id=5,
+            iteration_id=7,
+        ),
+        http_client=AzureDevOpsHTTPClientConfig(
+            timeout=10,
+            api_url=HttpUrl("https://dev.azure.com/org"),
+            api_token=SecretStr("fake-pat-token"),
+            api_token_type=AzureDevOpsTokenType.PAT
+        )
+    )
+    monkeypatch.setattr(settings, "vcs", fake_config)
