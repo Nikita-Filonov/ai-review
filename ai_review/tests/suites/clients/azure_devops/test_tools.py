@@ -1,6 +1,11 @@
+import base64
+
+import pytest
 from httpx import Response, Request
 
-from ai_review.clients.azure_devops.tools import azure_devops_extract_continuation_token
+from ai_review import config
+from ai_review.clients.azure_devops.tools import azure_devops_extract_continuation_token, build_azure_devops_headers
+from ai_review.libs.config.vcs.azure_devops import AzureDevOpsTokenType
 
 
 def make_response(
@@ -58,3 +63,39 @@ def test_invalid_json_no_header_returns_none():
     response = make_response(text_data="not json", headers={})
     token = azure_devops_extract_continuation_token(response)
     assert token is None
+
+
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+def test_build_headers_oauth2(monkeypatch: pytest.MonkeyPatch):
+    """Should build Bearer Authorization header for OAUTH2 token type."""
+    monkeypatch.setattr(
+        config.settings.vcs.http_client,
+        "api_token_type",
+        AzureDevOpsTokenType.OAUTH2
+    )
+
+    headers = build_azure_devops_headers()
+    assert headers == {"Authorization": "Bearer fake-token"}
+
+
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+def test_build_headers_pat(monkeypatch: pytest.MonkeyPatch):
+    """Should build Basic Authorization header for PAT token type."""
+    monkeypatch.setattr(
+        config.settings.vcs.http_client,
+        "api_token_type",
+        AzureDevOpsTokenType.PAT
+    )
+
+    headers = build_azure_devops_headers()
+    expected_credentials = base64.b64encode(b":fake-token").decode("ascii")
+    assert headers == {"Authorization": f"Basic {expected_credentials}"}
+
+
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+def test_build_headers_unsupported_token_type_raises(monkeypatch: pytest.MonkeyPatch):
+    """Should raise ValueError for unsupported credentials mode."""
+    monkeypatch.setattr(config.settings.vcs.http_client, "api_token_type", "fake")
+
+    with pytest.raises(ValueError, match="Unsupported Azure DevOps token type"):
+        build_azure_devops_headers()

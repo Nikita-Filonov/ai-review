@@ -102,6 +102,7 @@ jobs:
           VCS__HTTP_CLIENT__VERIFY: "true"
           VCS__HTTP_CLIENT__TIMEOUT: "120"
           VCS__HTTP_CLIENT__API_TOKEN: $(VCS__HTTP_CLIENT__API_TOKEN)
+          VCS__HTTP_CLIENT__API_TOKEN_TYPE: "OAUTH2"
 
           # ===============================
           # LLM provider & model
