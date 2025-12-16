@@ -7,6 +7,7 @@ class OllamaMetaConfig(LLMMetaConfig):
     seed: int | None = None
     model: str = "llama2"
     top_p: float | None = None
+    num_ctx: int | None = None
     repeat_penalty: float | None = None
 
 

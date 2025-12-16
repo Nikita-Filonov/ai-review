@@ -12,6 +12,7 @@ class OllamaOptionsSchema(BaseModel):
     stop: list[str] | None = None
     seed: int | None = None
     top_p: float | None = Field(default=None, ge=0.0, le=1.0)
+    num_ctx: int | None = Field(default=None, ge=1)
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     num_predict: int | None = Field(default=None, ge=1)
     repeat_penalty: float | None = Field(default=None, ge=0.0)

@@ -32,6 +32,7 @@ llm:
     # model: llama2               # e.g., llama2, mistral, codellama
     # max_tokens: 512             # Maps to `num_predict`
     # temperature: 0.3
+    # num_ctx: 2048               # (optional) Context window size (max tokens in prompt + history)
     # top_p: 0.9                  # (optional) nucleus sampling
     # repeat_penalty: 1.1         # (optional) repetition penalty
     # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
