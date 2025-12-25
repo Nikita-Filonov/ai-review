@@ -91,7 +91,8 @@
     "review_added_marker": " # added",
     "review_removed_marker": " # removed",
     "max_inline_comments": null,
-    "max_context_comments": null
+    "max_context_comments": null,
+    "inline_comment_fallback": true
   },
   "logger": {
     "level": "INFO",

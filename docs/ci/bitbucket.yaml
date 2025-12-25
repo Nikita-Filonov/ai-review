@@ -64,6 +64,7 @@ definitions:
           REVIEW__SUMMARY_TAG: "#ai-review-summary"
           REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
           REVIEW__SUMMARY_REPLY_TAG: "#ai-review-summary-reply"
+          REVIEW__INLINE_COMMENT_FALLBACK: "true"
 
           # ===============================
           # Logging & artifacts

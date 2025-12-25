@@ -441,6 +441,23 @@ review:
   max_inline_comments: null   # Maximum comments for inline review (per file)
   max_context_comments: null  # Maximum comments for context review (per MR)
 
+  # --- Inline comment fallback ---
+  # Controls whether a failed inline comment should fall back
+  # to a general (summary) comment.
+  #
+  # When enabled (default):
+  #   - If posting an inline comment fails (e.g. outdated diff, invalid line),
+  #     the comment is posted as a summary comment instead.
+  #
+  # When disabled:
+  #   - Inline comment failures are logged and skipped.
+  #   - No summary comments are created as a fallback.
+  #
+  # Recommended to disable in large MRs to avoid summary comment spam.
+  #
+  # Default: true
+  inline_comment_fallback: true
+
 logger:
   # Logging level for the application.
   # Options: NOTSET | DEBUG | INFO | WARNING | ERROR | CRITICAL

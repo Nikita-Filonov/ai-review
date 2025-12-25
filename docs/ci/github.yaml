@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.48.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.49.0
 # ===============================
 
 name: AI Review
@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.48.0
+        uses: Nikita-Filonov/ai-review@v0.49.0
         env:
           # ===============================
           # LLM provider & model
@@ -265,6 +265,11 @@ jobs:
           # Optional limits for number of AI comments:
           # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)
           # REVIEW__MAX_CONTEXT_COMMENTS: "50"  # Max context comments per PR (default: unlimited)
+
+          # Fallback inline comments to summary comments on failure.
+          # When disabled, failed inline comments are logged and skipped.
+          # Default: true
+          REVIEW__INLINE_COMMENT_FALLBACK: "true"
 
           # ===============================
           # Logger (optional)
