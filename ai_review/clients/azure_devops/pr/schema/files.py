@@ -14,11 +14,14 @@ class AzureDevOpsPRItemSchema(BaseModel):
     """Represents a file or item in a PR change entry."""
     model_config = ConfigDict(populate_by_name=True)
 
-    path: str
-    object_id: str = Field(alias="objectId")
+    path: str | None = None
+    object_id: str | None = Field(alias="objectId", default=None)
 
     @field_validator("path")
-    def normalize_path(cls, value: str) -> str:
+    def normalize_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
         return value.lstrip("/")
 
 

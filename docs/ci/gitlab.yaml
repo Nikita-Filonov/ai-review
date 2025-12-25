@@ -241,6 +241,11 @@
     # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)
     # REVIEW__MAX_CONTEXT_COMMENTS: "50"  # Max context comments per MR (default: unlimited)
 
+    # Fallback inline comments to summary comments on failure.
+    # When disabled, failed inline comments are logged and skipped.
+    # Default: true
+    REVIEW__INLINE_COMMENT_FALLBACK: "true"
+
     # ===============================
     # Logger (optional)
     # ===============================

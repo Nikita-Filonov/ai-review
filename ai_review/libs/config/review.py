@@ -31,3 +31,4 @@ class ReviewConfig(BaseModel):
     review_removed_marker: str = " # removed"
     max_inline_comments: int | None = None
     max_context_comments: int | None = None
+    inline_comment_fallback: bool = True

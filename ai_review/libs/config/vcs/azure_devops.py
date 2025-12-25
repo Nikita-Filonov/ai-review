@@ -1,6 +1,13 @@
+from enum import StrEnum
+
 from pydantic import BaseModel
 
 from ai_review.libs.config.http import HTTPClientWithTokenConfig
+
+
+class AzureDevOpsTokenType(StrEnum):
+    PAT = "PAT"
+    OAUTH2 = "OAUTH2"
 
 
 class AzureDevOpsPipelineConfig(BaseModel):
@@ -13,3 +20,4 @@ class AzureDevOpsPipelineConfig(BaseModel):
 
 class AzureDevOpsHTTPClientConfig(HTTPClientWithTokenConfig):
     api_version: str = "7.0"
+    api_token_type: AzureDevOpsTokenType = AzureDevOpsTokenType.OAUTH2

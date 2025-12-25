@@ -16,6 +16,7 @@ class OllamaLLMClient(LLMClientProtocol):
                 stop=meta.stop,
                 seed=meta.seed,
                 top_p=meta.top_p,
+                num_ctx=meta.num_ctx,
                 temperature=meta.temperature,
                 num_predict=meta.max_tokens,
                 repeat_penalty=meta.repeat_penalty,

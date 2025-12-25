@@ -102,6 +102,7 @@ jobs:
           VCS__HTTP_CLIENT__VERIFY: "true"
           VCS__HTTP_CLIENT__TIMEOUT: "120"
           VCS__HTTP_CLIENT__API_TOKEN: $(VCS__HTTP_CLIENT__API_TOKEN)
+          VCS__HTTP_CLIENT__API_TOKEN_TYPE: "OAUTH2"
 
           # ===============================
           # LLM provider & model
@@ -126,6 +127,7 @@ jobs:
           REVIEW__CONTEXT_LINES: "10"
           REVIEW__REVIEW_ADDED_MARKER: " # added"
           REVIEW__REVIEW_REMOVED_MARKER: " # removed"
+          REVIEW__INLINE_COMMENT_FALLBACK: "true"
 
           # ===============================
           # Logger & artifacts

@@ -1,6 +1,7 @@
 from httpx import AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.azure_devops.pr.client import AzureDevOpsPullRequestsHTTPClient
+from ai_review.clients.azure_devops.tools import build_azure_devops_headers
 from ai_review.config import settings
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook
 from ai_review.libs.http.transports.retry import RetryTransport
@@ -23,7 +24,7 @@ def get_azure_devops_http_client() -> AzureDevOpsHTTPClient:
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,
         timeout=settings.vcs.http_client.timeout,
-        headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
+        headers=build_azure_devops_headers(),
         base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={

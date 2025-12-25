@@ -32,6 +32,7 @@ llm:
     # model: llama2               # e.g., llama2, mistral, codellama
     # max_tokens: 512             # Maps to `num_predict`
     # temperature: 0.3
+    # num_ctx: 2048               # (optional) Context window size (max tokens in prompt + history)
     # top_p: 0.9                  # (optional) nucleus sampling
     # repeat_penalty: 1.1         # (optional) repetition penalty
     # stop: ["USER:", "SYSTEM:"]  # (optional) stop sequences
@@ -162,6 +163,9 @@ vcs:
     # --- Azure DevOps ---
     # api_url: https://dev.azure.com  # Base API endpoint for your organization
     # api_token: ${AZURE_DEVOPS_PAT}  # Personal Access Token (PAT) with Code → Read & Write permissions
+    # api_token_type: OAUTH2          # Token type:
+    #                                 #  - OAUTH2 (default) → Authorization: Bearer <token>
+    #                                 #  - PAT              → Authorization: Basic <base64(:PAT)>
     # api_version: 7.0                # API version (default: 7.0, can be overridden if needed)
 
     # --- Gitea ---
@@ -436,6 +440,23 @@ review:
   # If None → no limit is applied.
   max_inline_comments: null   # Maximum comments for inline review (per file)
   max_context_comments: null  # Maximum comments for context review (per MR)
+
+  # --- Inline comment fallback ---
+  # Controls whether a failed inline comment should fall back
+  # to a general (summary) comment.
+  #
+  # When enabled (default):
+  #   - If posting an inline comment fails (e.g. outdated diff, invalid line),
+  #     the comment is posted as a summary comment instead.
+  #
+  # When disabled:
+  #   - Inline comment failures are logged and skipped.
+  #   - No summary comments are created as a fallback.
+  #
+  # Recommended to disable in large MRs to avoid summary comment spam.
+  #
+  # Default: true
+  inline_comment_fallback: true
 
 logger:
   # Logging level for the application.

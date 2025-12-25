@@ -96,8 +96,9 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
             )
             await hook.emit_inline_comment_error(comment)
 
-            logger.warning(f"Falling back to general comment for {comment.file}:{comment.line}")
-            await self.process_summary_comment(SummaryCommentSchema(text=comment.fallback_body))
+            if settings.review.inline_comment_fallback:
+                logger.warning(f"Falling back to general comment for {comment.file}:{comment.line}")
+                await self.process_summary_comment(SummaryCommentSchema(text=comment.fallback_body))
 
     async def process_summary_comment(self, comment: SummaryCommentSchema) -> None:
         try:

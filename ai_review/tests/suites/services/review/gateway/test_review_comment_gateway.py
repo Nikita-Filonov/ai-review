@@ -276,3 +276,31 @@ async def test_process_inline_comments_calls_each(
 
     created = [call for call in fake_vcs_client.calls if call[0] == "create_inline_comment"]
     assert len(created) == 2
+
+
+@pytest.mark.asyncio
+async def test_process_inline_comment_error_no_fallback_when_disabled(
+        capsys: pytest.CaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should NOT fall back to summary comment when inline fallback is disabled."""
+    monkeypatch.setattr(settings.review, "inline_comment_fallback", False)
+
+    async def failing_create_inline_comment(file: str, line: int, message: str):
+        raise RuntimeError("Failed to post inline")
+
+    fake_vcs_client.create_inline_comment = failing_create_inline_comment
+
+    comment = InlineCommentSchema(file="x.py", line=10, message="AI inline")
+    await review_comment_gateway.process_inline_comment(comment)
+    output = capsys.readouterr().out
+
+    assert "Failed to process inline comment" in output
+    assert "Falling back to general comment" not in output
+
+    assert all(call[0] != "create_general_comment" for call in fake_vcs_client.calls)
+    assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
+    assert all(call[0] != "save_vcs_inline" for call in fake_artifacts_service.calls)
