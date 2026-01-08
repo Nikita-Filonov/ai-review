@@ -1,3 +1,4 @@
+from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.cost.types import CostServiceProtocol
@@ -66,11 +67,26 @@ class InlineReviewRunner(ReviewRunnerProtocol):
 
     async def run(self) -> None:
         await hook.emit_inline_review_start()
-        if await self.review_comment_gateway.has_existing_inline_comments():
-            return
+
+        if not settings.review.delete_existing_ai_comments:
+            if await self.review_comment_gateway.has_existing_inline_comments():
+                logger.info("Skipping inline review: AI inline comments already exist")
+                return
 
         review_info = await self.vcs.get_review_info()
         logger.info(f"Starting inline review: {len(review_info.changed_files)} files changed")
+
+        if settings.review.delete_existing_ai_comments:
+            # Fetch existing inline comments and delete AI-tagged ones
+            existing_comments = await self.vcs.get_inline_comments()
+            tag = settings.review.inline_tag
+            for comment in existing_comments:
+                if tag in comment.body:
+                    try:
+                        await self.vcs.delete_comment(comment.id, comment.thread_id)
+                        logger.info(f"Deleted existing AI-tagged inline comment {comment.id}")
+                    except Exception as error:
+                        logger.warning(f"Failed to delete comment {comment.id}: {error}")
 
         changed_files = self.review_policy.apply_for_files(review_info.changed_files)
         await bounded_gather([

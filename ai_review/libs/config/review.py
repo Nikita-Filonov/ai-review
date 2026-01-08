@@ -32,3 +32,4 @@ class ReviewConfig(BaseModel):
     max_inline_comments: int | None = None
     max_context_comments: int | None = None
     inline_comment_fallback: bool = True
+    delete_existing_ai_comments: bool = False

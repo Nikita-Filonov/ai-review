@@ -20,3 +20,11 @@ class HTTPClient:
             content: RequestContent | None = None,
     ) -> Response:
         return await self.client.post(url=url, json=json, params=query, headers=headers, content=content)
+
+    async def delete(
+            self,
+            url: str,
+            query: QueryParams | None = None,
+            headers: HeaderTypes | None = None,
+    ) -> Response:
+        return await self.client.delete(url=url, params=query, headers=headers)

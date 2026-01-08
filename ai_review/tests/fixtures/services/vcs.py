@@ -66,6 +66,13 @@ class FakeVCSClient(VCSClientProtocol):
         self.calls.append(("get_general_threads", (), {}))
         return self.responses.get("get_general_threads", [])
 
+    async def delete_comment(self, comment_id: int | str, thread_id: int | str | None = None) -> None:
+        self.calls.append(("delete_comment", (comment_id, thread_id), {}))
+        if error := self.responses.get("delete_comment_error"):
+            raise error
+
+        return self.responses.get("delete_comment_result", None)
+
 
 @pytest.fixture
 def fake_vcs_client() -> FakeVCSClient:

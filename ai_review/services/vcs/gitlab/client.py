@@ -152,6 +152,20 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.merge_request_ref} at {file}:{line}: {error}")
             raise
 
+    async def delete_comment(self, comment_id: int | str, thread_id: int | str | None = None) -> None:
+        try:
+            logger.info(f"Deleting comment {comment_id} in MR {self.merge_request_ref}")
+            # Inline comments are notes
+            await self.http_client.mr.delete_note(
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+                note_id=str(comment_id),
+            )
+            logger.info(f"Deleted comment {comment_id} in MR {self.merge_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to delete comment {comment_id} in MR {self.merge_request_ref}: {error}")
+            raise
+
     # --- Replies ---
     async def create_inline_reply(self, thread_id: str | int, message: str) -> None:
         try:

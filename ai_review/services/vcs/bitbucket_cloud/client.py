@@ -164,6 +164,20 @@ class BitbucketCloudVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
             raise
 
+    async def delete_comment(self, comment_id: int | str, thread_id: int | str | None = None) -> None:
+        try:
+            logger.info(f"Deleting comment {comment_id} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_comment(
+                workspace=self.workspace,
+                repo_slug=self.repo_slug,
+                pull_request_id=self.pull_request_id,
+                comment_id=str(comment_id),
+            )
+            logger.info(f"Deleted comment {comment_id} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to delete comment {comment_id} in PR {self.pull_request_ref}: {error}")
+            raise
+
     # --- Replies ---
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         try:

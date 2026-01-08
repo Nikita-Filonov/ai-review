@@ -203,6 +203,24 @@ class AzureDevOpsVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
             raise
 
+    async def delete_comment(self, comment_id: int | str, thread_id: int | str | None = None) -> None:
+        if thread_id is None:
+            logger.warning(f"Cannot delete comment {comment_id} without thread_id in Azure DevOps")
+            return
+        try:
+            logger.info(f"Deleting thread {thread_id} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_thread(
+                organization=self.organization,
+                project=self.project,
+                repository_id=self.repository_id,
+                pull_request_id=self.pull_request_id,
+                thread_id=int(thread_id),
+            )
+            logger.info(f"Deleted thread {thread_id} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to delete thread {thread_id} in PR {self.pull_request_ref}: {error}")
+            raise
+
     # --- Replies ---
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         try:

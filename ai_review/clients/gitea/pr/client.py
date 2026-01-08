@@ -69,6 +69,10 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
             json=request.model_dump(),
         )
 
+    @handle_http_error(client="GiteaPullRequestsHTTPClient", exception=GiteaPullRequestsHTTPClientError)
+    async def delete_comment_api(self, owner: str, repo: str, pull_number: str, comment_id: int | str) -> Response:
+        return await self.delete(f"/repos/{owner}/{repo}/issues/{pull_number}/comments/{comment_id}")
+
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GiteaGetPRResponseSchema:
         response = await self.get_pull_request_api(owner, repo, pull_number)
         return GiteaGetPRResponseSchema.model_validate_json(response.text)
@@ -116,3 +120,6 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
     ) -> GiteaCreateCommentResponseSchema:
         response = await self.create_comment_api(owner, repo, pull_number, request)
         return GiteaCreateCommentResponseSchema.model_validate_json(response.text)
+
+    async def delete_comment(self, owner: str, repo: str, pull_number: str, comment_id: int | str) -> None:
+        await self.delete_comment_api(owner, repo, pull_number, comment_id)

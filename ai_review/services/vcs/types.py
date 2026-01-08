@@ -77,6 +77,9 @@ class VCSClientProtocol(Protocol):
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         """Post a comment attached to a specific line in file."""
 
+    async def delete_comment(self, comment_id: int | str, thread_id: int | str | None = None) -> None:
+        """Delete a comment by its ID. For VCS that use threads, thread_id may be used."""
+
     # --- Replies ---
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         """Reply to an existing inline comment thread."""
