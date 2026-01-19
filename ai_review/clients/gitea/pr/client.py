@@ -13,6 +13,10 @@ from ai_review.clients.gitea.pr.schema.files import (
     GiteaGetPRFilesResponseSchema
 )
 from ai_review.clients.gitea.pr.schema.pull_request import GiteaGetPRResponseSchema
+from ai_review.clients.gitea.pr.schema.reviews import (
+    GiteaCreateReviewRequestSchema,
+    GiteaCreateReviewResponseSchema
+)
 from ai_review.clients.gitea.pr.types import GiteaPullRequestsHTTPClientProtocol
 from ai_review.clients.gitea.tools import gitea_has_next_page
 from ai_review.config import settings
@@ -69,6 +73,19 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
             json=request.model_dump(),
         )
 
+    @handle_http_error(client="GiteaPullRequestsHTTPClient", exception=GiteaPullRequestsHTTPClientError)
+    async def create_review_api(
+            self,
+            owner: str,
+            repo: str,
+            pull_number: str,
+            request: GiteaCreateReviewRequestSchema
+    ) -> Response:
+        return await self.post(
+            f"/repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+            json=request.model_dump(),
+        )
+
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GiteaGetPRResponseSchema:
         response = await self.get_pull_request_api(owner, repo, pull_number)
         return GiteaGetPRResponseSchema.model_validate_json(response.text)
@@ -116,3 +133,13 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
     ) -> GiteaCreateCommentResponseSchema:
         response = await self.create_comment_api(owner, repo, pull_number, request)
         return GiteaCreateCommentResponseSchema.model_validate_json(response.text)
+
+    async def create_review(
+            self,
+            owner: str,
+            repo: str,
+            pull_number: str,
+            request: GiteaCreateReviewRequestSchema
+    ) -> GiteaCreateReviewResponseSchema:
+        response = await self.create_review_api(owner, repo, pull_number, request)
+        return GiteaCreateReviewResponseSchema.model_validate_json(response.text)

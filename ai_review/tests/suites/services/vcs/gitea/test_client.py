@@ -58,13 +58,44 @@ async def test_create_general_comment_posts_comment(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("gitea_http_client_config")
-async def test_create_inline_comment_falls_back_to_general_comment(
+async def test_create_inline_comment_posts_review(
         gitea_vcs_client: GiteaVCSClient,
         fake_gitea_pull_requests_http_client: FakeGiteaPullRequestsHTTPClient,
 ):
-    await gitea_vcs_client.create_inline_comment(file="src/main.py", line=10, message="Inline comment")
-    calls = [name for name, _ in fake_gitea_pull_requests_http_client.calls]
-    assert "create_comment" in calls
+    await gitea_vcs_client.create_inline_comment(
+        file="src/main.py",
+        line=10,
+        message="Inline comment",
+    )
+
+    calls = fake_gitea_pull_requests_http_client.calls
+
+    assert any(name == "create_review" for name, _ in calls)
+    assert not any(name == "create_comment" for name, _ in calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitea_http_client_config")
+async def test_create_inline_comment_raises_on_error(
+        monkeypatch: pytest.MonkeyPatch,
+        gitea_vcs_client: GiteaVCSClient,
+        fake_gitea_pull_requests_http_client: FakeGiteaPullRequestsHTTPClient,
+):
+    async def fail_create_review(*_, **__):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        fake_gitea_pull_requests_http_client,
+        "create_review",
+        fail_create_review,
+    )
+
+    with pytest.raises(RuntimeError):
+        await gitea_vcs_client.create_inline_comment(
+            file="src/main.py",
+            line=10,
+            message="Inline comment",
+        )
 
 
 @pytest.mark.asyncio
