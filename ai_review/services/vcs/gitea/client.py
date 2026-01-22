@@ -102,7 +102,7 @@ class GiteaVCSClient(VCSClientProtocol):
             logger.info(f"Posting inline comment in {self.pull_request_ref} at {file}:{line}: {message}")
 
             request = GiteaCreateReviewRequestSchema(
-                body=None,
+                body="Inline review",
                 comments=[
                     GiteaReviewInlineCommentSchema(
                         path=file,
