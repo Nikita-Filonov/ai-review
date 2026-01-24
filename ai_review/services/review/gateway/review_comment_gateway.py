@@ -123,7 +123,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
             logger.info(f"Clearing {len(comments)} AI inline comments")
 
-            await bounded_gather([self.vcs.delete_inline_comment(comment) for comment in comments])
+            await bounded_gather([self.vcs.delete_inline_comment(comment.id) for comment in comments])
             await hook.emit_clear_inline_comments_complete(comments=comments)
         except Exception as error:
             logger.exception(f"Failed to clear inline comments: {error}")
@@ -141,7 +141,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
             logger.info(f"Clearing {len(comments)} AI summary comments")
 
-            await bounded_gather([self.vcs.delete_general_comment(comment) for comment in comments])
+            await bounded_gather([self.vcs.delete_general_comment(comment.id) for comment in comments])
             await hook.emit_clear_summary_comments_complete(comments=comments)
         except Exception as error:
             logger.exception(f"Failed to clear summary comments: {error}")

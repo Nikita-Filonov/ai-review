@@ -221,9 +221,9 @@ async def test_delete_general_comment_calls_delete_issue_comment(
         fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
 ):
     """Should delete a general (issue-level) comment by id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    comment_id = 101
 
-    await github_vcs_client.delete_general_comment(comment)
+    await github_vcs_client.delete_general_comment(comment_id)
 
     calls = [
         args for name, args in fake_github_pull_requests_http_client.calls
@@ -232,7 +232,7 @@ async def test_delete_general_comment_calls_delete_issue_comment(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["comment_id"] == str(comment.id)
+    assert call_args["comment_id"] == str(comment_id)
     assert call_args["owner"] == "owner"
     assert call_args["repo"] == "repo"
 
@@ -244,9 +244,9 @@ async def test_delete_inline_comment_calls_delete_review_comment(
         fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
 ):
     """Should delete an inline review comment by id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    comment_id = "555"
 
-    await github_vcs_client.delete_inline_comment(comment)
+    await github_vcs_client.delete_inline_comment(comment_id)
 
     calls = [
         args for name, args in fake_github_pull_requests_http_client.calls
@@ -255,6 +255,6 @@ async def test_delete_inline_comment_calls_delete_review_comment(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["comment_id"] == str(comment.id)
+    assert call_args["comment_id"] == str(comment_id)
     assert call_args["owner"] == "owner"
     assert call_args["repo"] == "repo"

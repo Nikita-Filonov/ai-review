@@ -211,9 +211,9 @@ async def test_delete_general_comment_calls_delete_comment(
         fake_bitbucket_cloud_pull_requests_http_client: FakeBitbucketCloudPullRequestsHTTPClient,
 ):
     """Should delete a general PR comment by id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    comment_id = 123
 
-    await bitbucket_cloud_vcs_client.delete_general_comment(comment)
+    await bitbucket_cloud_vcs_client.delete_general_comment(comment_id)
 
     calls = [
         args for name, args in fake_bitbucket_cloud_pull_requests_http_client.calls
@@ -222,7 +222,7 @@ async def test_delete_general_comment_calls_delete_comment(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["comment_id"] == str(comment.id)
+    assert call_args["comment_id"] == str(comment_id)
     assert call_args["workspace"] == "workspace"
     assert call_args["repo_slug"] == "repo"
     assert call_args["pull_request_id"] == "123"
@@ -235,9 +235,9 @@ async def test_delete_inline_comment_calls_delete_comment(
         fake_bitbucket_cloud_pull_requests_http_client: FakeBitbucketCloudPullRequestsHTTPClient,
 ):
     """Should delete an inline PR comment by id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    comment_id = "456"
 
-    await bitbucket_cloud_vcs_client.delete_inline_comment(comment)
+    await bitbucket_cloud_vcs_client.delete_inline_comment(comment_id)
 
     calls = [
         args for name, args in fake_bitbucket_cloud_pull_requests_http_client.calls
@@ -246,7 +246,7 @@ async def test_delete_inline_comment_calls_delete_comment(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["comment_id"] == str(comment.id)
+    assert call_args["comment_id"] == str(comment_id)
     assert call_args["workspace"] == "workspace"
     assert call_args["repo_slug"] == "repo"
     assert call_args["pull_request_id"] == "123"

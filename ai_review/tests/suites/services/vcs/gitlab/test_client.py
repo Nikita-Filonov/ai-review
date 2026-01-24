@@ -240,9 +240,9 @@ async def test_delete_general_comment_calls_delete_note(
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
 ):
     """Should delete a general MR-level comment by note id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    comment_id = 123
 
-    await gitlab_vcs_client.delete_general_comment(comment)
+    await gitlab_vcs_client.delete_general_comment(comment_id)
 
     calls = [
         args for name, args in fake_gitlab_merge_requests_http_client.calls
@@ -251,7 +251,7 @@ async def test_delete_general_comment_calls_delete_note(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["note_id"] == str(comment.id)
+    assert call_args["note_id"] == str(comment_id)
     assert call_args["project_id"] == "project-id"
     assert call_args["merge_request_id"] == "merge-request-id"
 
@@ -263,9 +263,9 @@ async def test_delete_inline_comment_calls_delete_discussion(
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
 ):
     """Should delete an inline discussion by discussion id."""
-    comment = ReviewCommentSchema(id="test-id", body="test-body", thread_id="test-thread-id")
+    discussion_id = "discussion-42"
 
-    await gitlab_vcs_client.delete_inline_comment(comment)
+    await gitlab_vcs_client.delete_inline_comment(discussion_id)
 
     calls = [
         args for name, args in fake_gitlab_merge_requests_http_client.calls
@@ -274,6 +274,6 @@ async def test_delete_inline_comment_calls_delete_discussion(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["discussion_id"] == str(comment.thread_id)
+    assert call_args["discussion_id"] == str(discussion_id)
     assert call_args["project_id"] == "project-id"
     assert call_args["merge_request_id"] == "merge-request-id"

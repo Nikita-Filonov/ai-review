@@ -77,10 +77,10 @@ class VCSClientProtocol(Protocol):
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
         """Post a comment attached to a specific line in file."""
 
-    async def delete_general_comment(self, comment: ReviewCommentSchema) -> None:
+    async def delete_general_comment(self, comment_id: int | str) -> None:
         """Delete a top-level (general / summary) review comment by its identifier."""
 
-    async def delete_inline_comment(self, comment: ReviewCommentSchema) -> None:
+    async def delete_inline_comment(self, comment_id: int | str) -> None:
         """Delete an inline (file + line attached) review comment by its identifier."""
 
     # --- Replies ---
