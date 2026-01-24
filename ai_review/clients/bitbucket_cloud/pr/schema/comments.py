@@ -60,5 +60,4 @@ class BitbucketCloudCreatePRCommentResponseSchema(BaseModel):
 
 
 class BitbucketCloudUpdatePRCommentRequestSchema(BaseModel):
-    deleted: bool | None = None
     content: BitbucketCloudCommentContentSchema | None = None

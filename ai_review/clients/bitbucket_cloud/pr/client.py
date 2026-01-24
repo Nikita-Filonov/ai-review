@@ -2,6 +2,7 @@ from httpx import Response, QueryParams
 
 from ai_review.clients.bitbucket_cloud.pr.schema.comments import (
     BitbucketCloudPRCommentSchema,
+    BitbucketCloudCommentContentSchema,
     BitbucketCloudGetPRCommentsQuerySchema,
     BitbucketCloudGetPRCommentsResponseSchema,
     BitbucketCloudUpdatePRCommentRequestSchema,
@@ -177,7 +178,11 @@ class BitbucketCloudPullRequestsHTTPClient(HTTPClient, BitbucketCloudPullRequest
             pull_request_id: str,
             comment_id: str
     ) -> None:
-        request = BitbucketCloudUpdatePRCommentRequestSchema(deleted=True)
+        request = BitbucketCloudUpdatePRCommentRequestSchema(
+            content=BitbucketCloudCommentContentSchema(
+                raw="*(comment removed by ai-review)*"
+            )
+        )
         await self.update_comment_api(
             workspace=workspace,
             repo_slug=repo_slug,
