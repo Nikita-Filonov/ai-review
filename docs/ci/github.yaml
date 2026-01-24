@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Required: fetch full history so that git diff between base and head SHAs works correctly.
           fetch-depth: 0
