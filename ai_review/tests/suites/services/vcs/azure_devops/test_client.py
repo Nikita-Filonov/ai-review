@@ -236,9 +236,9 @@ async def test_delete_general_comment_calls_delete_thread(
         fake_azure_devops_pull_requests_http_client: FakeAzureDevOpsPullRequestsHTTPClient,
 ):
     """Should delete a general comment thread by id."""
-    comment_id = 10
+    comment = ReviewCommentSchema(id=123, body="test-body", thread_id=12345)
 
-    await azure_devops_vcs_client.delete_general_comment(comment_id)
+    await azure_devops_vcs_client.delete_general_comment(comment)
 
     calls = [
         args for name, args in fake_azure_devops_pull_requests_http_client.calls
@@ -247,7 +247,7 @@ async def test_delete_general_comment_calls_delete_thread(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["thread_id"] == int(comment_id)
+    assert call_args["thread_id"] == int(comment.id)
     assert call_args["organization"] == "org"
     assert call_args["project"] == "proj"
     assert call_args["repository_id"] == "repo123"
@@ -261,9 +261,9 @@ async def test_delete_inline_comment_calls_delete_thread(
         fake_azure_devops_pull_requests_http_client: FakeAzureDevOpsPullRequestsHTTPClient,
 ):
     """Should delete an inline comment thread by id."""
-    comment_id = "42"
+    comment = ReviewCommentSchema(id=123, body="test-body", thread_id=12345)
 
-    await azure_devops_vcs_client.delete_inline_comment(comment_id)
+    await azure_devops_vcs_client.delete_inline_comment(comment)
 
     calls = [
         args for name, args in fake_azure_devops_pull_requests_http_client.calls
@@ -272,7 +272,7 @@ async def test_delete_inline_comment_calls_delete_thread(
     assert len(calls) == 1
 
     call_args = calls[0]
-    assert call_args["thread_id"] == int(comment_id)
+    assert call_args["thread_id"] == int(comment.id)
     assert call_args["organization"] == "org"
     assert call_args["project"] == "proj"
     assert call_args["repository_id"] == "repo123"

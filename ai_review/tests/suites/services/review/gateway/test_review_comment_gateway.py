@@ -351,16 +351,18 @@ async def test_clear_inline_comments_deletes_all_ai_comments(
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should delete all existing AI inline comments."""
-    fake_vcs_client.responses["get_inline_comments"] = [
+    comments = [
         ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} comment 1"),
         ReviewCommentSchema(id="2", body=f"{settings.review.inline_tag} comment 2"),
     ]
+
+    fake_vcs_client.responses["get_inline_comments"] = comments
 
     await review_comment_gateway.clear_inline_comments()
 
     deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"]
     assert len(deleted) == 2
-    assert {call[1][0] for call in deleted} == {"1", "2"}
+    assert [call[1][0] for call in deleted] == comments
 
 
 @pytest.mark.asyncio
@@ -382,16 +384,18 @@ async def test_clear_summary_comments_deletes_all_ai_comments(
         review_comment_gateway: ReviewCommentGateway,
 ):
     """Should delete all existing AI summary comments."""
-    fake_vcs_client.responses["get_general_comments"] = [
+    comments = [
         ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} summary 1"),
         ReviewCommentSchema(id="11", body=f"{settings.review.summary_tag} summary 2"),
     ]
+
+    fake_vcs_client.responses["get_general_comments"] = comments
 
     await review_comment_gateway.clear_summary_comments()
 
     deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_general_comment"]
     assert len(deleted) == 2
-    assert {call[1][0] for call in deleted} == {"10", "11"}
+    assert [call[1][0] for call in deleted] == comments
 
 
 @pytest.mark.asyncio
