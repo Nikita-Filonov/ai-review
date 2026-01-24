@@ -106,4 +106,3 @@ class AzureDevOpsUpdatePRThreadRequestSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     status: Literal["active", "fixed", "closed"] | None = None
-    is_deleted: bool | None = Field(default=None, alias="isDeleted")

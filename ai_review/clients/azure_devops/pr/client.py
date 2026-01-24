@@ -228,10 +228,7 @@ class AzureDevOpsPullRequestsHTTPClient(HTTPClient, AzureDevOpsPullRequestsHTTPC
             pull_request_id: int,
             thread_id: int,
     ) -> None:
-        request = AzureDevOpsUpdatePRThreadRequestSchema(
-            status="closed",
-            is_deleted=True,
-        )
+        request = AzureDevOpsUpdatePRThreadRequestSchema(status="closed")
         await self.update_thread_api(
             organization=organization,
             project=project,
