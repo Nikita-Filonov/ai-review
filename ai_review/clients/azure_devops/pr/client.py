@@ -11,6 +11,7 @@ from ai_review.clients.azure_devops.pr.schema.threads import (
     AzureDevOpsGetPRThreadsQuerySchema,
     AzureDevOpsGetPRThreadsResponseSchema,
     AzureDevOpsCreatePRThreadRequestSchema,
+    AzureDevOpsUpdatePRThreadRequestSchema,
     AzureDevOpsCreatePRThreadResponseSchema,
     AzureDevOpsCreatePRCommentRequestSchema,
     AzureDevOpsCreatePRCommentResponseSchema,
@@ -74,6 +75,28 @@ class AzureDevOpsPullRequestsHTTPClient(HTTPClient, AzureDevOpsPullRequestsHTTPC
         )
         base_query = AzureDevOpsBaseQuerySchema(api_version=settings.vcs.http_client.api_version)
         return await self.post(
+            url=url,
+            json=request.model_dump(by_alias=True, exclude_none=True),
+            query=QueryParams(**base_query.model_dump(by_alias=True, exclude_none=True)),
+        )
+
+    @handle_http_error(client="AzureDevOpsPullRequestsHTTPClient", exception=AzureDevOpsPullRequestsHTTPClientError)
+    async def update_thread_api(
+            self,
+            organization: str,
+            project: str,
+            repository_id: str,
+            pull_request_id: int,
+            thread_id: int,
+            request: AzureDevOpsUpdatePRThreadRequestSchema,
+    ) -> Response:
+        url = (
+            f"/{organization}/{project}/_apis/git/repositories/"
+            f"{repository_id}/pullRequests/{pull_request_id}/threads/{thread_id}"
+        )
+        base_query = AzureDevOpsBaseQuerySchema(api_version=settings.vcs.http_client.api_version)
+
+        return await self.patch(
             url=url,
             json=request.model_dump(by_alias=True, exclude_none=True),
             query=QueryParams(**base_query.model_dump(by_alias=True, exclude_none=True)),
@@ -196,6 +219,27 @@ class AzureDevOpsPullRequestsHTTPClient(HTTPClient, AzureDevOpsPullRequestsHTTPC
     ) -> AzureDevOpsCreatePRThreadResponseSchema:
         response = await self.create_thread_api(organization, project, repository_id, pull_request_id, request)
         return AzureDevOpsCreatePRThreadResponseSchema.model_validate_json(response.text)
+
+    async def delete_thread(
+            self,
+            organization: str,
+            project: str,
+            repository_id: str,
+            pull_request_id: int,
+            thread_id: int,
+    ) -> None:
+        request = AzureDevOpsUpdatePRThreadRequestSchema(
+            status="closed",
+            is_deleted=True,
+        )
+        await self.update_thread_api(
+            organization=organization,
+            project=project,
+            repository_id=repository_id,
+            pull_request_id=pull_request_id,
+            thread_id=thread_id,
+            request=request,
+        )
 
     async def create_comment(
             self,

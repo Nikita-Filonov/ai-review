@@ -81,6 +81,21 @@ class BitbucketServerPullRequestsHTTPClient(HTTPClient, BitbucketServerPullReque
             json=request.model_dump(by_alias=True, exclude_none=True),
         )
 
+    @handle_http_error(
+        client="BitbucketServerPullRequestsHTTPClient",
+        exception=BitbucketServerPullRequestsHTTPClientError
+    )
+    async def delete_comment_api(
+            self,
+            project_key: str,
+            repo_slug: str,
+            pull_request_id: int,
+            comment_id: int | str,
+    ) -> Response:
+        return await self.delete(
+            f"/projects/{project_key}/repos/{repo_slug}/pull-requests/{pull_request_id}/comments/{comment_id}"
+        )
+
     async def get_pull_request(
             self,
             project_key: str,
@@ -161,3 +176,17 @@ class BitbucketServerPullRequestsHTTPClient(HTTPClient, BitbucketServerPullReque
     ) -> BitbucketServerCreatePRCommentResponseSchema:
         response = await self.create_comment_api(project_key, repo_slug, pull_request_id, request)
         return BitbucketServerCreatePRCommentResponseSchema.model_validate_json(response.text)
+
+    async def delete_comment(
+            self,
+            project_key: str,
+            repo_slug: str,
+            pull_request_id: int,
+            comment_id: int | str
+    ) -> None:
+        await self.delete_comment_api(
+            project_key=project_key,
+            repo_slug=repo_slug,
+            pull_request_id=pull_request_id,
+            comment_id=comment_id,
+        )

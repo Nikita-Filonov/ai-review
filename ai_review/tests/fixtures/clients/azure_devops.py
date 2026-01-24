@@ -207,6 +207,27 @@ class FakeAzureDevOpsPullRequestsHTTPClient(AzureDevOpsPullRequestsHTTPClientPro
         )
         return AzureDevOpsCreatePRCommentResponseSchema(id=123, content=request.content)
 
+    async def delete_thread(
+            self,
+            organization: str,
+            project: str,
+            repository_id: str,
+            pull_request_id: int,
+            thread_id: int,
+    ) -> None:
+        self.calls.append(
+            (
+                "delete_thread",
+                {
+                    "organization": organization,
+                    "project": project,
+                    "repository_id": repository_id,
+                    "pull_request_id": pull_request_id,
+                    "thread_id": thread_id,
+                }
+            )
+        )
+
 
 class FakeAzureDevOpsHTTPClient:
     def __init__(self, pull_requests_client: AzureDevOpsPullRequestsHTTPClientProtocol):

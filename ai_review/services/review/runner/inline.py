@@ -66,7 +66,10 @@ class InlineReviewRunner(ReviewRunnerProtocol):
 
     async def run(self) -> None:
         await hook.emit_inline_review_start()
-        if await self.review_comment_gateway.has_existing_inline_comments():
+
+        comments = await self.review_comment_gateway.get_inline_comments()
+        if comments:
+            logger.info(f"Detected {len(comments)} existing AI inline comments, skipping inline review")
             return
 
         review_info = await self.vcs.get_review_info()

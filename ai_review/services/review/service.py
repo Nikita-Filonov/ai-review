@@ -121,6 +121,12 @@ class ReviewService:
     async def run_summary_reply_review(self) -> None:
         await self.summary_reply_review_runner.run()
 
+    async def run_clear_inline_review(self) -> None:
+        await self.review_comment_gateway.clear_inline_comments()
+
+    async def run_clear_summary_review(self) -> None:
+        await self.review_comment_gateway.clear_summary_comments()
+
     def report_total_cost(self):
         total_report = self.cost.aggregate()
         if total_report:

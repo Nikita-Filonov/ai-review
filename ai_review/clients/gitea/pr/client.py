@@ -86,6 +86,14 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
             json=request.model_dump(),
         )
 
+    @handle_http_error(client="GiteaPullRequestsHTTPClient", exception=GiteaPullRequestsHTTPClientError)
+    async def delete_issue_comment_api(self, owner: str, repo: str, comment_id: int | str) -> Response:
+        return await self.delete(f"/repos/{owner}/{repo}/issues/comments/{comment_id}")
+
+    @handle_http_error(client="GiteaPullRequestsHTTPClient", exception=GiteaPullRequestsHTTPClientError)
+    async def delete_review_comment_api(self, owner: str, repo: str, comment_id: int | str) -> Response:
+        return await self.delete(f"/repos/{owner}/{repo}/pulls/comments/{comment_id}")
+
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GiteaGetPRResponseSchema:
         response = await self.get_pull_request_api(owner, repo, pull_number)
         return GiteaGetPRResponseSchema.model_validate_json(response.text)
@@ -143,3 +151,9 @@ class GiteaPullRequestsHTTPClient(HTTPClient, GiteaPullRequestsHTTPClientProtoco
     ) -> GiteaCreateReviewResponseSchema:
         response = await self.create_review_api(owner, repo, pull_number, request)
         return GiteaCreateReviewResponseSchema.model_validate_json(response.text)
+
+    async def delete_issue_comment(self, owner: str, repo: str, comment_id: int | str) -> None:
+        await self.delete_issue_comment_api(owner, repo, comment_id)
+
+    async def delete_review_comment(self, owner: str, repo: str, comment_id: int | str) -> None:
+        await self.delete_review_comment_api(owner, repo, comment_id)

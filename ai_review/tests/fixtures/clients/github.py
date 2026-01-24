@@ -150,6 +150,16 @@ class FakeGitHubPullRequestsHTTPClient(GitHubPullRequestsHTTPClientProtocol):
         )
         return GitHubCreateIssueCommentResponseSchema(id=11, body=body)
 
+    async def delete_issue_comment(self, owner: str, repo: str, comment_id: str) -> None:
+        self.calls.append(
+            ("delete_issue_comment", {"owner": owner, "repo": repo, "comment_id": comment_id})
+        )
+
+    async def delete_review_comment(self, owner: str, repo: str, comment_id: str) -> None:
+        self.calls.append(
+            ("delete_review_comment", {"owner": owner, "repo": repo, "comment_id": comment_id})
+        )
+
 
 class FakeGitHubHTTPClient:
     def __init__(self, pull_requests_client: GitHubPullRequestsHTTPClientProtocol):

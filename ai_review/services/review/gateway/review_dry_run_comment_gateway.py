@@ -49,3 +49,33 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
 
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         await bounded_gather([self.process_inline_comment(comment) for comment in comments.root])
+
+    async def clear_inline_comments(self) -> None:
+        await hook.emit_clear_inline_comments_start()
+
+        comments = await self.get_inline_comments()
+        if not comments:
+            logger.info("[dry-run] No AI inline comments to clear")
+            await hook.emit_clear_inline_comments_complete(comments=comments)
+            return
+
+        logger.info(f"[dry-run] Would clear {len(comments)} AI inline comments")
+        for comment in comments:
+            logger.info(f"[dry-run] Would delete inline comment {comment.id}")
+
+        await hook.emit_clear_inline_comments_complete(comments=comments)
+
+    async def clear_summary_comments(self) -> None:
+        await hook.emit_clear_summary_comments_start()
+
+        comments = await self.get_summary_comments()
+        if not comments:
+            logger.info("[dry-run] No AI summary comments to clear")
+            await hook.emit_clear_summary_comments_complete(comments=comments)
+            return
+
+        logger.info(f"[dry-run] Would clear {len(comments)} AI summary comments")
+        for comment in comments:
+            logger.info(f"[dry-run] Would delete summary comment {comment.id}")
+
+        await hook.emit_clear_summary_comments_complete(comments=comments)

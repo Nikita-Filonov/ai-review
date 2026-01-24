@@ -1,7 +1,8 @@
 import pytest
 
+from ai_review.config import settings
 from ai_review.services.review.runner.inline import InlineReviewRunner
-from ai_review.services.vcs.types import ReviewInfoSchema
+from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.git import FakeGitService
@@ -27,6 +28,7 @@ async def test_run_happy_path(
 ):
     """Should process all changed files, call LLM and post inline comments."""
     fake_git_service.responses["get_diff_for_file"] = "FAKE_DIFF"
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
 
     await inline_review_runner.run()
 
@@ -53,7 +55,9 @@ async def test_run_skips_when_existing_comments(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should skip review if there are already existing inline comments."""
-    fake_review_comment_gateway.responses["has_existing_inline_comments"] = True
+    fake_review_comment_gateway.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} existing")
+    ]
 
     await inline_review_runner.run()
 

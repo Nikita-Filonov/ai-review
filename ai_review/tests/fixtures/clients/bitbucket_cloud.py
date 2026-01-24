@@ -159,6 +159,25 @@ class FakeBitbucketCloudPullRequestsHTTPClient(BitbucketCloudPullRequestsHTTPCli
             inline=request.inline,
         )
 
+    async def delete_comment(
+            self,
+            workspace: str,
+            repo_slug: str,
+            pull_request_id: str,
+            comment_id: str
+    ) -> None:
+        self.calls.append(
+            (
+                "delete_comment",
+                {
+                    "workspace": workspace,
+                    "repo_slug": repo_slug,
+                    "pull_request_id": pull_request_id,
+                    "comment_id": comment_id,
+                }
+            )
+        )
+
 
 class FakeBitbucketCloudHTTPClient:
     def __init__(self, pull_requests_client: BitbucketCloudPullRequestsHTTPClientProtocol):

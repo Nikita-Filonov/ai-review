@@ -2,6 +2,8 @@ import asyncio
 
 import typer
 
+from ai_review.cli.commands.run_clear_inline_review import run_clear_inline_review
+from ai_review.cli.commands.run_clear_summary_review import run_clear_summary_review
 from ai_review.cli.commands.run_context_review import run_context_review_command
 from ai_review.cli.commands.run_inline_reply_review import run_inline_reply_review_command
 from ai_review.cli.commands.run_inline_review import run_inline_review_command
@@ -58,6 +60,22 @@ def run_summary_reply():
     typer.secho("Starting summary reply AI review...", fg=typer.colors.CYAN)
     asyncio.run(run_summary_reply_review_command())
     typer.secho("AI review completed successfully!", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-inline")
+def clear_inline():
+    """Remove all AI-generated inline review comments"""
+    typer.secho("Clearing inline AI review comments...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_inline_review())
+    typer.secho("Inline AI comments cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-summary")
+def clear_summary():
+    """Remove all AI-generated summary review comments"""
+    typer.secho("Clearing summary AI review comments...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_summary_review())
+    typer.secho("Summary AI comments cleared", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command("show-config")

@@ -212,3 +212,49 @@ async def test_get_general_threads_wraps_comments_in_threads(
 
     called_methods = [name for name, _ in fake_github_pull_requests_http_client.calls]
     assert "get_issue_comments" in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_delete_general_comment_calls_delete_issue_comment(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should delete a general (issue-level) comment by id."""
+    comment_id = 101
+
+    await github_vcs_client.delete_general_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_github_pull_requests_http_client.calls
+        if name == "delete_issue_comment"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["comment_id"] == str(comment_id)
+    assert call_args["owner"] == "owner"
+    assert call_args["repo"] == "repo"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("github_http_client_config")
+async def test_delete_inline_comment_calls_delete_review_comment(
+        github_vcs_client: GitHubVCSClient,
+        fake_github_pull_requests_http_client: FakeGitHubPullRequestsHTTPClient,
+):
+    """Should delete an inline review comment by id."""
+    comment_id = "555"
+
+    await github_vcs_client.delete_inline_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_github_pull_requests_http_client.calls
+        if name == "delete_review_comment"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["comment_id"] == str(comment_id)
+    assert call_args["owner"] == "owner"
+    assert call_args["repo"] == "repo"

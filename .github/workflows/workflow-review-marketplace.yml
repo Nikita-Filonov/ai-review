@@ -6,7 +6,15 @@ on:
       review-command:
         type: choice
         default: 'run'
-        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
+        options:
+          - run
+          - run-inline
+          - run-context
+          - run-summary
+          - run-inline-reply
+          - run-summary-reply
+          - clear-inline
+          - clear-summary
         required: true
         description: 'Review command'
       pull-request-number:

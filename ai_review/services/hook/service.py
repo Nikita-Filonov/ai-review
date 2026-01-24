@@ -40,12 +40,21 @@ from ai_review.services.hook.types import (
     # --- Summary Reply Comment ---
     SummaryCommentReplyStartHookFunc,
     SummaryCommentReplyErrorHookFunc,
-    SummaryCommentReplyCompleteHookFunc
+    SummaryCommentReplyCompleteHookFunc,
+    # --- Clear Inline Comments ---
+    ClearInlineCommentsStartHookFunc,
+    ClearInlineCommentsErrorHookFunc,
+    ClearInlineCommentsCompleteHookFunc,
+    # --- Clear Summary Comments ---
+    ClearSummaryCommentsStartHookFunc,
+    ClearSummaryCommentsErrorHookFunc,
+    ClearSummaryCommentsCompleteHookFunc,
 )
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
+from ai_review.services.vcs.types import ReviewCommentSchema
 
 logger = get_logger("HOOK_SERVICE")
 
@@ -251,3 +260,47 @@ class HookService:
 
     async def emit_summary_comment_reply_complete(self, comment: SummaryCommentReplySchema):
         await self.emit(HookType.ON_SUMMARY_COMMENT_REPLY_COMPLETE, comment=comment)
+
+    # --- Clear Inline Comments ---
+    def on_clear_inline_comments_start(self, func: ClearInlineCommentsStartHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_INLINE_COMMENTS_START, func)
+        return func
+
+    def on_clear_inline_comments_error(self, func: ClearInlineCommentsErrorHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_INLINE_COMMENTS_ERROR, func)
+        return func
+
+    def on_clear_inline_comments_complete(self, func: ClearInlineCommentsCompleteHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_INLINE_COMMENTS_COMPLETE, func)
+        return func
+
+    async def emit_clear_inline_comments_start(self):
+        await self.emit(HookType.ON_CLEAR_INLINE_COMMENTS_START)
+
+    async def emit_clear_inline_comments_error(self):
+        await self.emit(HookType.ON_CLEAR_INLINE_COMMENTS_ERROR)
+
+    async def emit_clear_inline_comments_complete(self, comments: list[ReviewCommentSchema]):
+        await self.emit(HookType.ON_CLEAR_INLINE_COMMENTS_COMPLETE, comments=comments)
+
+    # --- Clear Summary Comments ---
+    def on_clear_summary_comments_start(self, func: ClearSummaryCommentsStartHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_SUMMARY_COMMENTS_START, func)
+        return func
+
+    def on_clear_summary_comments_error(self, func: ClearSummaryCommentsErrorHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_SUMMARY_COMMENTS_ERROR, func)
+        return func
+
+    def on_clear_summary_comments_complete(self, func: ClearSummaryCommentsCompleteHookFunc):
+        self.inject_hook(HookType.ON_CLEAR_SUMMARY_COMMENTS_COMPLETE, func)
+        return func
+
+    async def emit_clear_summary_comments_start(self):
+        await self.emit(HookType.ON_CLEAR_SUMMARY_COMMENTS_START)
+
+    async def emit_clear_summary_comments_error(self):
+        await self.emit(HookType.ON_CLEAR_SUMMARY_COMMENTS_ERROR)
+
+    async def emit_clear_summary_comments_complete(self, comments: list[ReviewCommentSchema]):
+        await self.emit(HookType.ON_CLEAR_SUMMARY_COMMENTS_COMPLETE, comments=comments)

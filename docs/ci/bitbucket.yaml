@@ -146,3 +146,17 @@ pipelines:
           name: "AI Review (Summary Reply)"
           script:
             - ai-review run-summary-reply
+
+    ai-review-clear-inline:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Clear Inline Comments)"
+          script:
+            - ai-review clear-inline
+
+    ai-review-clear-summary:
+      - step:
+          <<: *ai-review-base
+          name: "AI Review (Clear Summary Comments)"
+          script:
+            - ai-review clear-summary

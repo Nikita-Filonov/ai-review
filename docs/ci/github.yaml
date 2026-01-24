@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.51.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.52.0
 # ===============================
 
 name: AI Review
@@ -20,7 +20,15 @@ on:
       review-command:
         type: choice
         default: "run"
-        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
+        options:
+          - run
+          - run-inline
+          - run-context
+          - run-summary
+          - run-inline-reply
+          - run-summary-reply
+          - clear-inline
+          - clear-summary
         required: true
         description: "Review command (mode)"
 
@@ -46,7 +54,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.51.0
+        uses: Nikita-Filonov/ai-review@v0.52.0
         env:
           # ===============================
           # LLM provider & model

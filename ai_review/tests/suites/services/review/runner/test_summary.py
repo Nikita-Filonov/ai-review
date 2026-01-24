@@ -2,6 +2,7 @@ import pytest
 
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.runner.summary import SummaryReviewRunner
+from ai_review.services.vcs.types import ReviewCommentSchema
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.prompt import FakePromptService
@@ -24,6 +25,8 @@ async def test_run_happy_path(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should render all changed files, call LLM and post summary comment."""
+    fake_review_comment_gateway.responses["get_summary_comments"] = []
+
     await summary_review_runner.run()
 
     vcs_calls = [call[0] for call in fake_vcs_client.calls]
@@ -46,7 +49,9 @@ async def test_run_skips_when_existing_summary_comments(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should skip summary review if summary comment already exists."""
-    fake_review_comment_gateway.responses["has_existing_summary_comments"] = True
+    fake_review_comment_gateway.responses["get_summary_comments"] = [
+        ReviewCommentSchema(id="1", body="#ai-review-summary existing"),
+    ]
 
     await summary_review_runner.run()
 
@@ -60,8 +65,10 @@ async def test_run_skips_when_no_changed_files(
         summary_review_runner: SummaryReviewRunner,
         fake_vcs_client: FakeVCSClient,
         fake_review_policy_service: FakeReviewPolicyService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should skip when no changed files remain after policy filtering."""
+    fake_review_comment_gateway.responses["get_summary_comments"] = []
     fake_review_policy_service.responses["apply_for_files"] = []
 
     await summary_review_runner.run()
@@ -79,6 +86,7 @@ async def test_run_skips_when_empty_summary_from_llm(
         fake_summary_comment_service: FakeSummaryCommentService,
 ):
     """Should skip posting comment if LLM output is empty."""
+    fake_review_comment_gateway.responses["get_summary_comments"] = []
     fake_summary_comment_service.responses["parse_model_output"] = SummaryCommentSchema(text="")
 
     await summary_review_runner.run()

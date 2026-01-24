@@ -7,7 +7,7 @@ from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
-from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema
+from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema, ReviewCommentSchema
 
 
 class ReviewLLMGatewayProtocol(Protocol):
@@ -29,10 +29,10 @@ class ReviewCommentGatewayProtocol(Protocol):
     async def get_summary_threads(self) -> list[ReviewThreadSchema]:
         ...
 
-    async def has_existing_inline_comments(self) -> bool:
+    async def get_inline_comments(self) -> list[ReviewCommentSchema]:
         ...
 
-    async def has_existing_summary_comments(self) -> bool:
+    async def get_summary_comments(self) -> list[ReviewCommentSchema]:
         ...
 
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
@@ -48,4 +48,10 @@ class ReviewCommentGatewayProtocol(Protocol):
         ...
 
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
+        ...
+
+    async def clear_inline_comments(self) -> None:
+        ...
+
+    async def clear_summary_comments(self) -> None:
         ...

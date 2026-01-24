@@ -1,6 +1,7 @@
 import pytest
 
 from ai_review.services.review.runner.context import ContextReviewRunner
+from ai_review.services.vcs.types import ReviewCommentSchema
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.prompt import FakePromptService
@@ -23,6 +24,8 @@ async def test_run_happy_path(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should render all changed files, call LLM and post inline comments."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+
     await context_review_runner.run()
 
     vcs_calls = [call[0] for call in fake_vcs_client.calls]
@@ -45,7 +48,9 @@ async def test_run_skips_when_existing_comments(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should skip context review if inline comments already exist."""
-    fake_review_comment_gateway.responses["has_existing_inline_comments"] = True
+    fake_review_comment_gateway.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body="#ai-review-inline existing"),
+    ]
 
     await context_review_runner.run()
 
@@ -59,8 +64,10 @@ async def test_run_skips_when_no_changed_files(
         context_review_runner: ContextReviewRunner,
         fake_vcs_client: FakeVCSClient,
         fake_review_policy_service: FakeReviewPolicyService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     """Should skip when no changed files after policy filtering."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
     fake_review_policy_service.responses["apply_for_files"] = []
 
     await context_review_runner.run()
@@ -80,6 +87,7 @@ async def test_run_skips_when_no_comments_after_llm(
 
 ):
     """Should not post comments if LLM output is empty."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
     fake_inline_comment_service.comments = []
 
     await context_review_runner.run()

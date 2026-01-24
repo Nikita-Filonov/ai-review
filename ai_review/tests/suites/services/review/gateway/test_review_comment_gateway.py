@@ -69,37 +69,76 @@ async def test_get_summary_threads_filters_by_tag(
     assert any(call[0] == "get_general_threads" for call in fake_vcs_client.calls)
 
 
-# === EXISTING COMMENTS ===
+# === GET INLINE COMMENTS ===
 
 @pytest.mark.asyncio
-async def test_has_existing_inline_comments_true(
-        capsys: pytest.CaptureFixture,
+async def test_get_inline_comments_filters_only_ai_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
-    """Should detect existing inline comments and log skip message."""
+    """Should return only inline comments containing AI inline tag."""
     fake_vcs_client.responses["get_inline_comments"] = [
-        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} existing comment")
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} AI comment"),
+        ReviewCommentSchema(id="2", body="Regular inline comment"),
     ]
 
-    result = await review_comment_gateway.has_existing_inline_comments()
-    output = capsys.readouterr().out
+    result = await review_comment_gateway.get_inline_comments()
 
-    assert result is True
-    assert "AI inline comments already exist" in output
+    assert len(result) == 1
+    assert result[0].id == "1"
+
+    assert any(call[0] == "get_inline_comments" for call in fake_vcs_client.calls)
 
 
 @pytest.mark.asyncio
-async def test_has_existing_summary_comments_false(
+async def test_get_inline_comments_returns_empty_when_no_ai_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
-    """Should return False when no summary AI comments exist."""
-    fake_vcs_client.responses["get_general_comments"] = [
-        ReviewCommentSchema(id="1", body="Regular comment")
+    """Should return empty list when no AI inline comments exist."""
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body="Just a comment"),
     ]
-    result = await review_comment_gateway.has_existing_summary_comments()
-    assert result is False
+
+    result = await review_comment_gateway.get_inline_comments()
+
+    assert result == []
+
+
+# === GET SUMMARY COMMENTS ===
+
+@pytest.mark.asyncio
+async def test_get_summary_comments_filters_only_ai_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should return only summary comments containing AI summary tag."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} AI summary"),
+        ReviewCommentSchema(id="11", body="Regular summary"),
+    ]
+
+    result = await review_comment_gateway.get_summary_comments()
+
+    assert len(result) == 1
+    assert result[0].id == "10"
+
+    assert any(call[0] == "get_general_comments" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_get_summary_comments_returns_empty_when_no_ai_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should return empty list when no AI summary comments exist."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="1", body="Regular comment"),
+    ]
+
+    result = await review_comment_gateway.get_summary_comments()
+
+    assert result == []
 
 
 # === INLINE REPLY ===
@@ -304,3 +343,65 @@ async def test_process_inline_comment_error_no_fallback_when_disabled(
     assert all(call[0] != "create_general_comment" for call in fake_vcs_client.calls)
     assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
     assert all(call[0] != "save_vcs_inline" for call in fake_artifacts_service.calls)
+
+
+@pytest.mark.asyncio
+async def test_clear_inline_comments_deletes_all_ai_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should delete all existing AI inline comments."""
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} comment 1"),
+        ReviewCommentSchema(id="2", body=f"{settings.review.inline_tag} comment 2"),
+    ]
+
+    await review_comment_gateway.clear_inline_comments()
+
+    deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"]
+    assert len(deleted) == 2
+    assert {call[1][0] for call in deleted} == {"1", "2"}
+
+
+@pytest.mark.asyncio
+async def test_clear_inline_comments_noop_when_no_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should not call delete when no inline AI comments exist."""
+    fake_vcs_client.responses["get_inline_comments"] = []
+
+    await review_comment_gateway.clear_inline_comments()
+
+    assert all(call[0] != "delete_inline_comment" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_clear_summary_comments_deletes_all_ai_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should delete all existing AI summary comments."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} summary 1"),
+        ReviewCommentSchema(id="11", body=f"{settings.review.summary_tag} summary 2"),
+    ]
+
+    await review_comment_gateway.clear_summary_comments()
+
+    deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_general_comment"]
+    assert len(deleted) == 2
+    assert {call[1][0] for call in deleted} == {"10", "11"}
+
+
+@pytest.mark.asyncio
+async def test_clear_summary_comments_noop_when_no_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should not call delete when no summary AI comments exist."""
+    fake_vcs_client.responses["get_general_comments"] = []
+
+    await review_comment_gateway.clear_summary_comments()
+
+    assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)

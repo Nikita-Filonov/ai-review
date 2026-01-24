@@ -7,7 +7,9 @@ from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
+from ai_review.services.vcs.types import ReviewCommentSchema, UserSchema
 
+user = UserSchema(id="u1", username="tester", name="Tester")
 cost_report = CostReportSchema(
     model="gpt",
     prompt_tokens=1,
@@ -20,6 +22,11 @@ inline_comment = InlineCommentSchema(file="a.py", line=1, message="fix this")
 inline_reply = InlineCommentReplySchema(message="ok", suggestion="use helper()")
 summary_comment = SummaryCommentSchema(text="summary text")
 summary_reply = SummaryCommentReplySchema(text="reply summary")
+review_comments = [
+    ReviewCommentSchema(id="c1", body="Developer reply 1", file="file1.py", line=1, author=user),
+    ReviewCommentSchema(id="c2", body="Developer reply 2", file="file2.py", line=2, author=user),
+    ReviewCommentSchema(id="c3", body="Developer reply 3", file="file3.py", line=3, author=user),
+]
 
 HOOK_CASES = [
     # Chat
@@ -66,6 +73,16 @@ HOOK_CASES = [
     ("on_summary_comment_reply_start", "emit_summary_comment_reply_start", dict(comment=summary_reply)),
     ("on_summary_comment_reply_error", "emit_summary_comment_reply_error", dict(comment=summary_reply)),
     ("on_summary_comment_reply_complete", "emit_summary_comment_reply_complete", dict(comment=summary_reply)),
+
+    # Clear Inline Comments
+    ("on_clear_inline_comments_start", "emit_clear_inline_comments_start", {}),
+    ("on_clear_inline_comments_error", "emit_clear_inline_comments_error", {}),
+    ("on_clear_inline_comments_complete", "emit_clear_inline_comments_complete", dict(comments=review_comments)),
+
+    # Clear Summary Comments
+    ("on_clear_summary_comments_start", "emit_clear_summary_comments_start", {}),
+    ("on_clear_summary_comments_error", "emit_clear_summary_comments_error", {}),
+    ("on_clear_summary_comments_complete", "emit_clear_summary_comments_complete", dict(comments=review_comments)),
 ]
 
 

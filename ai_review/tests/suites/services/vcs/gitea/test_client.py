@@ -116,3 +116,49 @@ async def test_get_general_threads_wraps_comments(
     threads = await gitea_vcs_client.get_general_threads()
     assert all(isinstance(thread, ReviewThreadSchema) for thread in threads)
     assert all(thread.kind == ThreadKind.SUMMARY for thread in threads)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitea_http_client_config")
+async def test_delete_general_comment_calls_delete_issue_comment(
+        gitea_vcs_client: GiteaVCSClient,
+        fake_gitea_pull_requests_http_client: FakeGiteaPullRequestsHTTPClient,
+):
+    """Should delete a general PR comment by id."""
+    comment_id = 123
+
+    await gitea_vcs_client.delete_general_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_gitea_pull_requests_http_client.calls
+        if name == "delete_issue_comment"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["comment_id"] == comment_id
+    assert call_args["owner"] == "owner"
+    assert call_args["repo"] == "repo"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitea_http_client_config")
+async def test_delete_inline_comment_calls_delete_review_comment(
+        gitea_vcs_client: GiteaVCSClient,
+        fake_gitea_pull_requests_http_client: FakeGiteaPullRequestsHTTPClient,
+):
+    """Should delete an inline review comment by id."""
+    comment_id = "review-42"
+
+    await gitea_vcs_client.delete_inline_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_gitea_pull_requests_http_client.calls
+        if name == "delete_review_comment"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["comment_id"] == comment_id
+    assert call_args["owner"] == "owner"
+    assert call_args["repo"] == "repo"

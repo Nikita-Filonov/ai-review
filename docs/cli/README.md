@@ -39,6 +39,8 @@ ai-review --help
 | `ai-review run-summary`       | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`       |
 | `ai-review run-inline-reply`  | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`  |
 | `ai-review run-summary-reply` | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply` |
+| `ai-review clear-inline`      | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`      |
+| `ai-review clear-summary`     | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`     |
 | `ai-review show-config`       | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`       |
 
 ---
@@ -93,6 +95,22 @@ ai-review run-summary-reply
 ```
 
 Replies only to comments originally created by AI Review.
+
+### 🧽 Clear Inline Comments
+
+Removes all AI-generated inline comments:
+
+```bash
+ai-review clear-inline
+```
+
+### 🧽 Clear Summary Comments
+
+Removes all AI-generated summary comments:
+
+```bash
+ai-review clear-summary
+```
 
 ### ⚙️ Inspect Configuration
 

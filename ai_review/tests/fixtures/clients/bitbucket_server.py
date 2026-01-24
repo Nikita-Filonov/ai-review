@@ -217,6 +217,25 @@ class FakeBitbucketServerPullRequestsHTTPClient(BitbucketServerPullRequestsHTTPC
             updated_date=1690000200,
         )
 
+    async def delete_comment(
+            self,
+            project_key: str,
+            repo_slug: str,
+            pull_request_id: int,
+            comment_id: int | str
+    ) -> None:
+        self.calls.append(
+            (
+                "delete_comment",
+                {
+                    "project_key": project_key,
+                    "repo_slug": repo_slug,
+                    "pull_request_id": pull_request_id,
+                    "comment_id": comment_id,
+                }
+            )
+        )
+
 
 class FakeBitbucketServerHTTPClient:
     def __init__(self, pull_requests_client: BitbucketServerPullRequestsHTTPClientProtocol):

@@ -39,7 +39,10 @@ class SummaryReviewRunner(ReviewRunnerProtocol):
 
     async def run(self) -> None:
         await hook.emit_summary_review_start()
-        if await self.review_comment_gateway.has_existing_summary_comments():
+
+        comments = await self.review_comment_gateway.get_summary_comments()
+        if comments:
+            logger.info(f"Detected {len(comments)} existing AI summary comments, skipping summary review")
             return
 
         review_info = await self.vcs.get_review_info()

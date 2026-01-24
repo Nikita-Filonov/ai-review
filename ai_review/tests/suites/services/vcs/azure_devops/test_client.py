@@ -227,3 +227,53 @@ async def test_get_general_comments_handles_exception(
 
     comments = await azure_devops_vcs_client.get_general_comments()
     assert comments == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+async def test_delete_general_comment_calls_delete_thread(
+        azure_devops_vcs_client: AzureDevOpsVCSClient,
+        fake_azure_devops_pull_requests_http_client: FakeAzureDevOpsPullRequestsHTTPClient,
+):
+    """Should delete a general comment thread by id."""
+    comment_id = 10
+
+    await azure_devops_vcs_client.delete_general_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_azure_devops_pull_requests_http_client.calls
+        if name == "delete_thread"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["thread_id"] == int(comment_id)
+    assert call_args["organization"] == "org"
+    assert call_args["project"] == "proj"
+    assert call_args["repository_id"] == "repo123"
+    assert call_args["pull_request_id"] == 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("azure_devops_http_client_config")
+async def test_delete_inline_comment_calls_delete_thread(
+        azure_devops_vcs_client: AzureDevOpsVCSClient,
+        fake_azure_devops_pull_requests_http_client: FakeAzureDevOpsPullRequestsHTTPClient,
+):
+    """Should delete an inline comment thread by id."""
+    comment_id = "42"
+
+    await azure_devops_vcs_client.delete_inline_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_azure_devops_pull_requests_http_client.calls
+        if name == "delete_thread"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["thread_id"] == int(comment_id)
+    assert call_args["organization"] == "org"
+    assert call_args["project"] == "proj"
+    assert call_args["repository_id"] == "repo123"
+    assert call_args["pull_request_id"] == 5
