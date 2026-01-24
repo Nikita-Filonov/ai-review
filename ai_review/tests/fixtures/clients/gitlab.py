@@ -175,14 +175,6 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             )
         )
 
-    async def delete_discussion(self, project_id: str, merge_request_id: str, discussion_id: str) -> None:
-        self.calls.append(
-            (
-                "delete_discussion",
-                {"project_id": project_id, "merge_request_id": merge_request_id, "discussion_id": discussion_id},
-            )
-        )
-
 
 class FakeGitLabHTTPClient:
     def __init__(self, merge_requests_client: FakeGitLabMergeRequestsHTTPClient):

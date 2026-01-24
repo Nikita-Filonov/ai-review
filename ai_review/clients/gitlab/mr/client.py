@@ -103,12 +103,6 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/notes/{note_id}"
         )
 
-    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
-    async def delete_discussion_api(self, project_id: str, merge_request_id: str, discussion_id: str) -> Response:
-        return await self.delete(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/discussions/{discussion_id}"
-        )
-
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         response = await self.get_changes_api(project_id, merge_request_id)
         return GitLabGetMRChangesResponseSchema.model_validate_json(response.text)
@@ -200,6 +194,3 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
 
     async def delete_note(self, project_id: str, merge_request_id: str, note_id: str) -> None:
         await self.delete_note_api(project_id, merge_request_id, note_id)
-
-    async def delete_discussion(self, project_id: str, merge_request_id: str, discussion_id: str) -> None:
-        await self.delete_discussion_api(project_id, merge_request_id, discussion_id)
