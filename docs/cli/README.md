@@ -104,6 +104,18 @@ Removes all AI-generated inline comments:
 ai-review clear-inline
 ```
 
+> ⚠️ **Warning**
+>
+> This command **permanently deletes** all inline review comments created by AI Review in the current merge / pull
+> request.
+>
+> - The operation cannot be undone
+> - Only comments marked with the AI Review inline tag are affected
+> - Developer and user comments are not touched
+>
+> It is recommended to run this command **manually** and only when you are sure that existing AI comments are no longer
+> needed.
+
 ### 🧽 Clear Summary Comments
 
 Removes all AI-generated summary comments:
@@ -111,6 +123,16 @@ Removes all AI-generated summary comments:
 ```bash
 ai-review clear-summary
 ```
+
+> ⚠️ **Warning**
+>
+> This command **permanently deletes** all summary review comments created by AI Review.
+>
+> - The operation cannot be undone
+> - Only AI Review summary comments are removed
+> - No new comments are created as part of this command
+>
+> Use with caution, especially in shared or long-running pull requests.
 
 ### ⚙️ Inspect Configuration
 
