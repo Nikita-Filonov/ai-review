@@ -1,5 +1,9 @@
 # AI Review
 
+<p align="center">
+  <img src="./docs/assets/logo.png" alt="Axiom logo" width="220" />
+</p>
+
 AI-powered code review tool.
 
 [![CI](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml/badge.svg)](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml)
