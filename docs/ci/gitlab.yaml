@@ -234,8 +234,8 @@
     REVIEW__REVIEW_REMOVED_MARKER: " # removed"
 
     # Optional filters:
-    # REVIEW__ALLOW_CHANGES: '["src/*,lib/*"]'
-    # REVIEW__IGNORE_CHANGES: '["docs/*,README.md"]'
+    # REVIEW__ALLOW_CHANGES: '["src/*", "lib/*"]'
+    # REVIEW__IGNORE_CHANGES: '["docs/*", "README.md"]'
 
     # Optional limits for number of AI comments:
     # REVIEW__MAX_INLINE_COMMENTS: "20"   # Max inline comments per file (default: unlimited)

@@ -84,8 +84,8 @@ definitions:
           # REVIEW__MAX_CONTEXT_COMMENTS: "50"
 
           # Example filters (optional):
-          # REVIEW__ALLOW_CHANGES: '["src/*,lib/*"]'
-          # REVIEW__IGNORE_CHANGES: '["docs/*,README.md"]'
+          # REVIEW__ALLOW_CHANGES: '["src/*", "lib/*"]'
+          # REVIEW__IGNORE_CHANGES: '["docs/*", "README.md"]'
 
 # --------------------------------------------
 # Pipelines
