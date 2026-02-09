@@ -18,6 +18,25 @@ from ai_review.tests.fixtures.services.git import FakeGitService
         ("a/foo.py", "foo.py"),
         ("b\\foo.py", "foo.py"),
         ("plain.py", "plain.py"),
+
+        # trailing whitespace from git diff headers
+        ("a/foo.py\t", "foo.py"),
+        ("b/foo.py\t", "foo.py"),
+        ("a/foo.py \t", "foo.py"),
+        ("a/foo.py\n", "foo.py"),
+        ("a/foo.py\r\n", "foo.py"),
+
+        # paths with spaces
+        ("a/Citi_Sales/NAV/file name.txt\t", "Citi_Sales/NAV/file name.txt"),
+        ("b/path with spaces/file.txt", "path with spaces/file.txt"),
+
+        # windows-style paths
+        ("a\\foo\\bar.py", "foo/bar.py"),
+        ("b\\foo\\bar.py\t", "foo/bar.py"),
+
+        # mixed / edge normalization
+        ("./a/foo/bar.py", "foo/bar.py"),
+        (".\\b\\foo\\bar.py\t", "foo/bar.py"),
     ],
 )
 def test_normalize_file_path_variants(inp: str, expected: str) -> None:

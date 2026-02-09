@@ -13,7 +13,7 @@ def normalize_file_path(file_path: str) -> str:
     if not file_path:
         return ""
 
-    file_path = file_path.replace("\\", "/").lstrip("./")
+    file_path = file_path.strip().replace("\\", "/").lstrip("./")
     if file_path.startswith("a/") or file_path.startswith("b/"):
         return file_path[2:]
 

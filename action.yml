@@ -20,7 +20,7 @@ runs:
         python-version: '3.12'
 
     - name: Install XAI Review
-      run: pip install --no-cache-dir xai-review==0.56.0
+      run: pip install --no-cache-dir xai-review==0.57.0
       shell: bash
 
     - name: Run AI Review
