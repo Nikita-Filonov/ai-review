@@ -1,3 +1,59 @@
 new file for check of PR v2
 username - ravindra
 pwd - Nitor123456
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  labels:
+    app: sample-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-app
+
+  template:
+    metadata:
+      labels:
+        app: sample-app
+
+    spec:
+      containers:
+        - name: sample-app
+          image: nginx:1.25
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort:
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+
+      restartPolicy: Always
+
