@@ -23,7 +23,7 @@ def get_bitbucket_server_http_client() -> BitbucketServerHTTPClient:
     client = AsyncClient(
         verify=settings.vcs.http_client.verify,
         timeout=settings.vcs.http_client.timeout,
-        headers={"Authorization": f"Basic {settings.vcs.http_client.api_token_value}"},
+        headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
         base_url=settings.vcs.http_client.api_url_value,
         transport=retry_transport,
         event_hooks={
