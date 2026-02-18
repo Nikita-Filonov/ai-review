@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.58.0
+        uses: Nikita-Filonov/ai-review@v0.59.0
         env:
           AI_REVIEW_CONFIG_FILE_YAML: ./ci/review/config.yaml
 

@@ -7,3 +7,4 @@ See these folders for reference templates and full configuration options:
 - [./hooks](./hooks) — hook reference and lifecycle events
 - [./configs](./configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./prompts](./prompts) — prompt templates for Python/Go (light & strict modes)
+- [./troubleshooting.md](./troubleshooting) — common environment and Git-related issues

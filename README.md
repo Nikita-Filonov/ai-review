@@ -201,7 +201,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.58.0
+      - uses: Nikita-Filonov/ai-review@v0.59.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -270,6 +270,7 @@ See these folders for reference templates and full configuration options:
 - [./docs/hooks](./docs/hooks) — hook reference and lifecycle events
 - [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
+- [./docs/troubleshooting.md](./docs/troubleshooting) — common environment and Git-related issues
 
 ---
 
