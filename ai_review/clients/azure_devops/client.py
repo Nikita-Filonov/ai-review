@@ -25,7 +25,7 @@ def get_azure_devops_http_client() -> AzureDevOpsHTTPClient:
         verify=settings.vcs.http_client.verify,
         timeout=settings.vcs.http_client.timeout,
         headers=build_azure_devops_headers(),
-        base_url=settings.vcs.http_client.api_url_value,
+        base_url=settings.vcs.http_client.api_url_value.rstrip('/'),
         transport=retry_transport,
         event_hooks={
             "request": [logger_event_hook.request],

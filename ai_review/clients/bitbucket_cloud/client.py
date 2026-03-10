@@ -24,7 +24,7 @@ def get_bitbucket_cloud_http_client() -> BitbucketCloudHTTPClient:
         verify=settings.vcs.http_client.verify,
         timeout=settings.vcs.http_client.timeout,
         headers={"Authorization": f"Bearer {settings.vcs.http_client.api_token_value}"},
-        base_url=settings.vcs.http_client.api_url_value,
+        base_url=settings.vcs.http_client.api_url_value.rstrip('/'),
         transport=retry_transport,
         event_hooks={
             "request": [logger_event_hook.request],
