@@ -13,7 +13,7 @@ class ReviewLLMGateway(ReviewLLMGatewayProtocol):
             self,
             llm: LLMClientProtocol,
             cost: CostServiceProtocol,
-            artifacts: ArtifactsServiceProtocol
+            artifacts: ArtifactsServiceProtocol,
     ):
         self.llm = llm
         self.cost = cost
