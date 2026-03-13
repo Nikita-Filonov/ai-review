@@ -1,9 +1,8 @@
 import pytest
 
 from ai_review.libs.config.llm.base import LLMPricingConfig, LLMConfigBase
-from ai_review.services.cost.schema import CostReportSchema
+from ai_review.services.cost.schema import CostReportSchema, CalculateCostSchema
 from ai_review.services.cost.service import CostService
-from ai_review.services.llm.types import ChatResultSchema
 
 
 # ---------- fixtures ----------
@@ -24,13 +23,13 @@ def cost_service() -> CostService:
 
 
 @pytest.fixture
-def sample_result() -> ChatResultSchema:
-    return ChatResultSchema(text="result", prompt_tokens=1000, completion_tokens=500)
+def sample_result() -> CalculateCostSchema:
+    return CalculateCostSchema(prompt_tokens=1000, completion_tokens=500)
 
 
 # ---------- tests: CALCULATE ----------
 
-def test_calculate_basic(cost_service: CostService, sample_result: ChatResultSchema) -> None:
+def test_calculate_basic(cost_service: CostService, sample_result: CalculateCostSchema) -> None:
     """
     Should correctly calculate input/output/total cost and return report.
     """
@@ -49,10 +48,10 @@ def test_calculate_missing_tokens(cost_service: CostService) -> None:
     """
     Should return None if prompt_tokens or completion_tokens is None.
     """
-    result = ChatResultSchema(text="result", prompt_tokens=None, completion_tokens=123)
+    result = CalculateCostSchema(prompt_tokens=None, completion_tokens=123)
     assert cost_service.calculate(result) is None
 
-    result = ChatResultSchema(text="result", prompt_tokens=100, completion_tokens=None)
+    result = CalculateCostSchema(prompt_tokens=100, completion_tokens=None)
     assert cost_service.calculate(result) is None
 
 
@@ -64,7 +63,7 @@ def test_calculate_no_pricing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(LLMConfigBase, "load_pricing", lambda self: {})
 
     service = CostService()
-    result = ChatResultSchema(text="result", prompt_tokens=10, completion_tokens=5)
+    result = CalculateCostSchema(prompt_tokens=10, completion_tokens=5)
     out = service.calculate(result)
 
     assert out is None
@@ -80,7 +79,7 @@ def test_aggregate_empty(cost_service: CostService) -> None:
     assert cost_service.aggregate() is None
 
 
-def test_aggregate_combines_multiple_reports(cost_service: CostService, sample_result: ChatResultSchema) -> None:
+def test_aggregate_combines_multiple_reports(cost_service: CostService, sample_result: CalculateCostSchema) -> None:
     """
     Should combine multiple cost reports into a single aggregated summary.
     """

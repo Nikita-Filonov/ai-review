@@ -1,8 +1,7 @@
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
-from ai_review.services.cost.schema import CostReportSchema
+from ai_review.services.cost.schema import CostReportSchema, CalculateCostSchema
 from ai_review.services.cost.types import CostServiceProtocol
-from ai_review.services.llm.types import ChatResultSchema
 
 logger = get_logger("COST_SERVICE")
 
@@ -12,7 +11,7 @@ class CostService(CostServiceProtocol):
         self.pricing = settings.llm.load_pricing()
         self.reports: list[CostReportSchema] = []
 
-    def calculate(self, result: ChatResultSchema) -> CostReportSchema | None:
+    def calculate(self, result: CalculateCostSchema) -> CostReportSchema | None:
         if (result.prompt_tokens is None) or (result.completion_tokens is None):
             return None
 
