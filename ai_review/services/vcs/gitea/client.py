@@ -58,7 +58,7 @@ class GiteaVCSClient(VCSClientProtocol):
             )
         except Exception as error:
             logger.exception(f"Failed to fetch PR info {self.pull_request_ref}: {error}")
-            return ReviewInfoSchema()
+            raise
 
     # --- Comments ---
     async def get_general_comments(self) -> list[ReviewCommentSchema]:
