@@ -14,6 +14,13 @@ def sequence_chat(outputs: list[str]):
     return chat
 
 
+def sequence_chat_results(outputs: list[ChatResultSchema]):
+    async def chat(prompt: str, prompt_system: str) -> ChatResultSchema:
+        return outputs.pop(0)
+
+    return chat
+
+
 @pytest.mark.asyncio
 async def test_run_returns_final_when_llm_returns_final(
         agent_loop_service: AgentLoopService,
@@ -188,3 +195,40 @@ async def test_run_clears_internal_state_between_runs(
 
     assert result.final_text == "two"
     assert fake_agent_tool_service.calls.count(("execute", {"command": "ls"})) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_persists_llm_tokens_in_traces(
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat_results([
+            ChatResultSchema(
+                text='{"action":"TOOL_CALL","command":"ls"}',
+                total_tokens=30,
+                prompt_tokens=10,
+                completion_tokens=20,
+            ),
+            ChatResultSchema(
+                text='{"action":"FINAL","content":"done"}',
+                total_tokens=15,
+                prompt_tokens=5,
+                completion_tokens=10,
+            ),
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "done"
+    assert result.traces[0].prompt_tokens == 10
+    assert result.traces[0].completion_tokens == 20
+    assert result.traces[1].prompt_tokens == 5
+    assert result.traces[1].completion_tokens == 10
+    assert result.prompt_tokens == 15
+    assert result.completion_tokens == 30
+    assert result.total_tokens == 45

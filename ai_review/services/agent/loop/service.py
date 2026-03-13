@@ -9,7 +9,7 @@ from ai_review.services.agent.loop.schema import (
 )
 from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
 from ai_review.services.agent.tool.types import AgentToolServiceProtocol
-from ai_review.services.llm.types import LLMClientProtocol
+from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
 from ai_review.services.prompt.types import PromptServiceProtocol
 
 logger = get_logger("AGENT_LOOP_SERVICE")
@@ -39,20 +39,17 @@ class AgentLoopService(AgentLoopServiceProtocol):
         self.context_used = 0
         logger.debug("Agent loop state cleared")
 
-    async def run_step(
-            self,
-            *,
-            step: AgentStepSchema,
-            iteration: int,
-            raw_output: str,
-    ) -> AgentTraceSchema:
+    async def run_step(self, step: AgentStepSchema, chat: ChatResultSchema, iteration: int) -> AgentTraceSchema:
         if step.command in self.signatures:
             logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {step.command}")
             return AgentTraceSchema(
                 step=step,
                 warning=f"Duplicate tool call blocked: {step.command}",
                 iteration=iteration,
-                raw_output=raw_output,
+                raw_output=chat.text,
+                total_tokens=chat.total_tokens,
+                prompt_tokens=chat.prompt_tokens,
+                completion_tokens=chat.completion_tokens,
             )
 
         self.signatures.add(step.command)
@@ -62,8 +59,11 @@ class AgentLoopService(AgentLoopServiceProtocol):
         return AgentTraceSchema(
             step=step,
             iteration=iteration,
-            raw_output=raw_output,
+            raw_output=chat.text,
             tool_output=tool_output,
+            total_tokens=chat.total_tokens,
+            prompt_tokens=chat.prompt_tokens,
+            completion_tokens=chat.completion_tokens,
         )
 
     async def force_final(
@@ -99,6 +99,9 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 warning="Forced final response after max_requests/context_limit.",
                 iteration=len(self.traces) + 1,
                 raw_output=fallback_text,
+                total_tokens=fallback_result.total_tokens,
+                prompt_tokens=fallback_result.prompt_tokens,
+                completion_tokens=fallback_result.completion_tokens,
             )
         )
 
@@ -134,6 +137,9 @@ class AgentLoopService(AgentLoopServiceProtocol):
                         warning="Failed to parse structured action. Returning raw model output.",
                         iteration=iteration,
                         raw_output=result.text,
+                        total_tokens=result.total_tokens,
+                        prompt_tokens=result.prompt_tokens,
+                        completion_tokens=result.completion_tokens,
                     )
                 )
 
@@ -150,6 +156,9 @@ class AgentLoopService(AgentLoopServiceProtocol):
                         step=step,
                         iteration=iteration,
                         raw_output=result.text,
+                        total_tokens=result.total_tokens,
+                        prompt_tokens=result.prompt_tokens,
+                        completion_tokens=result.completion_tokens,
                     )
                 )
 
@@ -159,7 +168,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
                     stop_reason="final",
                 )
 
-            trace = await self.run_step(step=step, iteration=iteration, raw_output=result.text)
+            trace = await self.run_step(step=step, chat=result, iteration=iteration)
             self.traces.append(trace)
 
             self.context_used += len(trace.tool_output or "")
