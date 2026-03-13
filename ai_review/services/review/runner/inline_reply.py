@@ -4,11 +4,11 @@ from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.policy.types import PolicyServiceProtocol
 from ai_review.services.prompt.adapter import build_prompt_context_from_review_info
 from ai_review.services.prompt.types import PromptServiceProtocol
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol, ReviewLLMGatewayProtocol
 from ai_review.services.review.internal.inline_reply.types import InlineCommentReplyServiceProtocol
-from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
 from ai_review.services.review.runner.types import ReviewRunnerProtocol
 from ai_review.services.vcs.types import ReviewInfoSchema, VCSClientProtocol, ReviewThreadSchema
 
@@ -23,7 +23,7 @@ class InlineReplyReviewRunner(ReviewRunnerProtocol):
             diff: DiffServiceProtocol,
             cost: CostServiceProtocol,
             prompt: PromptServiceProtocol,
-            review_policy: ReviewPolicyServiceProtocol,
+            policy: PolicyServiceProtocol,
             review_llm_gateway: ReviewLLMGatewayProtocol,
             inline_comment_reply: InlineCommentReplyServiceProtocol,
             review_comment_gateway: ReviewCommentGatewayProtocol,
@@ -33,7 +33,7 @@ class InlineReplyReviewRunner(ReviewRunnerProtocol):
         self.diff = diff
         self.cost = cost
         self.prompt = prompt
-        self.review_policy = review_policy
+        self.policy = policy
         self.review_llm_gateway = review_llm_gateway
         self.inline_comment_reply = inline_comment_reply
         self.review_comment_gateway = review_comment_gateway

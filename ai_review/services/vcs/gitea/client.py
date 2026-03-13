@@ -1,5 +1,9 @@
 from ai_review.clients.gitea.client import get_gitea_http_client
 from ai_review.clients.gitea.pr.schema.comments import GiteaCreateCommentRequestSchema
+from ai_review.clients.gitea.pr.schema.reviews import (
+    GiteaReviewInlineCommentSchema,
+    GiteaCreateReviewRequestSchema,
+)
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitea.adapter import (
@@ -94,13 +98,60 @@ class GiteaVCSClient(VCSClientProtocol):
             raise
 
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
-        fallback_message = f"[{file}:{line}] {message}"
-        logger.warning(
-            f"Gitea does not support inline comments. "
-            f"Falling back to general comment: {fallback_message}"
-        )
-        await self.create_general_comment(fallback_message)
+        try:
+            logger.info(f"Posting inline comment in {self.pull_request_ref} at {file}:{line}: {message}")
 
+            request = GiteaCreateReviewRequestSchema(
+                body="Inline review",
+                comments=[
+                    GiteaReviewInlineCommentSchema(
+                        path=file,
+                        body=message,
+                        new_position=line
+                    )
+                ],
+            )
+            await self.http_client.pr.create_review(
+                owner=self.owner,
+                repo=self.repo,
+                pull_number=self.pull_number,
+                request=request,
+            )
+
+            logger.info(f"Created inline comment in {self.pull_request_ref} at {file}:{line}")
+        except Exception as error:
+            logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
+            raise
+
+    async def delete_general_comment(self, comment_id: int | str) -> None:
+        try:
+            logger.info(f"Deleting general comment {comment_id=} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_issue_comment(
+                owner=self.owner,
+                repo=self.repo,
+                comment_id=comment_id,
+            )
+            logger.info(f"Deleted general comment {comment_id=} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to delete general comment {comment_id=} in PR {self.pull_request_ref}: {error}")
+            raise
+
+    async def delete_inline_comment(self, comment_id: int | str) -> None:
+        try:
+            logger.info(f"Deleting inline review comment {comment_id=} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_review_comment(
+                owner=self.owner,
+                repo=self.repo,
+                comment_id=comment_id,
+            )
+            logger.info(f"Deleted inline review comment {comment_id=} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(
+                f"Failed to delete inline review comment {comment_id=} in PR {self.pull_request_ref}: {error}"
+            )
+            raise
+
+    # --- Replies ---
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         logger.warning("Gitea does not support threaded replies — posting new general comment instead")
         await self.create_general_comment(message)

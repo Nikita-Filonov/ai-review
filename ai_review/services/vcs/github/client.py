@@ -150,6 +150,34 @@ class GitHubVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.pull_request_ref} at {file}:{line}: {error}")
             raise
 
+    async def delete_general_comment(self, comment_id: int | str) -> None:
+        try:
+            logger.info(f"Deleting general comment {comment_id=} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_issue_comment(
+                owner=self.owner,
+                repo=self.repo,
+                comment_id=str(comment_id),
+            )
+            logger.info(f"Deleted general comment {comment_id=} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to delete general comment {comment_id=} in PR {self.pull_request_ref}: {error}")
+            raise
+
+    async def delete_inline_comment(self, comment_id: int | str) -> None:
+        try:
+            logger.info(f"Deleting inline review comment {comment_id=} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_review_comment(
+                owner=self.owner,
+                repo=self.repo,
+                comment_id=str(comment_id),
+            )
+            logger.info(f"Deleted inline review comment {comment_id=} in PR {self.pull_request_ref}")
+        except Exception as error:
+            logger.exception(
+                f"Failed to delete inline review comment {comment_id=} in PR {self.pull_request_ref}: {error}"
+            )
+            raise
+
     # --- Replies ---
     async def create_inline_reply(self, thread_id: int | str, message: str) -> None:
         try:

@@ -7,7 +7,7 @@ from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.git import FakeGitService
 from ai_review.tests.fixtures.services.prompt import FakePromptService
 from ai_review.tests.fixtures.services.review.gateway.review_comment_gateway import FakeReviewCommentGateway
-from ai_review.tests.fixtures.services.review.gateway.review_llm_gateway import FakeReviewLLMGateway
+from ai_review.tests.fixtures.services.review.gateway.review_direct_llm_gateway import FakeReviewDirectLLMGateway
 from ai_review.tests.fixtures.services.review.internal.inline_reply import FakeInlineCommentReplyService
 from ai_review.tests.fixtures.services.vcs import FakeVCSClient
 
@@ -20,8 +20,8 @@ async def test_run_happy_path(
         fake_cost_service: FakeCostService,
         fake_diff_service: FakeDiffService,
         fake_prompt_service: FakePromptService,
-        fake_review_llm_gateway: FakeReviewLLMGateway,
         fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_review_direct_llm_gateway: FakeReviewDirectLLMGateway,
 ):
     """Should process all threads, call LLM, and post replies."""
     fake_git_service.responses["get_diff_for_file"] = "FAKE_DIFF"
@@ -35,7 +35,7 @@ async def test_run_happy_path(
     assert any(call[0] == "get_diff_for_file" for call in fake_git_service.calls)
     assert any(call[0] == "render_file" for call in fake_diff_service.calls)
     assert any(call[0] == "build_inline_reply_request" for call in fake_prompt_service.calls)
-    assert any(call[0] == "ask" for call in fake_review_llm_gateway.calls)
+    assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert any(call[0] == "process_inline_reply" for call in fake_review_comment_gateway.calls)
     assert any(call[0] == "aggregate" for call in fake_cost_service.calls)
 
@@ -61,8 +61,8 @@ async def test_run_skips_when_no_threads(
 async def test_process_thread_reply_skips_when_no_diff(
         inline_reply_review_runner: InlineReplyReviewRunner,
         fake_git_service: FakeGitService,
-        fake_review_llm_gateway: FakeReviewLLMGateway,
         fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_review_direct_llm_gateway: FakeReviewDirectLLMGateway,
 ):
     """Should skip reply processing when no diff found for file."""
     fake_git_service.responses["get_diff_for_file"] = ""
@@ -78,7 +78,7 @@ async def test_process_thread_reply_skips_when_no_diff(
 
     await inline_reply_review_runner.process_thread_reply(thread, review_info)
 
-    assert not any(call[0] == "ask" for call in fake_review_llm_gateway.calls)
+    assert not any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert not any(call[0] == "process_inline_reply" for call in fake_review_comment_gateway.calls)
 
 
@@ -86,8 +86,8 @@ async def test_process_thread_reply_skips_when_no_diff(
 async def test_process_thread_reply_skips_when_no_reply(
         inline_reply_review_runner: InlineReplyReviewRunner,
         fake_git_service: FakeGitService,
-        fake_review_llm_gateway: FakeReviewLLMGateway,
         fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_review_direct_llm_gateway: FakeReviewDirectLLMGateway,
         fake_inline_comment_reply_service: FakeInlineCommentReplyService,
 ):
     """Should not post reply if model output produces no reply schema."""
@@ -105,5 +105,5 @@ async def test_process_thread_reply_skips_when_no_reply(
 
     await inline_reply_review_runner.process_thread_reply(thread, review_info)
 
-    assert any(call[0] == "ask" for call in fake_review_llm_gateway.calls)
+    assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert not any(call[0] == "process_inline_reply" for call in fake_review_comment_gateway.calls)

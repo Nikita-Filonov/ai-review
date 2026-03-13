@@ -1,24 +1,23 @@
 import pytest
 
-from ai_review.services.cost.schema import CostReportSchema
+from ai_review.services.cost.schema import CostReportSchema, CalculateCostSchema
 from ai_review.services.cost.types import CostServiceProtocol
-from ai_review.services.llm.types import ChatResultSchema
 
 
 class FakeCostService(CostServiceProtocol):
     def __init__(self):
         self.calls: list[tuple[str, dict]] = []
         self.reports: list[CostReportSchema] = []
-        self.calculated_results: list[ChatResultSchema] = []
+        self.calculated_results: list[CalculateCostSchema] = []
 
-    def calculate(self, result: ChatResultSchema) -> CostReportSchema:
+    def calculate(self, result: CalculateCostSchema) -> CostReportSchema:
         self.calls.append(("calculate", {"result": result}))
         self.calculated_results.append(result)
 
         report = CostReportSchema(
             model="fake-model",
-            prompt_tokens=result.prompt_tokens or 10,
-            completion_tokens=result.completion_tokens or 5,
+            prompt_tokens=result.prompt_tokens if result.prompt_tokens is not None else 10,
+            completion_tokens=result.completion_tokens if result.completion_tokens is not None else 5,
             input_cost=0.001,
             output_cost=0.002,
             total_cost=0.003,

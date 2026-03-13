@@ -11,6 +11,8 @@
 #   - run-context
 #   - run-inline-reply
 #   - run-summary-reply
+#   - clear-inline
+#   - clear-summary
 #
 # Requirements:
 #   • Variable group "ai-review-secrets" with:
@@ -64,6 +66,8 @@ parameters:
       - run-context
       - run-inline-reply
       - run-summary-reply
+      - clear-inline
+      - clear-summary
 
 jobs:
   - job: ai_review

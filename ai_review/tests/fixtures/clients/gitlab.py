@@ -167,6 +167,14 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
         )
         return GitLabCreateMRDiscussionReplyResponseSchema(id=100, body=body)
 
+    async def delete_note(self, project_id: str, merge_request_id: str, note_id: str) -> None:
+        self.calls.append(
+            (
+                "delete_note",
+                {"project_id": project_id, "merge_request_id": merge_request_id, "note_id": note_id},
+            )
+        )
+
 
 class FakeGitLabHTTPClient:
     def __init__(self, merge_requests_client: FakeGitLabMergeRequestsHTTPClient):

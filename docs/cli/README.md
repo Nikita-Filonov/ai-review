@@ -39,6 +39,8 @@ ai-review --help
 | `ai-review run-summary`       | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`       |
 | `ai-review run-inline-reply`  | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`  |
 | `ai-review run-summary-reply` | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply` |
+| `ai-review clear-inline`      | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`      |
+| `ai-review clear-summary`     | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`     |
 | `ai-review show-config`       | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`       |
 
 ---
@@ -93,6 +95,44 @@ ai-review run-summary-reply
 ```
 
 Replies only to comments originally created by AI Review.
+
+### 🧽 Clear Inline Comments
+
+Removes all AI-generated inline comments:
+
+```bash
+ai-review clear-inline
+```
+
+> ⚠️ **Warning**
+>
+> This command **permanently deletes** all inline review comments created by AI Review in the current merge / pull
+> request.
+>
+> - The operation cannot be undone
+> - Only comments marked with the AI Review inline tag are affected
+> - Developer and user comments are not touched
+>
+> It is recommended to run this command **manually** and only when you are sure that existing AI comments are no longer
+> needed.
+
+### 🧽 Clear Summary Comments
+
+Removes all AI-generated summary comments:
+
+```bash
+ai-review clear-summary
+```
+
+> ⚠️ **Warning**
+>
+> This command **permanently deletes** all summary review comments created by AI Review.
+>
+> - The operation cannot be undone
+> - Only AI Review summary comments are removed
+> - No new comments are created as part of this command
+>
+> Use with caution, especially in shared or long-running pull requests.
 
 ### ⚙️ Inspect Configuration
 

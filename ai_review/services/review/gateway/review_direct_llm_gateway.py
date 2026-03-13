@@ -1,19 +1,20 @@
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
+from ai_review.services.cost.schema import CalculateCostSchema
 from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.hook import hook
 from ai_review.services.llm.types import LLMClientProtocol
 from ai_review.services.review.gateway.types import ReviewLLMGatewayProtocol
 
-logger = get_logger("REVIEW_LLM_GATEWAY")
+logger = get_logger("REVIEW_DIRECT_LLM_GATEWAY")
 
 
-class ReviewLLMGateway(ReviewLLMGatewayProtocol):
+class ReviewDirectLLMGateway(ReviewLLMGatewayProtocol):
     def __init__(
             self,
             llm: LLMClientProtocol,
             cost: CostServiceProtocol,
-            artifacts: ArtifactsServiceProtocol
+            artifacts: ArtifactsServiceProtocol,
     ):
         self.llm = llm
         self.cost = cost
@@ -28,7 +29,12 @@ class ReviewLLMGateway(ReviewLLMGatewayProtocol):
                     f"LLM returned an empty response (prompt length={len(prompt)} chars)"
                 )
 
-            report = self.cost.calculate(result)
+            report = self.cost.calculate(
+                CalculateCostSchema(
+                    prompt_tokens=result.prompt_tokens,
+                    completion_tokens=result.completion_tokens
+                )
+            )
             if report:
                 logger.info(report.pretty())
 

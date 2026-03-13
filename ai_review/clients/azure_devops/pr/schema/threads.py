@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -99,3 +100,9 @@ class AzureDevOpsCreatePRThreadResponseSchema(BaseModel):
     id: int
     status: str
     comments: list[AzureDevOpsPRCommentSchema]
+
+
+class AzureDevOpsUpdatePRThreadRequestSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: Literal["active", "fixed", "closed"] | None = None

@@ -42,3 +42,12 @@ class BitbucketCloudPullRequestsHTTPClientProtocol(Protocol):
             request: BitbucketCloudCreatePRCommentRequestSchema,
     ) -> BitbucketCloudCreatePRCommentResponseSchema:
         ...
+
+    async def delete_comment(
+            self,
+            workspace: str,
+            repo_slug: str,
+            pull_request_id: str,
+            comment_id: str
+    ) -> None:
+        ...

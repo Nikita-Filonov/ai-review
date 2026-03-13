@@ -34,6 +34,20 @@
   "core": {
     "concurrency": 7
   },
+  "agent": {
+    "enabled": false,
+    "max_iterations": 25,
+    "allow_commands": [
+      "^ls(?:\\s+.*)?$",
+      "^cat(?:\\s+.*)?$",
+      "^rg(?:\\s+.*)?$",
+      "^grep(?:\\s+.*)?$",
+      "^git\\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\\s+.*)?$"
+    ],
+    "command_timeout": 10,
+    "max_total_context_chars": 40000,
+    "max_command_output_chars": 40000
+  },
   "prompt": {
     "context": {
       "environment": "staging",
@@ -42,6 +56,9 @@
     },
     "normalize_prompts": true,
     "context_placeholder": "<<{value}>>",
+    "agent_prompt_files": [
+      "./prompts/default_agent.md"
+    ],
     "inline_prompt_files": [
       "./prompts/default_inline.md"
     ],
@@ -56,6 +73,9 @@
     ],
     "summary_reply_prompt_files": [
       "./prompts/default_summary_reply.md"
+    ],
+    "system_agent_prompt_files": [
+      "./prompts/default_system_agent.md"
     ],
     "system_inline_prompt_files": [
       "./prompts/default_system_inline.md"
@@ -72,6 +92,7 @@
     "system_summary_reply_prompt_files": [
       "./prompts/default_system_summary_reply.md"
     ],
+    "include_agent_system_prompts": true,
     "include_inline_system_prompts": true,
     "include_context_system_prompts": true,
     "include_summary_system_prompts": true,

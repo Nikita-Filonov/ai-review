@@ -55,3 +55,12 @@ class AzureDevOpsPullRequestsHTTPClientProtocol(Protocol):
             thread_id: int,
             request: AzureDevOpsCreatePRCommentRequestSchema,
     ) -> AzureDevOpsCreatePRCommentResponseSchema: ...
+
+    async def delete_thread(
+            self,
+            organization: str,
+            project: str,
+            repository_id: str,
+            pull_request_id: int,
+            thread_id: int,
+    ) -> None: ...

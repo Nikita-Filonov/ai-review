@@ -4,10 +4,10 @@ from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.policy.types import PolicyServiceProtocol
 from ai_review.services.prompt.adapter import build_prompt_context_from_review_info
 from ai_review.services.prompt.types import PromptServiceProtocol
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol, ReviewLLMGatewayProtocol
-from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
 from ai_review.services.review.internal.summary_reply.types import SummaryCommentReplyServiceProtocol
 from ai_review.services.review.runner.types import ReviewRunnerProtocol
 from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema, ReviewInfoSchema
@@ -23,7 +23,7 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
             diff: DiffServiceProtocol,
             cost: CostServiceProtocol,
             prompt: PromptServiceProtocol,
-            review_policy: ReviewPolicyServiceProtocol,
+            policy: PolicyServiceProtocol,
             review_llm_gateway: ReviewLLMGatewayProtocol,
             summary_comment_reply: SummaryCommentReplyServiceProtocol,
             review_comment_gateway: ReviewCommentGatewayProtocol,
@@ -33,7 +33,7 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
         self.diff = diff
         self.cost = cost
         self.prompt = prompt
-        self.review_policy = review_policy
+        self.policy = policy
         self.review_llm_gateway = review_llm_gateway
         self.summary_comment_reply = summary_comment_reply
         self.review_comment_gateway = review_comment_gateway
@@ -41,7 +41,7 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
     async def process_thread_reply(self, thread: ReviewThreadSchema, review_info: ReviewInfoSchema):
         logger.info(f"Processing summary reply for thread {thread.id}")
 
-        changed_files = self.review_policy.apply_for_files(review_info.changed_files)
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         if not changed_files:
             logger.info("No files to review for summary")
             return

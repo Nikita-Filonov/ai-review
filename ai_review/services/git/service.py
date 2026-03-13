@@ -8,8 +8,8 @@ logger = get_logger("GIT_SERVICE")
 
 
 class GitService(GitServiceProtocol):
-    def __init__(self, repo_dir: str = "."):
-        self.repo_dir = Path(repo_dir)
+    def __init__(self, repo_dir: Path = Path(".")):
+        self.repo_dir = repo_dir
 
     def run_git(self, *args: str) -> str:
         cmd = ["git", *args]

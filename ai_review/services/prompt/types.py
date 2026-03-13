@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from ai_review.services.agent.loop.schema import AgentTraceSchema
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.prompt.schema import PromptContextSchema
 from ai_review.services.vcs.types import ReviewThreadSchema
@@ -7,6 +8,14 @@ from ai_review.services.vcs.types import ReviewThreadSchema
 
 class PromptServiceProtocol(Protocol):
     def prepare_prompt(self, prompts: list[str], context: PromptContextSchema) -> str:
+        ...
+
+    def build_agent_request(
+            self,
+            traces: list[AgentTraceSchema],
+            force_final: bool,
+            original_prompt: str,
+    ) -> str:
         ...
 
     def build_inline_request(self, diff: DiffFileSchema, context: PromptContextSchema) -> str:
@@ -32,6 +41,9 @@ class PromptServiceProtocol(Protocol):
             thread: ReviewThreadSchema,
             context: PromptContextSchema
     ) -> str:
+        ...
+
+    def build_system_agent_request(self, original_prompt: str) -> str:
         ...
 
     def build_system_inline_request(self, context: PromptContextSchema) -> str:

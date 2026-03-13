@@ -191,6 +191,58 @@ core:
   # Recommended: 5–10 for LLM requests, depending on model rate limits.
   concurrency: 7
 
+agent:
+  # Enables iterative agent mode for review.
+  # false (default): classic one-shot LLM call.
+  # true: model can run multiple command/tool steps before FINAL output.
+  enabled: false
+
+  # Maximum number of loop iterations in a single agent run.
+  # One iteration = one model response (TOOL_CALL or FINAL).
+  # Protects from infinite loops and helps control latency/cost.
+  #
+  # Suggested:
+  # - 10..25 for normal repositories
+  # - 25..50 for larger codebases with complex cross-file logic
+  max_iterations: 25
+
+  # Regex allowlist for executable commands in agent mode.
+  # A command is allowed only if at least one pattern fully matches:
+  #   pattern.fullmatch(command) == True
+  #
+  # Important:
+  # - This is an allowlist (default deny).
+  # - Matching is against the whole command string, not a substring.
+  # - Keep patterns as narrow as possible to avoid accidental broad access.
+  #
+  # Default profile is read-oriented:
+  # - ls / cat / rg / grep
+  # - selected read-only git commands
+  allow_commands:
+    - "^ls(?:\\s+.*)?$"
+    - "^cat(?:\\s+.*)?$"
+    - "^rg(?:\\s+.*)?$"
+    - "^grep(?:\\s+.*)?$"
+    - "^git\\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\\s+.*)?$"
+
+  # Max runtime per command (seconds).
+  # If exceeded, command is interrupted and returned as timeout.
+  #
+  # Tune guidance:
+  # - 5..15 for CI-fast feedback
+  # - 20..60 for heavy repositories / slower environments
+  command_timeout: 10
+
+  # Total context budget collected from tool outputs during one agent run.
+  # When exceeded, agent loop is forced into FINAL mode.
+  # This helps keep prompts bounded and prevents context explosion.
+  max_total_context_chars: 40000
+
+  # Max size of a single command output returned to the model.
+  # Output above this limit is truncated with a marker.
+  # Helps protect token budget and avoids oversized responses from broad commands.
+  max_command_output_chars: 40000
+
 prompt:
   # ==============================
   # Custom context variables
@@ -240,6 +292,36 @@ prompt:
   #   - useful if whitespace and formatting are significant
   #     (e.g. testing model sensitivity, preserving custom layout).
   normalize_prompts: true
+
+  # ==============================
+  # Agent prompts
+  # ==============================
+  # agent_prompt_files (joined in order).
+  # These provide local instructions for agent behavior:
+  # how to explore context, when to stop, and how to structure final reasoning.
+  #
+  # Defaults (if not defined):
+  #   - default_agent.md
+  #
+  agent_prompt_files:
+    - ./prompts/default_agent.md  # Agent behavior prompt
+
+  # system_agent_prompt_files (joined in order).
+  # These define the strict system contract for agent mode:
+  # - enforce JSON tool-calling shape,
+  # - define allowed action schema (TOOL_CALL / FINAL),
+  # - constrain loop behavior and formatting rules.
+  #
+  # Defaults (if not defined):
+  #   - default_system_agent.md
+  #
+  system_agent_prompt_files:
+    - ./prompts/default_system_agent.md  # System agent prompt
+
+  # Whether to include built-in default system agent prompts.
+  # true  (default) → always prepend default_system_agent.md
+  # false → only user-provided system_agent_prompt_files are used
+  include_agent_system_prompts: true
 
   # ==============================
   # Inline prompts

@@ -3,11 +3,11 @@ from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.policy.types import PolicyServiceProtocol
 from ai_review.services.prompt.adapter import build_prompt_context_from_review_info
 from ai_review.services.prompt.types import PromptServiceProtocol
 from ai_review.services.review.gateway.types import ReviewLLMGatewayProtocol, ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.types import InlineCommentServiceProtocol
-from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
 from ai_review.services.review.runner.types import ReviewRunnerProtocol
 from ai_review.services.vcs.types import VCSClientProtocol
 
@@ -22,7 +22,7 @@ class ContextReviewRunner(ReviewRunnerProtocol):
             diff: DiffServiceProtocol,
             cost: CostServiceProtocol,
             prompt: PromptServiceProtocol,
-            review_policy: ReviewPolicyServiceProtocol,
+            policy: PolicyServiceProtocol,
             inline_comment: InlineCommentServiceProtocol,
             review_llm_gateway: ReviewLLMGatewayProtocol,
             review_comment_gateway: ReviewCommentGatewayProtocol,
@@ -32,18 +32,21 @@ class ContextReviewRunner(ReviewRunnerProtocol):
         self.diff = diff
         self.cost = cost
         self.prompt = prompt
-        self.review_policy = review_policy
+        self.policy = policy
         self.inline_comment = inline_comment
         self.review_llm_gateway = review_llm_gateway
         self.review_comment_gateway = review_comment_gateway
 
     async def run(self) -> None:
         await hook.emit_context_review_start()
-        if await self.review_comment_gateway.has_existing_inline_comments():
+
+        comments = await self.review_comment_gateway.get_inline_comments()
+        if comments:
+            logger.info(f"Detected {len(comments)} existing AI inline comments, skipping context review")
             return
 
         review_info = await self.vcs.get_review_info()
-        changed_files = self.review_policy.apply_for_files(review_info.changed_files)
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         if not changed_files:
             logger.info("No files to review for context review")
             return
@@ -62,7 +65,7 @@ class ContextReviewRunner(ReviewRunnerProtocol):
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
 
         comments = self.inline_comment.parse_model_output(prompt_result).dedupe()
-        comments.root = self.review_policy.apply_for_context_comments(comments.root)
+        comments.root = self.policy.apply_for_context_comments(comments.root)
         if not comments.root:
             logger.info("No inline comments from context review")
             return

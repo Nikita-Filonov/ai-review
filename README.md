@@ -1,5 +1,9 @@
 # AI Review
 
+<p align="center">
+  <img src="./docs/assets/logo.png" alt="Axiom logo" width="220" />
+</p>
+
 AI-powered code review tool.
 
 [![CI](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml/badge.svg)](https://github.com/Nikita-Filonov/ai-review/actions/workflows/workflow-test.yml)
@@ -177,7 +181,15 @@ on:
       review-command:
         type: choice
         default: run
-        options: [ run, run-inline, run-context, run-summary, run-inline-reply, run-summary-reply ]
+        options:
+          - run
+          - run-inline
+          - run-context
+          - run-summary
+          - run-inline-reply
+          - run-summary-reply
+          - clear-inline
+          - clear-summary
       pull-request-number:
         type: string
         required: true
@@ -185,11 +197,11 @@ jobs:
   ai-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.49.0
+      - uses: Nikita-Filonov/ai-review@v0.59.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -258,6 +270,7 @@ See these folders for reference templates and full configuration options:
 - [./docs/hooks](./docs/hooks) — hook reference and lifecycle events
 - [./docs/configs](./docs/configs) — full configuration examples (`.yaml`, `.json`, `.env`)
 - [./docs/prompts](./docs/prompts) — prompt templates for Python/Go (light & strict modes)
+- [./docs/troubleshooting.md](./docs/troubleshooting) — common environment and Git-related issues
 
 ---
 

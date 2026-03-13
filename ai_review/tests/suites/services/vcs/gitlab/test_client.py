@@ -231,3 +231,49 @@ async def test_get_general_threads_wraps_comments_in_threads(
 
     called = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
     assert "get_notes" in called
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_delete_general_comment_calls_delete_note(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete a general MR-level comment by note id."""
+    comment_id = 123
+
+    await gitlab_vcs_client.delete_general_comment(comment_id)
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_note"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["note_id"] == str(comment_id)
+    assert call_args["project_id"] == "project-id"
+    assert call_args["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_delete_inline_comment_calls_delete_discussion(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete an inline discussion by discussion id."""
+    note_id = "discussion-42"
+
+    await gitlab_vcs_client.delete_inline_comment(note_id)
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_note"
+    ]
+    assert len(calls) == 1
+
+    call_args = calls[0]
+    assert call_args["note_id"] == str(note_id)
+    assert call_args["project_id"] == "project-id"
+    assert call_args["merge_request_id"] == "merge-request-id"

@@ -6,6 +6,7 @@ from pydantic_settings import (
     PydanticBaseSettingsSource
 )
 
+from ai_review.libs.config.agent import AgentConfig
 from ai_review.libs.config.artifacts import ArtifactsConfig
 from ai_review.libs.config.base import (
     get_env_config_file_or_default,
@@ -38,6 +39,7 @@ class Settings(BaseSettings):
     llm: LLMConfig
     vcs: VCSConfig
     core: CoreConfig = CoreConfig()
+    agent: AgentConfig = AgentConfig()
     prompt: PromptConfig = PromptConfig()
     review: ReviewConfig = ReviewConfig()
     logger: LoggerConfig = LoggerConfig()

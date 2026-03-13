@@ -11,6 +11,9 @@ class HTTPClient:
     async def get(self, url: str, query: QueryParams | None = None) -> Response:
         return await self.client.get(url=url, params=query, follow_redirects=True)
 
+    async def put(self, url: str, json: Any | None = None) -> Response:
+        return await self.client.put(url=url, json=json)
+
     async def post(
             self,
             url: str,
@@ -20,3 +23,9 @@ class HTTPClient:
             content: RequestContent | None = None,
     ) -> Response:
         return await self.client.post(url=url, json=json, params=query, headers=headers, content=content)
+
+    async def patch(self, url: str, json: Any | None = None, query: QueryParams | None = None) -> Response:
+        return await self.client.patch(url=url, json=json, params=query)
+
+    async def delete(self, url: str) -> Response:
+        return await self.client.delete(url=url)

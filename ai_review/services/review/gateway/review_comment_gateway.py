@@ -8,7 +8,7 @@ from ai_review.services.review.internal.inline.schema import InlineCommentListSc
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
-from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema
+from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema, ReviewCommentSchema
 
 logger = get_logger("REVIEW_COMMENT_GATEWAY")
 
@@ -36,26 +36,23 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         logger.info(f"Detected {len(summary_threads)}/{len(threads)} AI summary threads")
         return summary_threads
 
-    async def has_existing_inline_comments(self) -> bool:
+    async def get_inline_comments(self) -> list[ReviewCommentSchema]:
         comments = await self.vcs.get_inline_comments()
-        has_comments = any(
-            settings.review.inline_tag in comment.body
-            for comment in comments
-        )
-        if has_comments:
-            logger.info("Skipping inline review: AI inline comments already exist")
+        inline_comments = [
+            comment for comment in comments
+            if settings.review.inline_tag in comment.body
+        ]
+        logger.info(f"Detected {len(inline_comments)}/{len(comments)} AI inline comments")
+        return inline_comments
 
-        return has_comments
-
-    async def has_existing_summary_comments(self) -> bool:
+    async def get_summary_comments(self) -> list[ReviewCommentSchema]:
         comments = await self.vcs.get_general_comments()
-        has_comments = any(
-            settings.review.summary_tag in comment.body for comment in comments
-        )
-        if has_comments:
-            logger.info("Skipping summary review: AI summary comment already exists")
-
-        return has_comments
+        summary_comments = [
+            comment for comment in comments
+            if settings.review.summary_tag in comment.body
+        ]
+        logger.info(f"Detected {len(summary_comments)}/{len(comments)} AI summary comments")
+        return summary_comments
 
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         try:
@@ -113,3 +110,39 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         await bounded_gather([self.process_inline_comment(comment) for comment in comments.root])
+
+    async def clear_inline_comments(self) -> None:
+        await hook.emit_clear_inline_comments_start()
+
+        try:
+            comments = await self.get_inline_comments()
+            if not comments:
+                logger.info("No AI inline comments to clear")
+                await hook.emit_clear_inline_comments_complete(comments=comments)
+                return
+
+            logger.info(f"Clearing {len(comments)} AI inline comments")
+
+            await bounded_gather([self.vcs.delete_inline_comment(comment.id) for comment in comments])
+            await hook.emit_clear_inline_comments_complete(comments=comments)
+        except Exception as error:
+            logger.exception(f"Failed to clear inline comments: {error}")
+            await hook.emit_clear_inline_comments_error()
+
+    async def clear_summary_comments(self) -> None:
+        await hook.emit_clear_summary_comments_start()
+
+        try:
+            comments = await self.get_summary_comments()
+            if not comments:
+                logger.info("No AI summary comments to clear")
+                await hook.emit_clear_summary_comments_complete(comments=comments)
+                return
+
+            logger.info(f"Clearing {len(comments)} AI summary comments")
+
+            await bounded_gather([self.vcs.delete_general_comment(comment.id) for comment in comments])
+            await hook.emit_clear_summary_comments_complete(comments=comments)
+        except Exception as error:
+            logger.exception(f"Failed to clear summary comments: {error}")
+            await hook.emit_clear_summary_comments_error()

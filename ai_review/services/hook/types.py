@@ -5,6 +5,7 @@ from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
+from ai_review.services.vcs.types import ReviewCommentSchema
 
 HookFunc = Callable[..., Awaitable[None]]
 
@@ -42,3 +43,11 @@ InlineCommentReplyCompleteHookFunc = Callable[[InlineCommentReplySchema], Awaita
 SummaryCommentReplyStartHookFunc = Callable[[SummaryCommentReplySchema], Awaitable[None]]
 SummaryCommentReplyErrorHookFunc = Callable[[SummaryCommentReplySchema], Awaitable[None]]
 SummaryCommentReplyCompleteHookFunc = Callable[[SummaryCommentReplySchema], Awaitable[None]]
+
+ClearInlineCommentsStartHookFunc = Callable[..., Awaitable[None]]
+ClearInlineCommentsErrorHookFunc = Callable[..., Awaitable[None]]
+ClearInlineCommentsCompleteHookFunc = Callable[[list[ReviewCommentSchema]], Awaitable[None]]
+
+ClearSummaryCommentsStartHookFunc = Callable[..., Awaitable[None]]
+ClearSummaryCommentsErrorHookFunc = Callable[..., Awaitable[None]]
+ClearSummaryCommentsCompleteHookFunc = Callable[[list[ReviewCommentSchema]], Awaitable[None]]

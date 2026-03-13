@@ -1,5 +1,13 @@
+from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema, AgentTraceSchema
 from ai_review.services.diff.schema import DiffFileSchema
-from ai_review.services.prompt.tools import format_file, normalize_prompt, format_files, format_thread
+from ai_review.services.prompt.tools import (
+    format_file,
+    normalize_prompt,
+    format_files,
+    format_thread,
+    format_trace,
+    format_traces,
+)
 from ai_review.services.vcs.types import ReviewThreadSchema, ReviewCommentSchema, UserSchema, ThreadKind
 
 
@@ -155,3 +163,43 @@ def test_no_changes_when_already_clean():
     text = "line1\nline2"
     result = normalize_prompt(text)
     assert result == text
+
+
+# ---------- format_trace ----------
+
+def test_format_trace_contains_all_fields():
+    trace = AgentTraceSchema(
+        step=AgentStepSchema(action=AgentAction.TOOL_CALL, command="rg foo src"),
+        iteration=1,
+        raw_output='{"action":"TOOL_CALL","command":"rg foo src"}',
+        tool_output="foo.py:1: foo",
+        warning="warn",
+    )
+    result = format_trace(trace)
+    assert "Iteration: 1" in result
+    assert 'Model output: {"action":"TOOL_CALL","command":"rg foo src"}' in result
+    assert "Action: TOOL_CALL" in result
+    assert "Command: rg foo src" in result
+    assert "Tool output: foo.py:1: foo" in result
+    assert "Warning: warn" in result
+
+
+def test_format_traces_for_empty_list():
+    assert format_traces([]) == "No previous steps."
+
+
+def test_format_traces_joins_entries_with_separator():
+    trace_one = AgentTraceSchema(
+        step=AgentStepSchema(action=AgentAction.TOOL_CALL, command="ls"),
+        iteration=1,
+        raw_output='{"action":"TOOL_CALL","command":"ls"}',
+    )
+    trace_two = AgentTraceSchema(
+        step=AgentStepSchema(action=AgentAction.FINAL, content="done"),
+        iteration=2,
+        raw_output='{"action":"FINAL","content":"done"}',
+    )
+    result = format_traces([trace_one, trace_two])
+    assert "Iteration: 1" in result
+    assert "Iteration: 2" in result
+    assert "\n\n---\n\n" in result

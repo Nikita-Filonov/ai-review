@@ -113,6 +113,14 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
             json=request.model_dump(),
         )
 
+    @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
+    async def delete_review_comment_api(self, owner: str, repo: str, comment_id: str) -> Response:
+        return await self.delete(f"/repos/{owner}/{repo}/pulls/comments/{comment_id}")
+
+    @handle_http_error(client="GitHubPullRequestsHTTPClient", exception=GitHubPullRequestsHTTPClientError)
+    async def delete_issue_comment_api(self, owner: str, repo: str, comment_id: str) -> Response:
+        return await self.delete(f"/repos/{owner}/{repo}/issues/comments/{comment_id}")
+
     async def get_pull_request(self, owner: str, repo: str, pull_number: str) -> GitHubGetPRResponseSchema:
         response = await self.get_pull_request_api(owner, repo, pull_number)
         return GitHubGetPRResponseSchema.model_validate_json(response.text)
@@ -203,3 +211,9 @@ class GitHubPullRequestsHTTPClient(HTTPClient, GitHubPullRequestsHTTPClientProto
         request = GitHubCreateIssueCommentRequestSchema(body=body)
         response = await self.create_issue_comment_api(owner, repo, issue_number, request)
         return GitHubCreateIssueCommentResponseSchema.model_validate_json(response.text)
+
+    async def delete_review_comment(self, owner: str, repo: str, comment_id: str) -> None:
+        await self.delete_review_comment_api(owner, repo, comment_id)
+
+    async def delete_issue_comment(self, owner: str, repo: str, comment_id: str) -> None:
+        await self.delete_issue_comment_api(owner, repo, comment_id)

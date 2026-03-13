@@ -57,3 +57,7 @@ class BitbucketCloudCreatePRCommentResponseSchema(BaseModel):
     parent: BitbucketCloudCommentParentSchema | None = None
     inline: BitbucketCloudCommentInlineSchema | None = None
     content: BitbucketCloudCommentContentSchema
+
+
+class BitbucketCloudUpdatePRCommentRequestSchema(BaseModel):
+    content: BitbucketCloudCommentContentSchema | None = None
