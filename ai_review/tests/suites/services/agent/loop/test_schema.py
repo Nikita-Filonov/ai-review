@@ -56,3 +56,61 @@ def test_agent_trace_normalizes_string_fields() -> None:
 def test_agent_loop_result_defaults_to_empty_traces() -> None:
     result = AgentLoopResultSchema(final_text="ok", stop_reason="final")
     assert result.traces == []
+    assert result.total_tokens == 0
+    assert result.prompt_tokens == 0
+    assert result.completion_tokens == 0
+
+
+def test_agent_loop_result_token_properties_sum_trace_tokens() -> None:
+    result = AgentLoopResultSchema(
+        final_text="ok",
+        stop_reason="final",
+        traces=[
+            AgentTraceSchema(
+                step=AgentStepSchema(action=AgentAction.FINAL, content="one"),
+                iteration=1,
+                raw_output="one",
+                total_tokens=10,
+                prompt_tokens=4,
+                completion_tokens=6,
+            ),
+            AgentTraceSchema(
+                step=AgentStepSchema(action=AgentAction.FINAL, content="two"),
+                iteration=2,
+                raw_output="two",
+                total_tokens=None,
+                prompt_tokens=3,
+                completion_tokens=2,
+            ),
+        ],
+    )
+
+    assert result.total_tokens == 10
+    assert result.prompt_tokens == 7
+    assert result.completion_tokens == 8
+
+
+def test_agent_loop_result_token_properties_ignore_missing_values() -> None:
+    result = AgentLoopResultSchema(
+        final_text="ok",
+        stop_reason="final",
+        traces=[
+            AgentTraceSchema(
+                step=AgentStepSchema(action=AgentAction.FINAL, content="one"),
+                iteration=1,
+                raw_output="one",
+            ),
+            AgentTraceSchema(
+                step=AgentStepSchema(action=AgentAction.FINAL, content="two"),
+                iteration=2,
+                raw_output="two",
+                total_tokens=0,
+                prompt_tokens=0,
+                completion_tokens=0,
+            ),
+        ],
+    )
+
+    assert result.total_tokens == 0
+    assert result.prompt_tokens == 0
+    assert result.completion_tokens == 0

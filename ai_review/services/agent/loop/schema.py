@@ -41,6 +41,9 @@ class AgentTraceSchema(BaseModel):
     iteration: int
     raw_output: str
     tool_output: str | None = None
+    total_tokens: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
 
     @field_validator("warning", "raw_output", "tool_output")
     def normalize_fields(cls, value: str) -> str:
@@ -51,3 +54,15 @@ class AgentLoopResultSchema(BaseModel):
     traces: list[AgentTraceSchema] = Field(default_factory=list)
     final_text: str
     stop_reason: str
+
+    @property
+    def total_tokens(self) -> int:
+        return sum((trace.total_tokens or 0) for trace in self.traces)
+
+    @property
+    def prompt_tokens(self) -> int:
+        return sum((trace.prompt_tokens or 0) for trace in self.traces)
+
+    @property
+    def completion_tokens(self) -> int:
+        return sum((trace.completion_tokens or 0) for trace in self.traces)
