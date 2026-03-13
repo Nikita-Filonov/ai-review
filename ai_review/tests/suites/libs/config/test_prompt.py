@@ -95,6 +95,27 @@ def test_load_summary_reply_prompts(monkeypatch: pytest.MonkeyPatch, tmp_path: P
     assert config.load_summary_reply() == ["SUM_R"]
 
 
+# ---------- Agent Prompts ----------
+
+def test_load_agent_prompts_from_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    dummy_file = tmp_path / "agent.md"
+    dummy_file.write_text("AGENT")
+    monkeypatch.setattr("ai_review.libs.config.prompt.load_resource", lambda **_: dummy_file)
+
+    config = PromptConfig()
+    assert config.agent_prompt_files_or_default == [dummy_file]
+    assert config.load_agent() == ["AGENT"]
+
+
+def test_load_agent_prompts_from_custom_files(tmp_path: Path):
+    custom_file = tmp_path / "custom_agent.md"
+    custom_file.write_text("CUSTOM_AGENT")
+
+    config = PromptConfig(agent_prompt_files=[custom_file])
+    assert config.agent_prompt_files_or_default == [custom_file]
+    assert config.load_agent() == ["CUSTOM_AGENT"]
+
+
 # ---------- System Prompts ----------
 
 def test_load_system_context_prompts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
@@ -135,3 +156,37 @@ def test_load_system_summary_reply_prompts(monkeypatch: pytest.MonkeyPatch, tmp_
     config = PromptConfig()
     assert config.system_summary_reply_prompt_files_or_default == [dummy_file]
     assert config.load_system_summary_reply() == ["SYS_SR"]
+
+
+def test_load_system_agent_prompts_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    global_file = tmp_path / "global_sys_agent.md"
+    global_file.write_text("GLOBAL_SYS_AGENT")
+    monkeypatch.setattr("ai_review.libs.config.prompt.load_resource", lambda **_: global_file)
+
+    config = PromptConfig()
+    assert config.system_agent_prompt_files_or_default == [global_file]
+    assert config.load_system_agent() == ["GLOBAL_SYS_AGENT"]
+
+
+def test_load_system_agent_prompts_include_true(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    global_file = tmp_path / "global_sys_agent.md"
+    global_file.write_text("GLOBAL_SYS_AGENT")
+    custom_file = tmp_path / "custom_sys_agent.md"
+    custom_file.write_text("CUSTOM_SYS_AGENT")
+    monkeypatch.setattr("ai_review.libs.config.prompt.load_resource", lambda **_: global_file)
+
+    config = PromptConfig(system_agent_prompt_files=[custom_file], include_agent_system_prompts=True)
+    assert config.system_agent_prompt_files_or_default == [global_file, custom_file]
+    assert config.load_system_agent() == ["GLOBAL_SYS_AGENT", "CUSTOM_SYS_AGENT"]
+
+
+def test_load_system_agent_prompts_include_false(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    global_file = tmp_path / "global_sys_agent.md"
+    global_file.write_text("GLOBAL_SYS_AGENT")
+    custom_file = tmp_path / "custom_sys_agent.md"
+    custom_file.write_text("CUSTOM_SYS_AGENT")
+    monkeypatch.setattr("ai_review.libs.config.prompt.load_resource", lambda **_: global_file)
+
+    config = PromptConfig(system_agent_prompt_files=[custom_file], include_agent_system_prompts=False)
+    assert config.system_agent_prompt_files_or_default == [custom_file]
+    assert config.load_system_agent() == ["CUSTOM_SYS_AGENT"]

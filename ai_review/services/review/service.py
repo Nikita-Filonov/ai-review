@@ -1,17 +1,20 @@
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
+from ai_review.services.agent.loop.service import AgentLoopService
+from ai_review.services.agent.tool.service import AgentToolService
 from ai_review.services.artifacts.service import ArtifactsService
 from ai_review.services.cost.service import CostService
 from ai_review.services.diff.service import DiffService
 from ai_review.services.git.service import GitService
 from ai_review.services.llm.factory import get_llm_client
+from ai_review.services.policy.service import PolicyService
 from ai_review.services.prompt.service import PromptService
+from ai_review.services.review.gateway.review_agent_llm_gateway import ReviewAgentLLMGateway
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
-from ai_review.services.review.gateway.review_llm_gateway import ReviewLLMGateway
 from ai_review.services.review.internal.inline.service import InlineCommentService
 from ai_review.services.review.internal.inline_reply.service import InlineCommentReplyService
-from ai_review.services.review.internal.policy.service import ReviewPolicyService
 from ai_review.services.review.internal.summary.service import SummaryCommentService
 from ai_review.services.review.internal.summary_reply.service import SummaryCommentReplyService
 from ai_review.services.review.runner.context import ContextReviewRunner
@@ -31,19 +34,39 @@ class ReviewService:
         self.git = GitService()
         self.diff = DiffService()
         self.cost = CostService()
+        self.policy = PolicyService()
         self.prompt = PromptService()
         self.artifacts = ArtifactsService()
-        self.review_policy = ReviewPolicyService()
         self.inline_comment = InlineCommentService()
         self.summary_comment = SummaryCommentService()
         self.inline_comment_reply = InlineCommentReplyService()
         self.summary_comment_reply = SummaryCommentReplyService()
 
-        self.review_llm_gateway = ReviewLLMGateway(
+        self.agent_tool = AgentToolService(policy=self.policy)
+        self.agent_loop = AgentLoopService(
+            llm=self.llm,
+            prompt=self.prompt,
+            agent_tool=self.agent_tool,
+        )
+
+        self.review_direct_llm_gateway = ReviewDirectLLMGateway(
             llm=self.llm,
             cost=self.cost,
-            artifacts=self.artifacts
+            artifacts=self.artifacts,
         )
+        self.review_agent_llm_gateway = ReviewAgentLLMGateway(
+            llm=self.llm,
+            cost=self.cost,
+            artifacts=self.artifacts,
+            agent_loop=self.agent_loop,
+            fallback_gateway=self.review_direct_llm_gateway,
+        )
+        self.review_llm_gateway = (
+            self.review_agent_llm_gateway
+            if settings.agent.enabled
+            else self.review_direct_llm_gateway
+        )
+
         self.review_comment_gateway = (
             ReviewDryRunCommentGateway(vcs=self.vcs, artifacts=self.artifacts)
             if settings.review.dry_run
@@ -56,7 +79,7 @@ class ReviewService:
             diff=self.diff,
             cost=self.cost,
             prompt=self.prompt,
-            review_policy=self.review_policy,
+            policy=self.policy,
             inline_comment=self.inline_comment,
             review_llm_gateway=self.review_llm_gateway,
             review_comment_gateway=self.review_comment_gateway
@@ -67,7 +90,7 @@ class ReviewService:
             diff=self.diff,
             cost=self.cost,
             prompt=self.prompt,
-            review_policy=self.review_policy,
+            policy=self.policy,
             inline_comment=self.inline_comment,
             review_llm_gateway=self.review_llm_gateway,
             review_comment_gateway=self.review_comment_gateway
@@ -78,7 +101,7 @@ class ReviewService:
             diff=self.diff,
             cost=self.cost,
             prompt=self.prompt,
-            review_policy=self.review_policy,
+            policy=self.policy,
             summary_comment=self.summary_comment,
             review_llm_gateway=self.review_llm_gateway,
             review_comment_gateway=self.review_comment_gateway
@@ -89,7 +112,7 @@ class ReviewService:
             diff=self.diff,
             cost=self.cost,
             prompt=self.prompt,
-            review_policy=self.review_policy,
+            policy=self.policy,
             review_llm_gateway=self.review_llm_gateway,
             inline_comment_reply=self.inline_comment_reply,
             review_comment_gateway=self.review_comment_gateway
@@ -100,7 +123,7 @@ class ReviewService:
             diff=self.diff,
             cost=self.cost,
             prompt=self.prompt,
-            review_policy=self.review_policy,
+            policy=self.policy,
             review_llm_gateway=self.review_llm_gateway,
             summary_comment_reply=self.summary_comment_reply,
             review_comment_gateway=self.review_comment_gateway

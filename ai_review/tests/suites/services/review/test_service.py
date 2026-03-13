@@ -1,7 +1,9 @@
 import pytest
 
 from ai_review.services.llm.types import ChatResultSchema
+from ai_review.services.review.gateway.review_agent_llm_gateway import ReviewAgentLLMGateway
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.service import ReviewService
 from ai_review.tests.fixtures.services.cost import FakeCostService
@@ -109,3 +111,21 @@ def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatc
 
     service = ReviewService()
     assert type(service.review_comment_gateway) is ReviewCommentGateway
+
+
+def test_review_service_initializes_agent_components():
+    service = ReviewService()
+    assert service.agent_loop is not None
+    assert type(service.review_direct_llm_gateway) is ReviewDirectLLMGateway
+
+
+def test_review_service_uses_agent_gateway_when_enabled(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("ai_review.config.settings.agent.enabled", True)
+    service = ReviewService()
+    assert type(service.review_llm_gateway) is ReviewAgentLLMGateway
+
+
+def test_review_service_uses_default_gateway_when_agent_disabled(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("ai_review.config.settings.agent.enabled", False)
+    service = ReviewService()
+    assert type(service.review_llm_gateway) is ReviewDirectLLMGateway

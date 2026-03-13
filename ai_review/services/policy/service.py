@@ -2,12 +2,12 @@ import fnmatch
 
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
-from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
+from ai_review.services.policy.types import PolicyServiceProtocol
 
 logger = get_logger("REVIEW_POLICY_SERVICE")
 
 
-class ReviewPolicyService(ReviewPolicyServiceProtocol):
+class PolicyService(PolicyServiceProtocol):
     @classmethod
     def should_review_file(cls, file: str) -> bool:
         review = settings.review
@@ -27,6 +27,23 @@ class ReviewPolicyService(ReviewPolicyServiceProtocol):
                 return True
 
         logger.debug(f"Skipping {file} (did not match any allow rule)")
+        return False
+
+    @classmethod
+    def should_agent_run_command(cls, command: str) -> bool:
+        agent = settings.agent
+        command = (command or "").strip()
+
+        if not command:
+            logger.debug("Agent command policy: blocked empty command")
+            return False
+
+        for pattern in agent.allow_commands:
+            if pattern.fullmatch(command):
+                logger.debug(f"Agent command policy: allow '{command}' (pattern: {pattern.pattern})")
+                return True
+
+        logger.debug(f"Agent command policy: block '{command}' (no pattern matched)")
         return False
 
     @classmethod

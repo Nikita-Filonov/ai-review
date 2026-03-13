@@ -4,11 +4,11 @@ from ai_review.services.cost.types import CostServiceProtocol
 from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.policy.types import PolicyServiceProtocol
 from ai_review.services.prompt.adapter import build_prompt_context_from_review_info
 from ai_review.services.prompt.types import PromptServiceProtocol
 from ai_review.services.review.gateway.types import ReviewLLMGatewayProtocol, ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.types import InlineCommentServiceProtocol
-from ai_review.services.review.internal.policy.types import ReviewPolicyServiceProtocol
 from ai_review.services.review.runner.types import ReviewRunnerProtocol
 from ai_review.services.vcs.types import ReviewInfoSchema, VCSClientProtocol
 
@@ -23,7 +23,7 @@ class InlineReviewRunner(ReviewRunnerProtocol):
             diff: DiffServiceProtocol,
             cost: CostServiceProtocol,
             prompt: PromptServiceProtocol,
-            review_policy: ReviewPolicyServiceProtocol,
+            policy: PolicyServiceProtocol,
             inline_comment: InlineCommentServiceProtocol,
             review_llm_gateway: ReviewLLMGatewayProtocol,
             review_comment_gateway: ReviewCommentGatewayProtocol,
@@ -33,7 +33,7 @@ class InlineReviewRunner(ReviewRunnerProtocol):
         self.diff = diff
         self.cost = cost
         self.prompt = prompt
-        self.review_policy = review_policy
+        self.policy = policy
         self.inline_comment = inline_comment
         self.review_llm_gateway = review_llm_gateway
         self.review_comment_gateway = review_comment_gateway
@@ -56,7 +56,7 @@ class InlineReviewRunner(ReviewRunnerProtocol):
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
 
         comments = self.inline_comment.parse_model_output(prompt_result).dedupe()
-        comments.root = self.review_policy.apply_for_inline_comments(comments.root)
+        comments.root = self.policy.apply_for_inline_comments(comments.root)
         if not comments.root:
             logger.info(f"No inline comments for file: {file}")
             return
@@ -75,7 +75,7 @@ class InlineReviewRunner(ReviewRunnerProtocol):
         review_info = await self.vcs.get_review_info()
         logger.info(f"Starting inline review: {len(review_info.changed_files)} files changed")
 
-        changed_files = self.review_policy.apply_for_files(review_info.changed_files)
+        changed_files = self.policy.apply_for_files(review_info.changed_files)
         await bounded_gather([
             self.process_file(changed_file, review_info)
             for changed_file in changed_files

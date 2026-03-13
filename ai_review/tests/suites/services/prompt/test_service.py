@@ -2,6 +2,7 @@ import pytest
 
 from ai_review.config import settings
 from ai_review.libs.config.prompt import PromptConfig
+from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema, AgentTraceSchema
 from ai_review.services.diff.schema import DiffFileSchema
 from ai_review.services.prompt.schema import PromptContextSchema
 from ai_review.services.prompt.service import PromptService
@@ -213,3 +214,57 @@ def test_build_system_inline_reply_request_returns_joined_prompts(fake_prompt_co
 def test_build_system_summary_reply_request_returns_joined_prompts(fake_prompt_context: PromptContextSchema) -> None:
     result = PromptService.build_system_summary_reply_request(fake_prompt_context)
     assert result == "SYS_SUMMARY_REPLY_A\n\nSYS_SUMMARY_REPLY_B"
+
+
+@pytest.mark.usefixtures("fake_prompts")
+def test_build_agent_request_contains_history() -> None:
+    traces = [
+        AgentTraceSchema(
+            step=AgentStepSchema(
+                action=AgentAction.TOOL_CALL,
+                command="rg foo src",
+            ),
+            iteration=1,
+            raw_output='{"action":"TOOL_CALL"}',
+            tool_output="foo.py:1: foo",
+        )
+    ]
+    result = PromptService.build_agent_request(
+        traces=traces,
+        force_final=False,
+        original_prompt="ORIGINAL_PROMPT",
+    )
+    assert "GLOBAL_AGENT" in result
+    assert "AGENT_PROMPT" in result
+    assert "## Agent mode" in result
+    assert "## Original task" in result
+    assert "ORIGINAL_PROMPT" in result
+    assert "## Agent history" in result
+    assert "Command: rg foo src" in result
+
+
+@pytest.mark.usefixtures("fake_prompts")
+def test_build_system_agent_request_appends_agent_instructions() -> None:
+    result = PromptService.build_system_agent_request("BASE_SYSTEM")
+    assert "BASE_SYSTEM" in result
+    assert "SYS_AGENT_A" in result
+    assert "SYS_AGENT_B" in result
+
+
+@pytest.mark.usefixtures("fake_prompts")
+def test_build_agent_request_force_final_mode() -> None:
+    result = PromptService.build_agent_request(
+        traces=[],
+        force_final=True,
+        original_prompt="TASK",
+    )
+    assert "## Agent mode" in result
+    assert "Return FINAL only." in result
+    assert "No previous steps." in result
+
+
+@pytest.mark.usefixtures("fake_prompts")
+def test_build_system_agent_request_handles_empty_prefix() -> None:
+    result = PromptService.build_system_agent_request("")
+    assert "SYS_AGENT_A" in result
+    assert "SYS_AGENT_B" in result

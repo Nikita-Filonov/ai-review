@@ -1,7 +1,7 @@
 import pytest
 
 from ai_review.services.llm.types import ChatResultSchema
-from ai_review.services.review.gateway.review_llm_gateway import ReviewLLMGateway
+from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
@@ -9,7 +9,7 @@ from ai_review.tests.fixtures.services.llm import FakeLLMClient
 
 @pytest.mark.asyncio
 async def test_ask_happy_path(
-        review_llm_gateway: ReviewLLMGateway,
+        review_direct_llm_gateway: ReviewDirectLLMGateway,
         fake_llm_client: FakeLLMClient,
         fake_cost_service: FakeCostService,
         fake_artifacts_service: FakeArtifactsService,
@@ -17,7 +17,7 @@ async def test_ask_happy_path(
     """Should call LLM, calculate cost, save artifacts, and return text."""
     fake_llm_client.responses["chat"] = ChatResultSchema(text="FAKE_RESPONSE")
 
-    result = await review_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
+    result = await review_direct_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
 
     assert result == "FAKE_RESPONSE"
     assert any(call[0] == "chat" for call in fake_llm_client.calls)
@@ -28,7 +28,7 @@ async def test_ask_happy_path(
 @pytest.mark.asyncio
 async def test_ask_warns_on_empty_response(
         capsys: pytest.CaptureFixture,
-        review_llm_gateway: ReviewLLMGateway,
+        review_direct_llm_gateway: ReviewDirectLLMGateway,
         fake_llm_client: FakeLLMClient,
         fake_cost_service: FakeCostService,
         fake_artifacts_service: FakeArtifactsService,
@@ -36,7 +36,7 @@ async def test_ask_warns_on_empty_response(
     """Should warn if LLM returns an empty response."""
     fake_llm_client.responses["chat"] = ChatResultSchema(text="")
 
-    result = await review_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
+    result = await review_direct_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
     output = capsys.readouterr().out
 
     assert result == ""
@@ -51,7 +51,7 @@ async def test_ask_warns_on_empty_response(
 async def test_ask_handles_llm_error(
         capsys: pytest.CaptureFixture,
         fake_llm_client: FakeLLMClient,
-        review_llm_gateway: ReviewLLMGateway,
+        review_direct_llm_gateway: ReviewDirectLLMGateway,
 ):
     """Should handle exceptions gracefully and log error."""
 
@@ -60,7 +60,7 @@ async def test_ask_handles_llm_error(
 
     fake_llm_client.chat = failing_chat
 
-    result = await review_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
+    result = await review_direct_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
     output = capsys.readouterr().out
 
     assert result is None

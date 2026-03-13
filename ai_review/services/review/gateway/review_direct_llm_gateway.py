@@ -5,10 +5,10 @@ from ai_review.services.hook import hook
 from ai_review.services.llm.types import LLMClientProtocol
 from ai_review.services.review.gateway.types import ReviewLLMGatewayProtocol
 
-logger = get_logger("REVIEW_LLM_GATEWAY")
+logger = get_logger("REVIEW_DIRECT_LLM_GATEWAY")
 
 
-class ReviewLLMGateway(ReviewLLMGatewayProtocol):
+class ReviewDirectLLMGateway(ReviewLLMGatewayProtocol):
     def __init__(
             self,
             llm: LLMClientProtocol,
