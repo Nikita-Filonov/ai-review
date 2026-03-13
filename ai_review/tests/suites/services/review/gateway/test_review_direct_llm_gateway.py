@@ -21,7 +21,10 @@ async def test_ask_happy_path(
 
     assert result == "FAKE_RESPONSE"
     assert any(call[0] == "chat" for call in fake_llm_client.calls)
-    assert any(call[0] == "calculate" for call in fake_cost_service.calls)
+    calculate_calls = [call for call in fake_cost_service.calls if call[0] == "calculate"]
+    assert len(calculate_calls) == 1
+    assert calculate_calls[0][1]["result"].prompt_tokens is None
+    assert calculate_calls[0][1]["result"].completion_tokens is None
     assert any(call[0] == "save_llm" for call in fake_artifacts_service.calls)
 
 
@@ -45,6 +48,26 @@ async def test_ask_warns_on_empty_response(
     assert any(call[0] == "chat" for call in fake_llm_client.calls)
     assert any(call[0] == "calculate" for call in fake_cost_service.calls)
     assert any(call[0] == "save_llm" for call in fake_artifacts_service.calls)
+
+
+@pytest.mark.asyncio
+async def test_ask_passes_llm_tokens_to_calculate(
+        review_direct_llm_gateway: ReviewDirectLLMGateway,
+        fake_llm_client: FakeLLMClient,
+        fake_cost_service: FakeCostService,
+):
+    fake_llm_client.responses["chat"] = ChatResultSchema(
+        text="FAKE_RESPONSE",
+        prompt_tokens=123,
+        completion_tokens=77,
+    )
+
+    result = await review_direct_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
+
+    assert result == "FAKE_RESPONSE"
+    calculate_call = next(call for call in fake_cost_service.calls if call[0] == "calculate")
+    assert calculate_call[1]["result"].prompt_tokens == 123
+    assert calculate_call[1]["result"].completion_tokens == 77
 
 
 @pytest.mark.asyncio
