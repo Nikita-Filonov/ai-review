@@ -40,6 +40,7 @@ class PromptConfig(BaseModel):
     context_placeholder: str = "<<{value}>>"
 
     # --- Prompts ---
+    agent_prompt_files: list[FilePath] | None = None
     inline_prompt_files: list[FilePath] | None = None
     context_prompt_files: list[FilePath] | None = None
     summary_prompt_files: list[FilePath] | None = None
@@ -47,6 +48,7 @@ class PromptConfig(BaseModel):
     summary_reply_prompt_files: list[FilePath] | None = None
 
     # --- System Prompts ---
+    system_agent_prompt_files: list[FilePath] | None = None
     system_inline_prompt_files: list[FilePath] | None = None
     system_context_prompt_files: list[FilePath] | None = None
     system_summary_prompt_files: list[FilePath] | None = None
@@ -54,6 +56,7 @@ class PromptConfig(BaseModel):
     system_summary_reply_prompt_files: list[FilePath] | None = None
 
     # --- Include System Prompts ---
+    include_agent_system_prompts: bool = True
     include_inline_system_prompts: bool = True
     include_context_system_prompts: bool = True
     include_summary_system_prompts: bool = True
@@ -61,6 +64,10 @@ class PromptConfig(BaseModel):
     include_summary_reply_system_prompts: bool = True
 
     # --- Prompts ---
+    @cached_property
+    def agent_prompt_files_or_default(self) -> list[Path]:
+        return resolve_prompt_files(self.agent_prompt_files, "default_agent.md")
+
     @cached_property
     def inline_prompt_files_or_default(self) -> list[Path]:
         return resolve_prompt_files(self.inline_prompt_files, "default_inline.md")
@@ -82,6 +89,14 @@ class PromptConfig(BaseModel):
         return resolve_prompt_files(self.summary_reply_prompt_files, "default_summary_reply.md")
 
     # --- System Prompts ---
+    @cached_property
+    def system_agent_prompt_files_or_default(self) -> list[Path]:
+        return resolve_system_prompt_files(
+            files=self.system_agent_prompt_files,
+            include=self.include_agent_system_prompts,
+            default_file="default_system_agent.md"
+        )
+
     @cached_property
     def system_inline_prompt_files_or_default(self) -> list[Path]:
         return resolve_system_prompt_files(
@@ -123,6 +138,9 @@ class PromptConfig(BaseModel):
         )
 
     # --- Load Prompts ---
+    def load_agent(self) -> list[str]:
+        return [file.read_text(encoding="utf-8") for file in self.agent_prompt_files_or_default]
+
     def load_inline(self) -> list[str]:
         return [file.read_text(encoding="utf-8") for file in self.inline_prompt_files_or_default]
 
@@ -139,6 +157,9 @@ class PromptConfig(BaseModel):
         return [file.read_text(encoding="utf-8") for file in self.summary_reply_prompt_files_or_default]
 
     # --- Load System Prompts ---
+    def load_system_agent(self) -> list[str]:
+        return [file.read_text(encoding="utf-8") for file in self.system_agent_prompt_files_or_default]
+
     def load_system_inline(self) -> list[str]:
         return [file.read_text(encoding="utf-8") for file in self.system_inline_prompt_files_or_default]
 
