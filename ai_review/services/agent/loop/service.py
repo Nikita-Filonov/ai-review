@@ -1,0 +1,156 @@
+from ai_review.config import settings
+from ai_review.libs.llm.output_json_parser import LLMOutputJSONParser
+from ai_review.libs.logger import get_logger
+from ai_review.services.agent.loop.schema import (
+    AgentAction,
+    AgentStepSchema,
+    AgentTraceSchema,
+    AgentLoopResultSchema
+)
+from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
+from ai_review.services.agent.tool.types import AgentToolServiceProtocol
+from ai_review.services.llm.types import LLMClientProtocol
+from ai_review.services.prompt.types import PromptServiceProtocol
+
+logger = get_logger("AGENT_LOOP_SERVICE")
+
+
+class AgentLoopService(AgentLoopServiceProtocol):
+    def __init__(
+            self,
+            llm: LLMClientProtocol,
+            prompt: PromptServiceProtocol,
+            agent_tool: AgentToolServiceProtocol,
+    ):
+        self.llm = llm
+        self.prompt = prompt
+        self.agent_tool = agent_tool
+        self.max_iterations = settings.agent.max_iterations
+        self.max_context_chars = settings.agent.max_total_context_chars
+
+        self.parser = LLMOutputJSONParser(AgentStepSchema)
+        self.traces: list[AgentTraceSchema] = []
+        self.signatures: set[str] = set()
+        self.context_used = 0
+
+    def clear(self):
+        self.traces = []
+        self.signatures = set()
+        self.context_used = 0
+
+    async def run_step(
+            self,
+            *,
+            step: AgentStepSchema,
+            iteration: int,
+            raw_output: str,
+    ) -> AgentTraceSchema:
+        if step.command in self.signatures:
+            return AgentTraceSchema(
+                step=step,
+                warning=f"Duplicate tool call blocked: {step.command}",
+                iteration=iteration,
+                raw_output=raw_output,
+            )
+
+        self.signatures.add(step.command)
+        tool_output = await self.agent_tool.execute(step.command)
+
+        return AgentTraceSchema(
+            step=step,
+            iteration=iteration,
+            raw_output=raw_output,
+            tool_output=tool_output,
+        )
+
+    async def force_final(
+            self,
+            prompt: str,
+            prompt_system: str,
+    ) -> AgentLoopResultSchema:
+        fallback_result = await self.llm.chat(
+            prompt=self.prompt.build_agent_request(
+                traces=self.traces,
+                force_final=True,
+                original_prompt=prompt
+            ),
+            prompt_system=self.prompt.build_system_agent_request(original_prompt=prompt_system),
+        )
+        fallback_text = fallback_result.text
+        fallback_step: AgentStepSchema | None = self.parser.parse_output(fallback_text)
+
+        final_text = (
+            fallback_step.content
+            if fallback_step and fallback_step.action.is_final
+            else fallback_text
+        )
+
+        self.traces.append(
+            AgentTraceSchema(
+                step=fallback_step or AgentStepSchema(action=AgentAction.FINAL, content=fallback_text),
+                warning="Forced final response after max_requests/context_limit.",
+                iteration=len(self.traces) + 1,
+                raw_output=fallback_text,
+            )
+        )
+
+        return AgentLoopResultSchema(
+            traces=self.traces,
+            final_text=final_text,
+            stop_reason="max_requests_or_context_limit",
+        )
+
+    async def run(self, prompt: str, prompt_system: str) -> AgentLoopResultSchema:
+        self.clear()
+
+        for iteration in range(1, self.max_iterations + 1):
+            result = await self.llm.chat(
+                prompt=self.prompt.build_agent_request(
+                    traces=self.traces,
+                    force_final=False,
+                    original_prompt=prompt
+                ),
+                prompt_system=self.prompt.build_system_agent_request(original_prompt=prompt_system),
+            )
+
+            step: AgentStepSchema | None = self.parser.parse_output(result.text)
+            if step is None:
+                self.traces.append(
+                    AgentTraceSchema(
+                        step=AgentStepSchema(action=AgentAction.FINAL, content=result.text),
+                        warning="Failed to parse structured action. Returning raw model output.",
+                        iteration=iteration,
+                        raw_output=result.text,
+                    )
+                )
+
+                return AgentLoopResultSchema(
+                    traces=self.traces,
+                    final_text=result.text,
+                    stop_reason="unstructured_response",
+                )
+
+            if step.action.is_final:
+                self.traces.append(
+                    AgentTraceSchema(
+                        step=step,
+                        iteration=iteration,
+                        raw_output=result.text,
+                    )
+                )
+
+                return AgentLoopResultSchema(
+                    traces=self.traces,
+                    final_text=step.content,
+                    stop_reason="final",
+                )
+
+            trace = await self.run_step(step=step, iteration=iteration, raw_output=result.text)
+            self.traces.append(trace)
+
+            self.context_used += len(trace.tool_output or "")
+            if self.context_used >= self.max_context_chars:
+                logger.info("Agent context limit reached, forcing final response")
+                break
+
+        return await self.force_final(prompt=prompt, prompt_system=prompt_system)
