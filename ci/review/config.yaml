@@ -2,7 +2,7 @@ llm:
   provider: OPENAI
 
   meta:
-    model: gpt-4o-mini
+    model: gpt-4.1
     max_tokens: 15000
     temperature: 0.3
 
@@ -17,12 +17,22 @@ vcs:
     timeout: 120
     api_url: https://api.github.com
 
+agent:
+  enabled: true
+  max_iterations: 20
+  command_timeout: 10
+  max_total_context_chars: 40000
+  max_command_output_chars: 40000
+
 prompt:
   inline_prompt_files: [ ./docs/prompts/python/inline/strict.md ]
   context_prompt_files: [ ./docs/prompts/python/inline/strict.md ]
   summary_prompt_files: [ ./docs/prompts/python/summary/strict.md ]
   inline_reply_prompt_files: [ ./docs/prompts/python/inline_reply/strict.md ]
   summary_reply_prompt_files: [ ./docs/prompts/python/summary_reply/strict.md ]
+
+logger:
+  level: DEBUG
 
 artifacts:
   llm_dir: ./artifacts/llm
