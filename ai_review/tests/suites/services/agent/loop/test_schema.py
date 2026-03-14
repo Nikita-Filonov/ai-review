@@ -40,6 +40,55 @@ def test_agent_step_normalizes_command_and_content() -> None:
     assert step_final.content == "done"
 
 
+def test_agent_step_coerces_list_content_to_json_string() -> None:
+    step = AgentStepSchema(action=AgentAction.FINAL, content=[{"file": "a.py", "line": 1}])
+    assert step.content == '[{"file": "a.py", "line": 1}]'
+
+
+def test_agent_step_coerces_dict_content_to_json_string() -> None:
+    step = AgentStepSchema(action=AgentAction.FINAL, content={"summary": "No issues"})
+    assert step.content == '{"summary": "No issues"}'
+
+
+def test_agent_step_coerces_empty_list_content_to_json_string() -> None:
+    step = AgentStepSchema(action=AgentAction.FINAL, content=[])
+    assert step.content == "[]"
+
+
+def test_agent_step_coerces_nested_content_to_json_string() -> None:
+    step = AgentStepSchema(
+        action=AgentAction.FINAL,
+        content=[{"file": "a.py", "nested": {"key": [1, 2]}}],
+    )
+    assert '"nested"' in step.content
+    assert '"key"' in step.content
+
+
+def test_agent_step_coerces_numeric_content_to_json_string() -> None:
+    step = AgentStepSchema(action=AgentAction.FINAL, content=42)
+    assert step.content == "42"
+
+
+def test_agent_step_coerces_boolean_content_to_json_string() -> None:
+    step = AgentStepSchema(action=AgentAction.FINAL, content=True)
+    assert step.content == "true"
+
+
+def test_agent_step_tool_call_rejects_whitespace_only_command() -> None:
+    with pytest.raises(ValidationError):
+        AgentStepSchema(action=AgentAction.TOOL_CALL, command="   ")
+
+
+def test_agent_step_final_rejects_whitespace_only_content() -> None:
+    with pytest.raises(ValidationError):
+        AgentStepSchema(action=AgentAction.FINAL, content="   ")
+
+
+def test_agent_step_rejects_invalid_action() -> None:
+    with pytest.raises(ValidationError):
+        AgentStepSchema(action="UNKNOWN", content="something")
+
+
 def test_agent_trace_normalizes_string_fields() -> None:
     trace = AgentTraceSchema(
         step=AgentStepSchema(action=AgentAction.TOOL_CALL, command="ls"),
