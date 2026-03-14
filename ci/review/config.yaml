@@ -17,6 +17,13 @@ vcs:
     timeout: 120
     api_url: https://api.github.com
 
+agent:
+  enabled: true
+  max_iterations: 20
+  command_timeout: 10
+  max_total_context_chars: 40000
+  max_command_output_chars: 40000
+
 prompt:
   inline_prompt_files: [ ./docs/prompts/python/inline/strict.md ]
   context_prompt_files: [ ./docs/prompts/python/inline/strict.md ]
