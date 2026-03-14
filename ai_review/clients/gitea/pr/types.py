@@ -8,8 +8,10 @@ from ai_review.clients.gitea.pr.schema.comments import (
 from ai_review.clients.gitea.pr.schema.files import GiteaGetPRFilesResponseSchema
 from ai_review.clients.gitea.pr.schema.pull_request import GiteaGetPRResponseSchema
 from ai_review.clients.gitea.pr.schema.reviews import (
+    GiteaGetReviewsResponseSchema,
     GiteaCreateReviewRequestSchema,
-    GiteaCreateReviewResponseSchema
+    GiteaCreateReviewResponseSchema,
+    GiteaGetReviewCommentsResponseSchema,
 )
 
 
@@ -19,6 +21,12 @@ class GiteaPullRequestsHTTPClientProtocol(Protocol):
     async def get_files(self, owner: str, repo: str, pull_number: str) -> GiteaGetPRFilesResponseSchema: ...
 
     async def get_comments(self, owner: str, repo: str, pull_number: str) -> GiteaGetPRCommentsResponseSchema: ...
+
+    async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GiteaGetReviewsResponseSchema: ...
+
+    async def get_review_comments(
+            self, owner: str, repo: str, pull_number: str, review_id: int
+    ) -> GiteaGetReviewCommentsResponseSchema: ...
 
     async def create_comment(
             self,
@@ -35,6 +43,8 @@ class GiteaPullRequestsHTTPClientProtocol(Protocol):
             pull_number: str,
             request: GiteaCreateReviewRequestSchema
     ) -> GiteaCreateReviewResponseSchema: ...
+
+    async def delete_review(self, owner: str, repo: str, pull_number: str, review_id: int | str) -> None: ...
 
     async def delete_issue_comment(self, owner: str, repo: str, comment_id: int | str) -> None: ...
 

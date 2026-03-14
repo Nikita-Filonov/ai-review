@@ -9,6 +9,7 @@ from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitea.adapter import (
     get_user_from_gitea_user,
     get_review_comment_from_gitea_comment,
+    get_review_comment_from_gitea_review_comment,
 )
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
@@ -74,13 +75,36 @@ class GiteaVCSClient(VCSClientProtocol):
             return []
 
     async def get_inline_comments(self) -> list[ReviewCommentSchema]:
-        comments = await self.get_general_comments()
-        if comments:
-            logger.warning(
-                f"Gitea API does not support inline comments — "
-                f"returning {len(comments)} general comments as fallback inline comments"
+        try:
+            reviews = await self.http_client.pr.get_reviews(
+                owner=self.owner, repo=self.repo, pull_number=self.pull_number
             )
-        return comments
+            logger.info(f"Fetched {len(reviews.root)} reviews for {self.pull_request_ref}")
+
+            result: list[ReviewCommentSchema] = []
+            seen_review_ids: set[int] = set()
+
+            for review in reviews.root:
+                comments = await self.http_client.pr.get_review_comments(
+                    owner=self.owner,
+                    repo=self.repo,
+                    review_id=review.id,
+                    pull_number=self.pull_number,
+                )
+                for comment in comments.root:
+                    if review.id in seen_review_ids:
+                        continue
+
+                    seen_review_ids.add(review.id)
+                    result.append(
+                        get_review_comment_from_gitea_review_comment(comment, review_id=review.id)
+                    )
+
+            logger.info(f"Fetched {len(result)} inline review comments for {self.pull_request_ref}")
+            return result
+        except Exception as error:
+            logger.exception(f"Failed to fetch inline comments for {self.pull_request_ref}: {error}")
+            return []
 
     async def create_general_comment(self, message: str) -> None:
         try:
@@ -138,16 +162,17 @@ class GiteaVCSClient(VCSClientProtocol):
 
     async def delete_inline_comment(self, comment_id: int | str) -> None:
         try:
-            logger.info(f"Deleting inline review comment {comment_id=} in PR {self.pull_request_ref}")
-            await self.http_client.pr.delete_review_comment(
+            logger.info(f"Deleting review {comment_id=} in PR {self.pull_request_ref}")
+            await self.http_client.pr.delete_review(
                 owner=self.owner,
                 repo=self.repo,
-                comment_id=comment_id,
+                pull_number=self.pull_number,
+                review_id=comment_id,
             )
-            logger.info(f"Deleted inline review comment {comment_id=} in PR {self.pull_request_ref}")
+            logger.info(f"Deleted review {comment_id=} in PR {self.pull_request_ref}")
         except Exception as error:
             logger.exception(
-                f"Failed to delete inline review comment {comment_id=} in PR {self.pull_request_ref}: {error}"
+                f"Failed to delete review {comment_id=} in PR {self.pull_request_ref}: {error}"
             )
             raise
 
