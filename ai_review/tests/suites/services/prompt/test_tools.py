@@ -167,7 +167,7 @@ def test_no_changes_when_already_clean():
 
 # ---------- format_trace ----------
 
-def test_format_trace_contains_all_fields():
+def test_format_trace_tool_call_with_output_and_warning():
     trace = AgentTraceSchema(
         step=AgentStepSchema(action=AgentAction.TOOL_CALL, command="rg foo src"),
         iteration=1,
@@ -177,11 +177,33 @@ def test_format_trace_contains_all_fields():
     )
     result = format_trace(trace)
     assert "Iteration: 1" in result
-    assert 'Model output: {"action":"TOOL_CALL","command":"rg foo src"}' in result
-    assert "Action: TOOL_CALL" in result
     assert "Command: rg foo src" in result
     assert "Tool output: foo.py:1: foo" in result
     assert "Warning: warn" in result
+    assert "Model output" not in result
+    assert "Action:" not in result
+
+
+def test_format_trace_tool_call_omits_empty_fields():
+    trace = AgentTraceSchema(
+        step=AgentStepSchema(action=AgentAction.TOOL_CALL, command="ls"),
+        iteration=1,
+        raw_output='{"action":"TOOL_CALL","command":"ls"}',
+    )
+    result = format_trace(trace)
+    assert result == "Iteration: 1\nCommand: ls"
+
+
+def test_format_trace_final_includes_content():
+    trace = AgentTraceSchema(
+        step=AgentStepSchema(action=AgentAction.FINAL, content="review done"),
+        iteration=3,
+        raw_output='{"action":"FINAL","content":"review done"}',
+    )
+    result = format_trace(trace)
+    assert "Iteration: 3" in result
+    assert "Content: review done" in result
+    assert "Command:" not in result
 
 
 def test_format_traces_for_empty_list():

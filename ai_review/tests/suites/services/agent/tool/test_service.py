@@ -75,6 +75,12 @@ async def test_execute_rejects_empty_command(agent_tool_service: AgentToolServic
 
 
 @pytest.mark.asyncio
+async def test_execute_rejects_none_command(agent_tool_service: AgentToolService) -> None:
+    result = await agent_tool_service.execute(None)  # noqa
+    assert "empty command" in result.lower()
+
+
+@pytest.mark.asyncio
 async def test_execute_returns_parse_error_for_invalid_shell_syntax(
         agent_tool_service: AgentToolService,
         fake_policy_service: FakePolicyService,
@@ -118,3 +124,31 @@ async def test_execute_returns_runtime_error(
     result = await agent_tool_service.execute("ls")
 
     assert "failed" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_captures_non_zero_exit_code(
+        tmp_path: Path,
+        agent_tool_service: AgentToolService,
+        fake_policy_service: FakePolicyService,
+) -> None:
+    fake_policy_service.responses["should_agent_run_command"] = True
+
+    result = await agent_tool_service.execute("cat nonexistent_file.txt")
+
+    assert "exit_code: 1" in result or "exit_code: 2" in result
+    assert "no such file" in result.lower() or "not found" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_captures_stderr(
+        tmp_path: Path,
+        agent_tool_service: AgentToolService,
+        fake_policy_service: FakePolicyService,
+) -> None:
+    fake_policy_service.responses["should_agent_run_command"] = True
+
+    result = await agent_tool_service.execute("ls nonexistent_dir")
+
+    assert "stderr:" in result
+    assert "no such file" in result.lower() or "not found" in result.lower()

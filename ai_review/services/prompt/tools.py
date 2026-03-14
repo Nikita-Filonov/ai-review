@@ -47,14 +47,21 @@ def normalize_prompt(text: str) -> str:
 
 
 def format_trace(trace: AgentTraceSchema) -> str:
-    return "\n".join([
-        f"Iteration: {trace.iteration}",
-        f"Model output: {trace.raw_output}",
-        f"Action: {trace.step.action}",
-        f"Command: {trace.step.command or ''}",
-        f"Tool output: {trace.tool_output or ''}",
-        f"Warning: {trace.warning or ''}",
-    ])
+    lines = [f"Iteration: {trace.iteration}"]
+
+    if trace.step.command:
+        lines.append(f"Command: {trace.step.command}")
+
+    if trace.tool_output:
+        lines.append(f"Tool output: {trace.tool_output}")
+
+    if trace.step.content:
+        lines.append(f"Content: {trace.step.content}")
+
+    if trace.warning:
+        lines.append(f"Warning: {trace.warning}")
+
+    return "\n".join(lines)
 
 
 def format_traces(traces: list[AgentTraceSchema]) -> str:

@@ -21,10 +21,16 @@ class FakePromptService(PromptServiceProtocol):
             traces: list[AgentTraceSchema],
             force_final: bool,
             original_prompt: str,
+            original_prompt_system: str,
     ) -> str:
         self.calls.append((
             "build_agent_request",
-            {"traces": traces, "force_final": force_final, "original_prompt": original_prompt}
+            {
+                "traces": traces,
+                "force_final": force_final,
+                "original_prompt": original_prompt,
+                "original_prompt_system": original_prompt_system,
+            }
         ))
         return "AGENT_LOOP_PROMPT"
 
@@ -58,8 +64,8 @@ class FakePromptService(PromptServiceProtocol):
         self.calls.append(("build_summary_reply_request", {"diffs": diffs, "thread": thread, "context": context}))
         return "SUMMARY_REPLY_PROMPT"
 
-    def build_system_agent_request(self, original_prompt: str) -> str:
-        self.calls.append(("build_system_agent_request", {"original_prompt": original_prompt}))
+    def build_system_agent_request(self) -> str:
+        self.calls.append(("build_system_agent_request", {}))
         return "SYSTEM_AGENT_PROMPT"
 
     def build_system_inline_request(self, context: PromptContextSchema) -> str:

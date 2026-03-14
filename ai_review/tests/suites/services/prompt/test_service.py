@@ -233,20 +233,22 @@ def test_build_agent_request_contains_history() -> None:
         traces=traces,
         force_final=False,
         original_prompt="ORIGINAL_PROMPT",
+        original_prompt_system="ORIGINAL_SYSTEM",
     )
     assert "GLOBAL_AGENT" in result
     assert "AGENT_PROMPT" in result
     assert "## Agent mode" in result
-    assert "## Original task" in result
+    assert "## Task output format" in result
+    assert "ORIGINAL_SYSTEM" in result
+    assert "## Task" in result
     assert "ORIGINAL_PROMPT" in result
     assert "## Agent history" in result
     assert "Command: rg foo src" in result
 
 
 @pytest.mark.usefixtures("fake_prompts")
-def test_build_system_agent_request_appends_agent_instructions() -> None:
-    result = PromptService.build_system_agent_request("BASE_SYSTEM")
-    assert "BASE_SYSTEM" in result
+def test_build_system_agent_request_returns_only_agent_instructions() -> None:
+    result = PromptService.build_system_agent_request()
     assert "SYS_AGENT_A" in result
     assert "SYS_AGENT_B" in result
 
@@ -257,14 +259,8 @@ def test_build_agent_request_force_final_mode() -> None:
         traces=[],
         force_final=True,
         original_prompt="TASK",
+        original_prompt_system="FORMAT",
     )
     assert "## Agent mode" in result
     assert "Return FINAL only." in result
     assert "No previous steps." in result
-
-
-@pytest.mark.usefixtures("fake_prompts")
-def test_build_system_agent_request_handles_empty_prefix() -> None:
-    result = PromptService.build_system_agent_request("")
-    assert "SYS_AGENT_A" in result
-    assert "SYS_AGENT_B" in result

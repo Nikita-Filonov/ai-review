@@ -1,4 +1,6 @@
+import json
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator, field_validator
 
@@ -33,6 +35,12 @@ class AgentStepSchema(BaseModel):
     @field_validator("command", "content")
     def normalize_fields(cls, value: str) -> str:
         return (value or "").strip()
+
+    @field_validator("content", mode="before")
+    def normalize_content_to_str(cls, value: Any) -> str | None:
+        if value is None or isinstance(value, str):
+            return value
+        return json.dumps(value, ensure_ascii=False)
 
 
 class AgentTraceSchema(BaseModel):

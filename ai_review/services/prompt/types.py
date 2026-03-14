@@ -15,6 +15,7 @@ class PromptServiceProtocol(Protocol):
             traces: list[AgentTraceSchema],
             force_final: bool,
             original_prompt: str,
+            original_prompt_system: str,
     ) -> str:
         ...
 
@@ -43,7 +44,7 @@ class PromptServiceProtocol(Protocol):
     ) -> str:
         ...
 
-    def build_system_agent_request(self, original_prompt: str) -> str:
+    def build_system_agent_request(self) -> str:
         ...
 
     def build_system_inline_request(self, context: PromptContextSchema) -> str:
