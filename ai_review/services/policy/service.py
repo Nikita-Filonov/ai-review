@@ -4,7 +4,7 @@ from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.policy.types import PolicyServiceProtocol
 
-logger = get_logger("REVIEW_POLICY_SERVICE")
+logger = get_logger("REVIEW_SERVICE")
 
 
 class PolicyService(PolicyServiceProtocol):
