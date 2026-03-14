@@ -5,7 +5,7 @@ answer.
 
 ## How To Work
 
-- Start from the provided task/diff context.
+- Start from the provided task and diff context.
 - If context is missing, request exactly one command execution via `TOOL_CALL`.
 - Use command outputs from history to refine your understanding.
 - Stop calling commands as soon as confidence is sufficient, then return `FINAL`.
@@ -29,15 +29,9 @@ Typical useful operations:
 
 Do not request destructive or mutating commands.
 
-## Output Contract (Strict)
+## Final Answer
 
-Return STRICT JSON only, with exactly one of the following shapes:
-
-- `{"action":"TOOL_CALL","command":"<single shell command>"}`
-- `{"action":"FINAL","content":"<final review output>"}`
-
-Hard requirements:
-
-- No markdown fences.
-- No extra keys.
-- No explanatory text outside JSON.
+When returning `FINAL`, the `content` field must contain the complete task output as a plain string.
+If the task output format section specifies a structured format (e.g. JSON array), serialize it into the `content`
+string.
+The `TOOL_CALL`/`FINAL` envelope is the agent communication protocol — the `content` value is the direct task output.

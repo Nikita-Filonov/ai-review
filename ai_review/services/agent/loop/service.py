@@ -76,9 +76,10 @@ class AgentLoopService(AgentLoopServiceProtocol):
             prompt=self.prompt.build_agent_request(
                 traces=self.traces,
                 force_final=True,
-                original_prompt=prompt
+                original_prompt=prompt,
+                original_prompt_system=prompt_system,
             ),
-            prompt_system=self.prompt.build_system_agent_request(original_prompt=prompt_system),
+            prompt_system=self.prompt.build_system_agent_request(),
         )
         fallback_text = fallback_result.text
         fallback_step: AgentStepSchema | None = self.parser.parse_output(fallback_text)
@@ -123,20 +124,25 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 prompt=self.prompt.build_agent_request(
                     traces=self.traces,
                     force_final=False,
-                    original_prompt=prompt
+                    original_prompt=prompt,
+                    original_prompt_system=prompt_system,
                 ),
-                prompt_system=self.prompt.build_system_agent_request(original_prompt=prompt_system),
+                prompt_system=self.prompt.build_system_agent_request(),
             )
 
             step: AgentStepSchema | None = self.parser.parse_output(result.text)
             if step is None:
+                fallback_text = result.text or ""
                 logger.info(f"Agent loop iteration {iteration} returned unstructured response; stopping")
                 self.traces.append(
                     AgentTraceSchema(
-                        step=AgentStepSchema(action=AgentAction.FINAL, content=result.text),
+                        step=AgentStepSchema(
+                            action=AgentAction.FINAL,
+                            content=fallback_text or "Empty model response",
+                        ),
                         warning="Failed to parse structured action. Returning raw model output.",
                         iteration=iteration,
-                        raw_output=result.text,
+                        raw_output=fallback_text,
                         total_tokens=result.total_tokens,
                         prompt_tokens=result.prompt_tokens,
                         completion_tokens=result.completion_tokens,
@@ -145,7 +151,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
 
                 return AgentLoopResultSchema(
                     traces=self.traces,
-                    final_text=result.text,
+                    final_text=fallback_text,
                     stop_reason="unstructured_response",
                 )
 

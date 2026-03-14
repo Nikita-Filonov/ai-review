@@ -30,6 +30,7 @@ class PromptService(PromptServiceProtocol):
             traces: list[AgentTraceSchema],
             force_final: bool,
             original_prompt: str,
+            original_prompt_system: str,
     ) -> str:
         mode = "Return FINAL only." if force_final else "You can either call a tool or return FINAL."
         history = format_traces(traces)
@@ -38,8 +39,9 @@ class PromptService(PromptServiceProtocol):
         return (
             f"{agent_prompt}\n\n"
             f"## Agent mode\n{mode}\n\n"
-            f"## Original task\n{original_prompt}\n\n"
-            f"## Agent history\n{history}"
+            f"## Task output format\n{original_prompt_system}\n\n"
+            f"## Task\n{original_prompt}\n\n"
+            f"## Agent history\n{history}\n\n"
         )
 
     @classmethod
@@ -109,9 +111,8 @@ class PromptService(PromptServiceProtocol):
         )
 
     @classmethod
-    def build_system_agent_request(cls, original_prompt: str) -> str:
-        agent_prompt = cls.prepare_prompt(settings.prompt.load_system_agent(), PromptContextSchema())
-        return f"{original_prompt}\n\n{agent_prompt}".strip()
+    def build_system_agent_request(cls) -> str:
+        return cls.prepare_prompt(settings.prompt.load_system_agent(), PromptContextSchema())
 
     @classmethod
     def build_system_inline_request(cls, context: PromptContextSchema) -> str:
