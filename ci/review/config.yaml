@@ -31,6 +31,9 @@ prompt:
   inline_reply_prompt_files: [ ./docs/prompts/python/inline_reply/strict.md ]
   summary_reply_prompt_files: [ ./docs/prompts/python/summary_reply/strict.md ]
 
+logger:
+  level: DEBUG
+
 artifacts:
   llm_dir: ./artifacts/llm
   vcs_dir: ./artifacts/vcs
