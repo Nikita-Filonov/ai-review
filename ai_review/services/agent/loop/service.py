@@ -72,14 +72,23 @@ class AgentLoopService(AgentLoopServiceProtocol):
             prompt_system: str,
     ) -> AgentLoopResultSchema:
         logger.info("Forcing FINAL response after loop limits reached")
+
+        agent_prompt = self.prompt.build_agent_request(
+            traces=self.traces,
+            force_final=True,
+            original_prompt=prompt,
+            original_prompt_system=prompt_system,
+        )
+        agent_prompt_system = self.prompt.build_system_agent_request()
+        logger.debug(
+            f"Force-final prompt "
+            f"(prompt_chars={len(agent_prompt)}, system_chars={len(agent_prompt_system)}, "
+            f"traces={len(self.traces)})"
+        )
+
         fallback_result = await self.llm.chat(
-            prompt=self.prompt.build_agent_request(
-                traces=self.traces,
-                force_final=True,
-                original_prompt=prompt,
-                original_prompt_system=prompt_system,
-            ),
-            prompt_system=self.prompt.build_system_agent_request(),
+            prompt=agent_prompt,
+            prompt_system=agent_prompt_system,
         )
         fallback_text = fallback_result.text
         fallback_step: AgentStepSchema | None = self.parser.parse_output(fallback_text)
@@ -120,15 +129,25 @@ class AgentLoopService(AgentLoopServiceProtocol):
 
         for iteration in range(1, self.max_iterations + 1):
             logger.debug(f"Agent loop iteration started: {iteration}")
-            result = await self.llm.chat(
-                prompt=self.prompt.build_agent_request(
-                    traces=self.traces,
-                    force_final=False,
-                    original_prompt=prompt,
-                    original_prompt_system=prompt_system,
-                ),
-                prompt_system=self.prompt.build_system_agent_request(),
+
+            agent_prompt = self.prompt.build_agent_request(
+                traces=self.traces,
+                force_final=False,
+                original_prompt=prompt,
+                original_prompt_system=prompt_system,
             )
+            agent_prompt_system = self.prompt.build_system_agent_request()
+            logger.debug(
+                f"Agent prompt for iteration {iteration} "
+                f"(prompt_chars={len(agent_prompt)}, system_chars={len(agent_prompt_system)}, "
+                f"traces={len(self.traces)})"
+            )
+            
+            result = await self.llm.chat(
+                prompt=agent_prompt,
+                prompt_system=agent_prompt_system,
+            )
+            logger.debug(f"Agent LLM response at iteration {iteration}: {result.text[:500]}")
 
             step: AgentStepSchema | None = self.parser.parse_output(result.text)
             if step is None:
