@@ -109,6 +109,19 @@
     CORE__CONCURRENCY: 7
 
     # ===============================
+    # Agent mode (optional)
+    # ===============================
+    # Enables iterative agent loop: the model can run shell commands
+    # (ls, cat, rg, git) to explore the repo before producing the review.
+    # Works best with stronger models (gpt-4.1, claude-3-opus, etc.).
+    #
+    # AGENT__ENABLED: "true"
+    # AGENT__MAX_ITERATIONS: "25"
+    # AGENT__COMMAND_TIMEOUT: "10"
+    # AGENT__MAX_TOTAL_CONTEXT_CHARS: "40000"
+    # AGENT__MAX_COMMAND_OUTPUT_CHARS: "40000"
+
+    # ===============================
     # Prompts (optional overrides)
     # ===============================
     # Whether to normalize prompts before sending to the LLM.
