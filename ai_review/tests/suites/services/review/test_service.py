@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.services.llm.types import ChatResultSchema
+from ai_review.services.cost.schema import CalculateCostSchema
 from ai_review.services.review.gateway.review_agent_llm_gateway import ReviewAgentLLMGateway
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
@@ -72,9 +72,7 @@ def test_report_total_cost_with_data(
     """Should log total cost when cost report exists."""
     fake_cost_service.reports.append(
         fake_cost_service.calculate(
-            result=ChatResultSchema(
-                text="result",
-                total_tokens=100,
+            result=CalculateCostSchema(
                 prompt_tokens=50,
                 completion_tokens=10,
             )
@@ -102,7 +100,7 @@ def test_review_service_uses_dry_run_comment_gateway(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr("ai_review.config.settings.review.dry_run", True)
 
     service = ReviewService()
-    assert type(service.review_comment_gateway) is ReviewDryRunCommentGateway
+    assert type(service.review_comment_gateway) is ReviewDryRunCommentGateway  # noqa
 
 
 def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatch):
@@ -110,13 +108,13 @@ def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr("ai_review.config.settings.review.dry_run", False)
 
     service = ReviewService()
-    assert type(service.review_comment_gateway) is ReviewCommentGateway
+    assert type(service.review_comment_gateway) is ReviewCommentGateway  # noqa
 
 
 def test_review_service_initializes_agent_components():
     service = ReviewService()
     assert service.agent_loop is not None
-    assert type(service.review_direct_llm_gateway) is ReviewDirectLLMGateway
+    assert type(service.review_direct_llm_gateway) is ReviewDirectLLMGateway  # noqa
 
 
 def test_review_service_uses_agent_gateway_when_enabled(monkeypatch: pytest.MonkeyPatch):
