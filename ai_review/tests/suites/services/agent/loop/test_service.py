@@ -23,10 +23,10 @@ def sequence_chat_results(outputs: list[ChatResultSchema]):
 
 @pytest.mark.asyncio
 async def test_run_returns_final_when_llm_returns_final(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -44,10 +44,10 @@ async def test_run_returns_final_when_llm_returns_final(
 
 @pytest.mark.asyncio
 async def test_run_returns_unstructured_response_when_json_parse_fails(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -65,10 +65,10 @@ async def test_run_returns_unstructured_response_when_json_parse_fails(
 
 @pytest.mark.asyncio
 async def test_run_executes_tool_call_then_returns_final(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -91,10 +91,10 @@ async def test_run_executes_tool_call_then_returns_final(
 
 @pytest.mark.asyncio
 async def test_run_blocks_duplicate_tool_call_signature(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -115,11 +115,11 @@ async def test_run_blocks_duplicate_tool_call_signature(
 
 @pytest.mark.asyncio
 async def test_run_forces_final_when_context_limit_reached(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_prompt_service: FakePromptService,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -144,10 +144,10 @@ async def test_run_forces_final_when_context_limit_reached(
 
 @pytest.mark.asyncio
 async def test_force_final_returns_raw_when_forced_response_is_not_final_json(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -168,10 +168,10 @@ async def test_force_final_returns_raw_when_forced_response_is_not_final_json(
 
 @pytest.mark.asyncio
 async def test_run_clears_internal_state_between_runs(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
         fake_agent_tool_service: FakeAgentToolService,
-        monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
@@ -198,10 +198,76 @@ async def test_run_clears_internal_state_between_runs(
 
 
 @pytest.mark.asyncio
-async def test_run_persists_llm_tokens_in_traces(
+async def test_run_forces_final_when_max_iterations_reached(
+        monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
+        fake_prompt_service: FakePromptService,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            '{"action":"TOOL_CALL","command":"ls"}',
+            '{"action":"TOOL_CALL","command":"cat a.py"}',
+            '{"action":"FINAL","content":"forced"}',
+        ]),
+    )
+    agent_loop_service.max_iterations = 2
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "max_requests_or_context_limit"
+    assert result.final_text == "forced"
+    assert any(
+        call[0] == "build_agent_request" and call[1]["force_final"] is True
+        for call in fake_prompt_service.calls
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_handles_coerced_list_content_as_final(
         monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat(['{"action":"FINAL","content":[]}']),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "final"
+    assert result.final_text == "[]"
+
+
+@pytest.mark.asyncio
+async def test_run_handles_empty_llm_response(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([""]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "unstructured_response"
+    assert result.final_text == ""
+    assert result.traces[0].step.content == "Empty model response"
+
+
+@pytest.mark.asyncio
+async def test_run_persists_llm_tokens_in_traces(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
 ) -> None:
     monkeypatch.setattr(
         fake_llm_client,
