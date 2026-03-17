@@ -15,6 +15,8 @@ AI-powered code review tool.
 
 _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
 
+---
+
 ## ❤️ Support the project
 
 If AI Review helps you reduce noise in pull requests and saves time in code reviews, consider supporting its
