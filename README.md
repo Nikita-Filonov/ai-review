@@ -17,7 +17,7 @@ _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
 
 ---
 
-## ❤️ Support the project
+## ❤️ Support AI Review
 
 If AI Review helps you reduce noise in pull requests and saves time in code reviews, consider supporting its
 development.
