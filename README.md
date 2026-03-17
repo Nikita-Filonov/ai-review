@@ -11,8 +11,22 @@ AI-powered code review tool.
 [![PyPI version](https://img.shields.io/pypi/v/xai-review.svg)](https://pypi.org/project/xai-review/)
 [![License](https://img.shields.io/github/license/Nikita-Filonov/ai-review)](./LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Nikita-Filonov/ai-review?style=social)](https://github.com/Nikita-Filonov/ai-review/stargazers)
+[![Support](https://img.shields.io/badge/Support-Boosty-orange)](https://boosty.to/ai_review)
 
 _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
+
+## ❤️ Support the project
+
+If AI Review helps you reduce noise in pull requests and saves time in code reviews, consider supporting its
+development.
+
+Your support helps to:
+
+- improve review accuracy and reduce false positives
+- expand integrations (GitHub, GitLab, Azure DevOps, etc.)
+- develop new features and maintain the project
+
+👉 https://boosty.to/ai_review
 
 ---
 
