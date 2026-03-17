@@ -1,7 +1,7 @@
 # AI Review
 
 <p align="center">
-  <img src="./docs/assets/logo.png" alt="Axiom logo" width="220" />
+  <img src="./docs/assets/new-logo.png" alt="Axiom logo" width="220" />
 </p>
 
 AI-powered code review tool.
