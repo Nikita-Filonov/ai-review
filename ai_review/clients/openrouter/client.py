@@ -29,7 +29,10 @@ def get_openrouter_http_client() -> OpenRouterHTTPClient:
     logger_event_hook = LoggerEventHook(logger=logger)
     retry_transport = RetryTransport(
         logger=logger,
-        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify)
+        transport=AsyncHTTPTransport(
+            proxy=settings.llm.http_client.proxy_url_value,
+            verify=settings.llm.http_client.verify
+        )
     )
 
     headers = {"Authorization": f"Bearer {settings.llm.http_client.api_token_value}"}

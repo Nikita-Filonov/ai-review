@@ -11,7 +11,8 @@
       "verify": true,
       "timeout": 120,
       "api_url": "https://api.openai.com/v1",
-      "api_token": "${OPENAI_API_KEY}"
+      "api_token": "${OPENAI_API_KEY}",
+      "proxy_url": null
     }
   },
   "vcs": {
@@ -24,7 +25,8 @@
       "verify": true,
       "timeout": 120,
       "api_url": "${CI_SERVER_URL}",
-      "api_token": "${CI_JOB_TOKEN}"
+      "api_token": "${CI_JOB_TOKEN}",
+      "proxy_url": null
     },
     "pagination": {
       "per_page": 100,

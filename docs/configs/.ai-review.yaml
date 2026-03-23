@@ -66,6 +66,14 @@ llm:
     api_url: https://api.openai.com/v1  # Base URL of the provider API
     api_token: ${OPENAI_API_KEY}        # API token (set in env/CI variables)
 
+    # --- Proxy ---
+    # Optional HTTP/HTTPS proxy URL for connecting to the LLM provider.
+    # Useful when your server cannot reach the provider directly (e.g. behind a firewall).
+    # Examples:
+    #   proxy_url: http://proxy.example.com:8080
+    #   proxy_url: https://proxy.example.com:8443
+    # proxy_url: http://proxy.example.com:8080
+
     # --- Gemini ---
     # api_url: https://generativelanguage.googleapis.com
     # api_token: ${GEMINI_API_KEY}
@@ -143,6 +151,11 @@ vcs:
     verify: true
 
     timeout: 120  # Request timeout in seconds
+
+    # --- Proxy ---
+    # Optional HTTP/HTTPS proxy URL for connecting to the VCS provider.
+    # Useful when the server cannot reach the VCS API directly (e.g. behind a firewall).
+    # proxy_url: http://proxy.example.com:8080
 
     # --- GitLab ---
     api_url: ${CI_SERVER_URL}       # Base GitLab server URL
