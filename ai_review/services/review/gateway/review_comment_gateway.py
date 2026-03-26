@@ -95,7 +95,18 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
             if settings.review.inline_comment_fallback:
                 logger.warning(f"Falling back to general comment for {comment.file}:{comment.line}")
-                await self.process_summary_comment(SummaryCommentSchema(text=comment.fallback_body))
+                await self.process_inline_fallback_comment(SummaryCommentSchema(text=comment.fallback_body))
+
+    async def process_inline_fallback_comment(self, comment: SummaryCommentSchema) -> None:
+        try:
+            await hook.emit_summary_comment_start(comment)
+            await self.vcs.create_general_comment(comment.body_with_fallback_tag)
+            await hook.emit_summary_comment_complete(comment)
+
+            await self.artifacts.save_vcs_summary(comment)
+        except Exception as error:
+            logger.exception(f"Failed to process inline fallback comment: {comment} — {error}")
+            await hook.emit_summary_comment_error(comment)
 
     async def process_summary_comment(self, comment: SummaryCommentSchema) -> None:
         try:

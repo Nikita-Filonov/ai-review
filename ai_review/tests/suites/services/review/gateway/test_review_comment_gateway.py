@@ -243,7 +243,7 @@ async def test_process_inline_comment_error_fallback(
         fake_artifacts_service: FakeArtifactsService,
         review_comment_gateway: ReviewCommentGateway,
 ):
-    """Should fall back to summary comment when inline comment fails."""
+    """Should fall back to inline fallback comment when inline comment fails."""
 
     async def failing_create_inline_comment(file: str, line: int, message: str):
         raise RuntimeError("Failed to post inline")
@@ -256,6 +256,11 @@ async def test_process_inline_comment_error_fallback(
 
     assert "Falling back to general comment" in output
     assert any(call[0] == "create_general_comment" for call in fake_vcs_client.calls)
+
+    fallback_call = next(call for call in fake_vcs_client.calls if call[0] == "create_general_comment")
+    posted_body = fallback_call[1][0]
+    assert settings.review.inline_fallback_tag in posted_body
+    assert settings.review.summary_tag not in posted_body
 
     assert all(call[0] != "save_vcs_inline" for call in fake_artifacts_service.calls)
     assert any(call[0] == "save_vcs_summary" for call in fake_artifacts_service.calls)
@@ -296,6 +301,51 @@ async def test_process_summary_comment_error(
     output = capsys.readouterr().out
 
     assert "Failed to process summary comment" in output
+
+    assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
+
+
+# === INLINE FALLBACK COMMENT ===
+
+@pytest.mark.asyncio
+async def test_process_inline_fallback_comment_happy_path(
+        fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should create general comment with inline fallback tag."""
+    comment = SummaryCommentSchema(text="**x.py:42** — missing check")
+    await review_comment_gateway.process_inline_fallback_comment(comment)
+
+    assert any(call[0] == "create_general_comment" for call in fake_vcs_client.calls)
+
+    fallback_call = next(call for call in fake_vcs_client.calls if call[0] == "create_general_comment")
+    posted_body = fallback_call[1][0]
+    assert settings.review.inline_fallback_tag in posted_body
+    assert settings.review.summary_tag not in posted_body
+
+    assert ("save_vcs_summary", {"comment": comment}) in fake_artifacts_service.calls
+
+
+@pytest.mark.asyncio
+async def test_process_inline_fallback_comment_error(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should log error if inline fallback comment creation fails."""
+
+    async def failing_create_general_comment(body: str):
+        raise RuntimeError("Backend down")
+
+    fake_vcs_client.create_general_comment = failing_create_general_comment
+
+    comment = SummaryCommentSchema(text="Broken fallback")
+    await review_comment_gateway.process_inline_fallback_comment(comment)
+    output = capsys.readouterr().out
+
+    assert "Failed to process inline fallback comment" in output
 
     assert all(call[0] != "save_vcs_summary" for call in fake_artifacts_service.calls)
 
@@ -405,3 +455,20 @@ async def test_clear_summary_comments_noop_when_no_comments(
     await review_comment_gateway.clear_summary_comments()
 
     assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_get_summary_comments_excludes_fallback_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Summary comments detection should not include fallback-tagged comments."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="10", body=f"Summary {settings.review.summary_tag}"),
+        ReviewCommentSchema(id="11", body=f"Fallback {settings.review.inline_fallback_tag}"),
+    ]
+
+    result = await review_comment_gateway.get_summary_comments()
+
+    assert len(result) == 1
+    assert result[0].id == "10"

@@ -106,6 +106,7 @@
     "dry_run": false,
     "inline_tag": "#ai-review-inline",
     "inline_reply_tag": "#ai-review-inline-reply",
+    "inline_fallback_tag": "#ai-review-inline-fallback",
     "summary_tag": "#ai-review-summary",
     "summary_reply_tag": "#ai-review-summary-reply",
     "context_lines": 10,

@@ -22,6 +22,7 @@ class ReviewConfig(BaseModel):
     dry_run: bool = False
     inline_tag: str = Field(default="#ai-review-inline")
     inline_reply_tag: str = Field(default="#ai-review-inline-reply")
+    inline_fallback_tag: str = Field(default="#ai-review-inline-fallback")
     summary_tag: str = Field(default="#ai-review-summary")
     summary_reply_tag: str = Field(default="#ai-review-summary-reply")
     context_lines: int = Field(default=10, ge=0)

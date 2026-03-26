@@ -11,5 +11,9 @@ class SummaryCommentSchema(BaseModel):
         return (value or "").strip()
 
     @property
-    def body_with_tag(self):
+    def body_with_tag(self) -> str:
         return f"{self.text}\n\n{settings.review.summary_tag}"
+
+    @property
+    def body_with_fallback_tag(self) -> str:
+        return f"{self.text}\n\n{settings.review.inline_fallback_tag}"
