@@ -13,6 +13,48 @@ T = TypeVar("T", bound=BaseModel)
 CLEAN_JSON_BLOCK_RE = re.compile(r"```(?:json)?(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
+def iter_json_candidates(raw: str):
+    """Yield each top-level balanced {...} block found in *raw*.
+
+    Handles strings with escaped quotes so that braces inside JSON string
+    values are not counted.  When the prose before the real JSON payload
+    contains stray curly braces (e.g. ``Some {note} here\\n{"key":"val"}``),
+    every candidate is yielded and the caller decides which one is valid.
+    """
+    pos = 0
+    length = len(raw)
+    while pos < length:
+        start = raw.find("{", pos)
+        if start == -1:
+            break
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, length):
+            ch = raw[i]
+            if escape:
+                escape = False
+                continue
+            if ch == "\\" and in_string:
+                escape = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    yield raw[start:i + 1]
+                    pos = i + 1
+                    break
+        else:
+            break
+
+
 class LLMOutputJSONParser(Generic[T]):
     """Reusable JSON parser for LLM responses."""
 
@@ -55,6 +97,17 @@ class LLMOutputJSONParser(Generic[T]):
         if parsed := self.try_parse(output):
             logger.info(f"[{self.model_name}] Successfully parsed")
             return parsed
+
+        for candidate in iter_json_candidates(output):
+            if candidate == output:
+                continue
+            logger.debug(
+                f"[{self.model_name}] Trying JSON candidate from noisy output "
+                f"(candidate_len={len(candidate)}, original_len={len(output)})"
+            )
+            if parsed := self.try_parse(candidate):
+                logger.info(f"[{self.model_name}] Successfully parsed JSON candidate from noisy output")
+                return parsed
 
         logger.error(f"[{self.model_name}] No valid JSON found in output")
         return None
