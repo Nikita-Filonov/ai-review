@@ -26,6 +26,7 @@ class OpenAIResponseOutputSchema(BaseModel):
 class OpenAIResponsesRequestSchema(BaseModel):
     model: str
     input: list[OpenAIInputMessageSchema]
+    stream: bool = False
     temperature: float | None = None
     instructions: str | None = None
     max_output_tokens: int | None = None
