@@ -4,11 +4,12 @@ from ai_review.clients.bitbucket_server.client import get_bitbucket_server_http_
 from ai_review.clients.bitbucket_server.pr.schema.comments import (
     BitbucketServerCommentAnchorSchema,
     BitbucketServerCommentParentSchema,
-    BitbucketServerCreatePRCommentRequestSchema
+    BitbucketServerCreatePRCommentRequestSchema,
 )
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.bitbucket_server.adapter import get_review_comment_from_bitbucket_server_comment
+from ai_review.services.vcs.bitbucket_server.tools import get_comments_from_activities
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     ThreadKind,
@@ -88,17 +89,18 @@ class BitbucketServerVCSClient(VCSClientProtocol):
     # --- Comments ---
     async def get_general_comments(self) -> list[ReviewCommentSchema]:
         try:
-            response = await self.http_client.pr.get_comments(
+            response = await self.http_client.pr.get_activities(
                 project_key=self.project_key,
                 repo_slug=self.repo_slug,
                 pull_request_id=self.pull_request_id,
             )
+            comments = get_comments_from_activities(response.values)
             logger.info(f"Fetched general comments for {self.pull_request_ref}")
 
             return [
                 get_review_comment_from_bitbucket_server_comment(comment)
-                for comment in response.values
-                if comment.anchor is None  # нет привязки к файлу/строке — значит общий комментарий
+                for comment in comments
+                if comment.anchor is None
             ]
         except Exception as error:
             logger.exception(f"Failed to fetch general comments for {self.pull_request_ref}: {error}")
@@ -106,16 +108,17 @@ class BitbucketServerVCSClient(VCSClientProtocol):
 
     async def get_inline_comments(self) -> list[ReviewCommentSchema]:
         try:
-            response = await self.http_client.pr.get_comments(
+            response = await self.http_client.pr.get_activities(
                 project_key=self.project_key,
                 repo_slug=self.repo_slug,
                 pull_request_id=self.pull_request_id,
             )
+            comments = get_comments_from_activities(response.values)
             logger.info(f"Fetched inline comments for {self.pull_request_ref}")
 
             return [
                 get_review_comment_from_bitbucket_server_comment(comment)
-                for comment in response.values
+                for comment in comments
                 if comment.anchor is not None and comment.anchor.path is not None
             ]
         except Exception as error:

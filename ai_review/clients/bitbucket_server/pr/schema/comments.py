@@ -27,24 +27,6 @@ class BitbucketServerCommentSchema(BaseModel):
     updated_date: int = Field(alias="updatedDate")
 
 
-class BitbucketServerGetPRCommentsQuerySchema(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    start: int = 0
-    limit: int = 100
-
-
-class BitbucketServerGetPRCommentsResponseSchema(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    size: int
-    limit: int
-    start: int
-    values: list[BitbucketServerCommentSchema]
-    is_last_page: bool = Field(alias="isLastPage")
-    next_page_start: int | None = Field(default=None, alias="nextPageStart")
-
-
 class BitbucketServerCreatePRCommentRequestSchema(BaseModel):
     text: str
     parent: BitbucketServerCommentParentSchema | None = None

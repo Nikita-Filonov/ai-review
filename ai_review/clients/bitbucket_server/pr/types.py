@@ -1,10 +1,10 @@
 from typing import Protocol
 
+from ai_review.clients.bitbucket_server.pr.schema.activities import BitbucketServerGetPRActivitiesResponseSchema
 from ai_review.clients.bitbucket_server.pr.schema.changes import BitbucketServerGetPRChangesResponseSchema
 from ai_review.clients.bitbucket_server.pr.schema.comments import (
-    BitbucketServerGetPRCommentsResponseSchema,
     BitbucketServerCreatePRCommentRequestSchema,
-    BitbucketServerCreatePRCommentResponseSchema
+    BitbucketServerCreatePRCommentResponseSchema,
 )
 from ai_review.clients.bitbucket_server.pr.schema.pull_request import BitbucketServerGetPRResponseSchema
 
@@ -26,12 +26,12 @@ class BitbucketServerPullRequestsHTTPClientProtocol(Protocol):
     ) -> BitbucketServerGetPRChangesResponseSchema:
         ...
 
-    async def get_comments(
+    async def get_activities(
             self,
             project_key: str,
             repo_slug: str,
             pull_request_id: int,
-    ) -> BitbucketServerGetPRCommentsResponseSchema:
+    ) -> BitbucketServerGetPRActivitiesResponseSchema:
         ...
 
     async def create_comment(
