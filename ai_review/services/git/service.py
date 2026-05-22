@@ -34,7 +34,7 @@ class GitService(GitServiceProtocol):
             raise
 
     def get_diff(self, base_sha: str, head_sha: str, unified: int = 3) -> str:
-        return self.run_git("diff", f"--unified={unified}", base_sha, head_sha)
+        return self.run_git("diff", f"--unified={unified}", "--end-of-options", base_sha, head_sha)
 
     def get_diff_for_file(self, base_sha: str, head_sha: str, file: str, unified: int = 3) -> str:
         if not file:
@@ -42,14 +42,14 @@ class GitService(GitServiceProtocol):
             return ""
 
         logger.debug(f"Generating diff for {file} between {base_sha}..{head_sha}")
-        output = self.run_git("diff", f"--unified={unified}", base_sha, head_sha, "--", file)
+        output = self.run_git("diff", f"--unified={unified}", "--end-of-options", base_sha, head_sha, "--", file)
         if not output.strip():
             logger.info(f"No diff found for {file} (possibly deleted or not tracked)")
 
         return output
 
     def get_changed_files(self, base_sha: str, head_sha: str) -> list[str]:
-        output = self.run_git("diff", "--name-only", base_sha, head_sha)
+        output = self.run_git("diff", "--name-only", "--end-of-options", base_sha, head_sha)
         files = [line.strip() for line in output.splitlines() if line.strip()]
         logger.debug(f"Changed files between {base_sha}..{head_sha}: {files}")
         return files
