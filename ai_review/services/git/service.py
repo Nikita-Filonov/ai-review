@@ -60,7 +60,7 @@ class GitService(GitServiceProtocol):
             return None
 
         try:
-            return self.run_git("show", f"{sha}:{file_path}")
+            return self.run_git("show", "--end-of-options", f"{sha}:{file_path}")
         except subprocess.CalledProcessError as e:
             logger.warning(f"File '{file_path}' not found in commit {sha}: {e.stderr.strip()}")
             return None
