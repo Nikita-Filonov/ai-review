@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 
+from ai_review.services.git.service import GitService
 from ai_review.services.git.types import GitServiceProtocol
 
 
@@ -27,6 +28,10 @@ class FakeGitService(GitServiceProtocol):
         self.calls.append(("get_changed_files", {"base_sha": base_sha, "head_sha": head_sha}))
         return self.responses.get("get_changed_files", [])
 
+    def get_renamed_files(self, base_sha: str, head_sha: str) -> list[str]:
+        self.calls.append(("get_renamed_files", {"base_sha": base_sha, "head_sha": head_sha}))
+        return self.responses.get("get_renamed_files", [])
+
     def get_file_at_commit(self, file_path: str, sha: str) -> str | None:
         self.calls.append(("get_file_at_commit", {"file_path": file_path, "sha": sha}))
         return self.responses.get("get_file_at_commit", None)
@@ -35,3 +40,8 @@ class FakeGitService(GitServiceProtocol):
 @pytest.fixture
 def fake_git_service() -> FakeGitService:
     return FakeGitService()
+
+
+@pytest.fixture
+def git_service() -> GitService:
+    return GitService()

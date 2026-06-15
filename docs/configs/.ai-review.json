@@ -112,6 +112,7 @@
     "context_lines": 10,
     "allow_changes": [],
     "ignore_changes": [],
+    "ignore_pure_renames": true,
     "review_added_marker": " # added",
     "review_removed_marker": " # removed",
     "max_inline_comments": null,

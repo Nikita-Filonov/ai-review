@@ -528,6 +528,10 @@ review:
   allow_changes: [ ]   # List of glob patterns to explicitly allow review (empty = all allowed)
   ignore_changes: [ ]  # List of glob patterns to ignore, e.g. ["docs/*", "README.md"]
 
+  # Skip files that were only renamed/moved without content changes.
+  # Rename + content changes are still reviewed.
+  ignore_pure_renames: true
+
   # Marker used to annotate changed lines in output.
   review_added_marker: " # added"
   review_removed_marker: " # removed"

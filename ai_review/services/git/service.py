@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 
+from ai_review.config import settings
 from ai_review.libs.logger import get_logger
 from ai_review.services.git.types import GitServiceProtocol
 
@@ -41,12 +42,30 @@ class GitService(GitServiceProtocol):
             logger.warning(f"Skipping git diff for empty filename (base={base_sha}, head={head_sha})")
             return ""
 
+        if settings.review.ignore_pure_renames:
+            renamed_files = self.get_renamed_files(base_sha=base_sha, head_sha=head_sha)
+            if file in renamed_files:
+                logger.info(f"Skipping pure renamed file: {file}")
+                return ""
+
         logger.debug(f"Generating diff for {file} between {base_sha}..{head_sha}")
         output = self.run_git("diff", f"--unified={unified}", base_sha, head_sha, "--", file)
         if not output.strip():
             logger.info(f"No diff found for {file} (possibly deleted or not tracked)")
 
         return output
+
+    def get_renamed_files(self, base_sha: str, head_sha: str) -> list[str]:
+        output = self.run_git(
+            "diff",
+            "--name-only",
+            "--diff-filter=R",
+            "--find-renames=100%",
+            "-z",
+            base_sha,
+            head_sha,
+        )
+        return [file_path for file_path in output.split("\0") if file_path]
 
     def get_changed_files(self, base_sha: str, head_sha: str) -> list[str]:
         output = self.run_git("diff", "--name-only", base_sha, head_sha)

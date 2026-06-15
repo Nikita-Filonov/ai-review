@@ -28,6 +28,7 @@ class ReviewConfig(BaseModel):
     context_lines: int = Field(default=10, ge=0)
     allow_changes: list[str] = Field(default_factory=list)
     ignore_changes: list[str] = Field(default_factory=list)
+    ignore_pure_renames: bool = True
     review_added_marker: str = " # added"
     review_removed_marker: str = " # removed"
     max_inline_comments: int | None = None
