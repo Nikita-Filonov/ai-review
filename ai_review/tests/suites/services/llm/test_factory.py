@@ -1,5 +1,6 @@
 import pytest
 
+from ai_review.services.llm.atlascloud.client import AtlasCloudLLMClient
 from ai_review.services.llm.azure_openai.client import AzureOpenAILLMClient
 from ai_review.services.llm.bedrock.client import BedrockLLMClient
 from ai_review.services.llm.claude.client import ClaudeLLMClient
@@ -50,6 +51,12 @@ def test_get_llm_client_returns_openrouter(monkeypatch: pytest.MonkeyPatch):
 def test_get_llm_client_returns_azure_openai(monkeypatch: pytest.MonkeyPatch):
     client = get_llm_client()
     assert isinstance(client, AzureOpenAILLMClient)
+
+
+@pytest.mark.usefixtures("atlascloud_http_client_config")
+def test_get_llm_client_returns_atlascloud(monkeypatch: pytest.MonkeyPatch):
+    client = get_llm_client()
+    assert isinstance(client, AtlasCloudLLMClient)
 
 
 def test_get_llm_client_unsupported_provider(monkeypatch: pytest.MonkeyPatch):

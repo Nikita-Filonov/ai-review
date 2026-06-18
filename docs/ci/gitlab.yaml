@@ -15,7 +15,7 @@
     # LLM provider & model
     # ===============================
     # Which LLM to use.
-    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
+    # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI | ATLASCLOUD
     LLM__PROVIDER: "OPENAI"
 
     # --- Model metadata ---
@@ -25,6 +25,7 @@
     # For Ollama: llama2, codellama, mistral, etc.
     # For Bedrock: anthropic.claude-3-sonnet-20240229-v1:0, meta.llama3-70b-instruct-v1:0, amazon.titan-text-premier-v1:0, etc.
     # For OpenRouter: anthropic/claude-3.5-sonnet, meta-llama/llama-3-70b-instruct, mistralai/mixtral-8x7b, etc.
+    # For Atlas Cloud: deepseek-ai/deepseek-v4-pro, and 300+ other models (DeepSeek, Qwen, Claude, GPT, Gemini, ...)
     # For Azure OpenAI: <deployment-name> (NOT model name!)
     LLM__META__MODEL: "gpt-4o-mini"
 
@@ -66,6 +67,10 @@
     # LLM__HTTP_CLIENT__API_URL: "https://<your-resource>.openai.azure.com"
     # LLM__HTTP_CLIENT__API_TOKEN: "$AZURE_OPENAI_API_KEY"
     # LLM__HTTP_CLIENT__API_VERSION: "2024-06-01"
+
+    # Example for Atlas Cloud (OpenAI-compatible):
+    # LLM__HTTP_CLIENT__API_URL: "https://api.atlascloud.ai/v1"
+    # LLM__HTTP_CLIENT__API_TOKEN: "$ATLASCLOUD_API_KEY"
 
     # ===============================
     # VCS (GitLab integration)

@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI | ATLASCLOUD
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -55,6 +55,13 @@ llm:
     # max_tokens: 1200
     # temperature: 0.3
 
+    # --- Atlas Cloud (OpenAI-compatible) ---
+    # model: deepseek-ai/deepseek-v4-pro   # 300+ models: DeepSeek, Qwen, Claude, GPT, Gemini, ...
+    # max_tokens: 1200
+    # temperature: 0.3
+    # title: "AI Review"                   # (optional) project title for analytics
+    # referer: "https://your-domain.com"   # (optional) referer URL for analytics
+
   # HTTP client configuration for LLM.
   http_client:
     # SSL verification:
@@ -102,6 +109,10 @@ llm:
     # api_url: https://<your-resource>.openai.azure.com
     # api_token: ${AZURE_OPENAI_API_KEY}
     # api_version: 2024-06-01
+
+    # --- Atlas Cloud ---
+    # api_url: https://api.atlascloud.ai/v1
+    # api_token: ${ATLASCLOUD_API_KEY}
 
 vcs:
   # Version control system provider.

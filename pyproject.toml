@@ -20,6 +20,7 @@ keywords = [
     "ollama",
     "bedrock",
     "openrouter",
+    "atlascloud",
     "ci/cd",
     "gitlab",
     "github",
@@ -44,7 +45,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
-description = "AI-powered code review tool for GitHub, GitLab, Bitbucket Cloud, Bitbucket Server, Azure DevOps and Gitea — built with LLMs like OpenAI, Claude, Gemini, Ollama, Bedrock, OpenRouter and Azure OpenAI"
+description = "AI-powered code review tool for GitHub, GitLab, Bitbucket Cloud, Bitbucket Server, Azure DevOps and Gitea — built with LLMs like OpenAI, Claude, Gemini, Ollama, Bedrock, OpenRouter, Azure OpenAI and Atlas Cloud"
 dependencies = [
     "typer",
     "httpx",

@@ -115,3 +115,8 @@ meta-llama/llama-3-8b-instruct:
 meta-llama/llama-3-70b-instruct:
   input: 0.75e-6
   output: 1.50e-6
+
+# --- Atlas Cloud (https://api.atlascloud.ai/v1) ---
+deepseek-ai/deepseek-v4-pro:
+  input: 0.27e-6
+  output: 1.10e-6

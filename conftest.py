@@ -34,6 +34,7 @@ pytest_plugins = (
     "ai_review.tests.fixtures.clients.ollama",
     "ai_review.tests.fixtures.clients.bedrock",
     "ai_review.tests.fixtures.clients.openrouter",
+    "ai_review.tests.fixtures.clients.atlascloud",
     "ai_review.tests.fixtures.clients.azure_openai",
     "ai_review.tests.fixtures.clients.azure_devops",
     "ai_review.tests.fixtures.clients.bitbucket_cloud",
