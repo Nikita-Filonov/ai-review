@@ -107,10 +107,12 @@ def test_chat_request_schema_builds_ok():
             AzureOpenAIMessage(role="user", content="hello"),
         ],
         max_tokens=500,
+        max_completion_tokens=700,
         temperature=0.4,
     )
 
     assert req.messages[0].role == "system"
     assert req.messages[1].content == "hello"
     assert req.max_tokens == 500
+    assert req.max_completion_tokens == 700
     assert req.temperature == 0.4
