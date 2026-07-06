@@ -11,6 +11,7 @@ from ai_review.libs.config.llm.gemini import GeminiHTTPClientConfig, GeminiMetaC
 from ai_review.libs.config.llm.ollama import OllamaHTTPClientConfig, OllamaMetaConfig
 from ai_review.libs.config.llm.openai import OpenAIHTTPClientConfig, OpenAIMetaConfig
 from ai_review.libs.config.llm.openrouter import OpenRouterHTTPClientConfig, OpenRouterMetaConfig
+from ai_review.libs.config.llm.requesty import RequestyHTTPClientConfig, RequestyMetaConfig
 from ai_review.libs.constants.llm_provider import LLMProvider
 from ai_review.libs.resources import load_resource
 
@@ -77,6 +78,12 @@ class OpenRouterLLMConfig(LLMConfigBase):
     http_client: OpenRouterHTTPClientConfig
 
 
+class RequestyLLMConfig(LLMConfigBase):
+    meta: RequestyMetaConfig
+    provider: Literal[LLMProvider.REQUESTY]
+    http_client: RequestyHTTPClientConfig
+
+
 class AzureOpenAILLMConfig(LLMConfigBase):
     meta: AzureOpenAIMetaConfig
     provider: Literal[LLMProvider.AZURE_OPENAI]
@@ -90,6 +97,7 @@ LLMConfig = Annotated[
     | OllamaLLMConfig
     | BedrockLLMConfig
     | OpenRouterLLMConfig
+    | RequestyLLMConfig
     | AzureOpenAILLMConfig,
     Field(discriminator="provider")
 ]

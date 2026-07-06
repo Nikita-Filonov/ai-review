@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | REQUESTY | AZURE_OPENAI
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -49,6 +49,13 @@ llm:
     # temperature: 0.3
     # title: "AI Review"                   # (optional) project title for analytics
     # referer: "https://your-domain.com"   # (optional) referer URL for analytics
+
+    # --- Requesty ---
+    # model: openai/gpt-4o-mini            # provider/model naming, or any other available model
+    # max_tokens: 1200
+    # temperature: 0.3
+    # title: "AI Review"                   # (optional) project title for analytics (X-Title)
+    # referer: "https://your-domain.com"   # (optional) referer URL for analytics (HTTP-Referer)
 
     # --- Azure OpenAI ---
     # model: gpt-4o-mini  # IMPORTANT: In Azure, the `model` field specifies the *deployment name*, not an OpenAI model ID.
@@ -97,6 +104,10 @@ llm:
     # --- OpenRouter ---
     # api_url: https://openrouter.ai/api/v1
     # api_token: ${OPENROUTER_API_KEY}
+
+    # --- Requesty ---
+    # api_url: https://router.requesty.ai/v1
+    # api_token: ${REQUESTY_API_KEY}   # create keys at https://app.requesty.ai/api-keys
 
     # --- Azure OpenAI ---
     # api_url: https://<your-resource>.openai.azure.com
