@@ -31,6 +31,10 @@
     # (optional) Max tokens for completion.
     LLM__META__MAX_TOKENS: "15000"
 
+    # (optional) For Azure OpenAI with newer models (gpt-5, o1, o3, etc.),
+    # use MAX_COMPLETION_TOKENS instead of MAX_TOKENS (they are mutually exclusive).
+    # LLM__META__MAX_COMPLETION_TOKENS: "15000"
+
     # (optional) Creativity of responses (0 = deterministic, >0 = more creative).
     LLM__META__TEMPERATURE: "0.3"
 

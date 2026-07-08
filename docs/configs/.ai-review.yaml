@@ -52,8 +52,10 @@ llm:
 
     # --- Azure OpenAI ---
     # model: gpt-4o-mini  # IMPORTANT: In Azure, the `model` field specifies the *deployment name*, not an OpenAI model ID.
-    # max_tokens: 1200
+    # max_tokens: 1200              # (optional) Token limit for older models (gpt-4o, gpt-4o-mini, etc.)
+    # max_completion_tokens: 1200   # (optional) Token limit for newer models (gpt-5, o1, o3, etc.)
     # temperature: 0.3
+    # NOTE: max_tokens and max_completion_tokens are mutually exclusive — set only one.
 
   # HTTP client configuration for LLM.
   http_client:

@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.68.0
+# Marketplace Action: Nikita-Filonov/ai-review@v0.69.0
 # ===============================
 
 name: AI Review
@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.68.0
+        uses: Nikita-Filonov/ai-review@v0.69.0
         env:
           # ===============================
           # LLM provider & model
@@ -75,6 +75,10 @@ jobs:
 
           # (optional) Max tokens for completion.
           LLM__META__MAX_TOKENS: "15000"
+
+          # (optional) For Azure OpenAI with newer models (gpt-5, o1, o3, etc.),
+          # use MAX_COMPLETION_TOKENS instead of MAX_TOKENS (they are mutually exclusive).
+          # LLM__META__MAX_COMPLETION_TOKENS: "15000"
 
           # (optional) Creativity of responses (0 = deterministic, >0 = more creative).
           LLM__META__TEMPERATURE: "0.3"
