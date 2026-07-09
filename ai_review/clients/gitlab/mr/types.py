@@ -7,6 +7,10 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabCreateMRDiscussionResponseSchema,
     GitLabCreateMRDiscussionReplyResponseSchema
 )
+from ai_review.clients.gitlab.mr.schema.draft_notes import (
+    GitLabDraftNoteSchema,
+    GitLabCreateMRDraftNoteRequestSchema,
+)
 from ai_review.clients.gitlab.mr.schema.notes import GitLabGetMRNotesResponseSchema, GitLabCreateMRNoteResponseSchema
 
 
@@ -44,3 +48,12 @@ class GitLabMergeRequestsHTTPClientProtocol(Protocol):
     ) -> GitLabCreateMRDiscussionReplyResponseSchema: ...
 
     async def delete_note(self, project_id: str, merge_request_id: str, note_id: str) -> None: ...
+
+    async def create_draft_note(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            request: GitLabCreateMRDraftNoteRequestSchema,
+    ) -> GitLabDraftNoteSchema: ...
+
+    async def bulk_publish_draft_notes(self, project_id: str, merge_request_id: str) -> None: ...
