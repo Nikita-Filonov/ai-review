@@ -1,7 +1,13 @@
 import pytest
 
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
+from ai_review.services.vcs.types import (
+    ReviewInfoSchema,
+    ReviewCommentSchema,
+    ReviewThreadSchema,
+    ThreadKind,
+    SupportsBatchedComments,
+)
 from ai_review.tests.fixtures.clients.gitlab import FakeGitLabMergeRequestsHTTPClient
 
 
@@ -277,3 +283,141 @@ async def test_delete_inline_comment_calls_delete_discussion(
     assert call_args["note_id"] == str(note_id)
     assert call_args["project_id"] == "project-id"
     assert call_args["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_creates_draft_note_when_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should create a draft note instead of a discussion when batch_comments is enabled."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Batched comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert "create_discussion" not in called_methods
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    ]
+    assert len(calls) == 1
+    call_args = calls[0]
+
+    assert call_args["note"] == "Batched comment"
+    assert call_args["project_id"] == "project-id"
+    assert call_args["merge_request_id"] == "merge-request-id"
+    assert call_args["position"].new_path == "src/app.py"
+    assert call_args["position"].new_line == 12
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_creates_discussion_by_default(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep posting discussions when batch_comments is disabled (default)."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Immediate comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_discussion" in called_methods
+    assert "create_draft_note" not in called_methods
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_bulk_publishes_pending_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should bulk publish once pending draft notes exist and reset the counter."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Comment A")
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=14, message="Comment B")
+
+    await gitlab_vcs_client.publish_comments()
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "bulk_publish_draft_notes"
+    ]
+    assert len(calls) == 1
+    assert calls[0]["project_id"] == "project-id"
+    assert calls[0]["merge_request_id"] == "merge-request-id"
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_noop_without_pending_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not call the API when no draft notes were created."""
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_publish_comments_noop_when_batching_disabled(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not call the API when batch_comments is disabled."""
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_general_comment_creates_draft_note_when_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should create a positionless draft note instead of a note when batch_comments is enabled."""
+    await gitlab_vcs_client.create_general_comment("Batched summary")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert "create_note" not in called_methods
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    ]
+    assert len(calls) == 1
+    assert calls[0]["note"] == "Batched summary"
+    assert calls[0]["position"] is None
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_covers_inline_and_general_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should count inline and general drafts together and bulk publish once."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Inline")
+    await gitlab_vcs_client.create_general_comment("Summary")
+    assert gitlab_vcs_client.pending_comments == 2
+
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("bulk_publish_draft_notes") == 1
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.usefixtures("gitlab_http_client_config")
+def test_gitlab_client_has_batching_capability(gitlab_vcs_client: GitLabVCSClient):
+    """GitLabVCSClient should expose the optional SupportsBatchedComments capability."""
+    assert isinstance(gitlab_vcs_client, SupportsBatchedComments)
