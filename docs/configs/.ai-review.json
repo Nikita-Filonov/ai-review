@@ -17,6 +17,7 @@
   },
   "vcs": {
     "provider": "GITLAB",
+    "batch_comments": false,
     "pipeline": {
       "project_id": "${CI_PROJECT_ID}",
       "merge_request_id": "${CI_MERGE_REQUEST_IID}"
