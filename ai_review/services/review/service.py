@@ -129,6 +129,15 @@ class ReviewService:
             review_comment_gateway=self.review_comment_gateway
         )
 
+    async def __aenter__(self) -> "ReviewService":
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        # Finalize even when the pipeline failed, so comments already
+        # accumulated in a pending batch (e.g. GitLab draft notes) are
+        # published instead of lingering invisibly as drafts.
+        await self.review_comment_gateway.finalize()
+
     async def run_inline_review(self) -> None:
         await self.inline_review_runner.run()
 

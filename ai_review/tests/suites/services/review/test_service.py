@@ -7,6 +7,7 @@ from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDi
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.service import ReviewService
 from ai_review.tests.fixtures.services.cost import FakeCostService
+from ai_review.tests.fixtures.services.review.gateway.review_comment_gateway import FakeReviewCommentGateway
 from ai_review.tests.fixtures.services.review.runner.context import FakeContextReviewRunner
 from ai_review.tests.fixtures.services.review.runner.inline import FakeInlineReviewRunner
 from ai_review.tests.fixtures.services.review.runner.inline_reply import FakeInlineReplyReviewRunner
@@ -127,3 +128,28 @@ def test_review_service_uses_default_gateway_when_agent_disabled(monkeypatch: py
     monkeypatch.setattr("ai_review.config.settings.agent.enabled", False)
     service = ReviewService()
     assert type(service.review_llm_gateway) is ReviewDirectLLMGateway
+
+
+@pytest.mark.asyncio
+async def test_context_manager_finalizes_gateway(review_service: ReviewService):
+    """Leaving the ReviewService context should finalize the comment gateway."""
+    fake_gateway = FakeReviewCommentGateway()
+    review_service.review_comment_gateway = fake_gateway
+
+    async with review_service:
+        assert not any(call[0] == "finalize" for call in fake_gateway.calls)
+
+    assert any(call[0] == "finalize" for call in fake_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_context_manager_finalizes_gateway_on_error(review_service: ReviewService):
+    """Should finalize the comment gateway even when the pipeline raises."""
+    fake_gateway = FakeReviewCommentGateway()
+    review_service.review_comment_gateway = fake_gateway
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with review_service:
+            raise RuntimeError("boom")
+
+    assert any(call[0] == "finalize" for call in fake_gateway.calls)

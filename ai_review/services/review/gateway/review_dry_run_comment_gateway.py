@@ -50,6 +50,9 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         await bounded_gather([self.process_inline_comment(comment) for comment in comments.root])
 
+    async def finalize(self) -> None:
+        logger.info("[dry-run] Would publish batched comments")
+
     async def clear_inline_comments(self) -> None:
         await hook.emit_clear_inline_comments_start()
 
