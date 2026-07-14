@@ -3,18 +3,27 @@ from typer.testing import CliRunner
 
 from ai_review.cli.main import app
 from ai_review.services.review.service import ReviewService
+from ai_review.tests.fixtures.services.review.gateway.review_comment_gateway import FakeReviewCommentGateway
 
 runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def dummy_review_service(monkeypatch: pytest.MonkeyPatch, review_service: ReviewService):
+def dummy_review_service(
+        monkeypatch: pytest.MonkeyPatch,
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
     monkeypatch.setattr("ai_review.cli.commands.run_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_inline_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_context_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_summary_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_inline_reply_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_summary_reply_review.ReviewService", lambda: review_service)
+    monkeypatch.setattr("ai_review.cli.commands.run_clear_inline_review.ReviewService", lambda: review_service)
+    monkeypatch.setattr("ai_review.cli.commands.run_clear_summary_review.ReviewService", lambda: review_service)
 
 
 @pytest.mark.parametrize(
@@ -28,7 +37,11 @@ def dummy_review_service(monkeypatch: pytest.MonkeyPatch, review_service: Review
         (["run-summary-reply"], "Starting summary reply AI review..."),
     ],
 )
-def test_cli_commands_invoke_review_service_successfully(args: list[str], expected_output: str):
+def test_cli_commands_invoke_review_service_successfully(
+        args: list[str],
+        expected_output: str,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
     """
     Ensure CLI commands correctly call the ReviewService with fake dependencies.
     """
@@ -37,6 +50,31 @@ def test_cli_commands_invoke_review_service_successfully(args: list[str], expect
     assert result.exit_code == 0
     assert expected_output in result.output
     assert "AI review completed successfully!" in result.output
+    assert [call[0] for call in fake_review_comment_gateway.calls].count("finalize") == 1
+
+
+@pytest.mark.parametrize(
+    "args, expected_output, expected_call",
+    [
+        (["clear-inline"], "Clearing inline AI review comments...", "clear_inline_comments"),
+        (["clear-summary"], "Clearing summary AI review comments...", "clear_summary_comments"),
+    ],
+)
+def test_cli_clear_commands_do_not_finalize_review(
+        args: list[str],
+        expected_output: str,
+        expected_call: str,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """
+    Ensure cleanup commands run without entering the review finalization lifecycle.
+    """
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 0
+    assert expected_output in result.output
+    assert any(call[0] == expected_call for call in fake_review_comment_gateway.calls)
+    assert all(call[0] != "finalize" for call in fake_review_comment_gateway.calls)
 
 
 def test_show_config_outputs_json(monkeypatch: pytest.MonkeyPatch):

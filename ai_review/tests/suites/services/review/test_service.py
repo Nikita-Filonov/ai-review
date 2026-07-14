@@ -131,25 +131,55 @@ def test_review_service_uses_default_gateway_when_agent_disabled(monkeypatch: py
 
 
 @pytest.mark.asyncio
-async def test_context_manager_finalizes_gateway(review_service: ReviewService):
+async def test_context_manager_finalizes_gateway(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
     """Leaving the ReviewService context should finalize the comment gateway."""
-    fake_gateway = FakeReviewCommentGateway()
-    review_service.review_comment_gateway = fake_gateway
+    review_service.review_comment_gateway = fake_review_comment_gateway
 
     async with review_service:
-        assert not any(call[0] == "finalize" for call in fake_gateway.calls)
+        assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
 
-    assert any(call[0] == "finalize" for call in fake_gateway.calls)
+    assert any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
 
 
 @pytest.mark.asyncio
-async def test_context_manager_finalizes_gateway_on_error(review_service: ReviewService):
+async def test_context_manager_finalizes_gateway_on_error(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
     """Should finalize the comment gateway even when the pipeline raises."""
-    fake_gateway = FakeReviewCommentGateway()
-    review_service.review_comment_gateway = fake_gateway
+    review_service.review_comment_gateway = fake_review_comment_gateway
 
     with pytest.raises(RuntimeError, match="boom"):
         async with review_service:
             raise RuntimeError("boom")
 
-    assert any(call[0] == "finalize" for call in fake_gateway.calls)
+    assert any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_clear_inline_review_does_not_finalize_gateway(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Clear-inline is a cleanup command and should not publish pending batched comments."""
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
+    await review_service.run_clear_inline_review()
+
+    assert fake_review_comment_gateway.calls == [("clear_inline_comments", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_clear_summary_review_does_not_finalize_gateway(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Clear-summary is a cleanup command and should not publish pending batched comments."""
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
+    await review_service.run_clear_summary_review()
+
+    assert fake_review_comment_gateway.calls == [("clear_summary_comments", {})]

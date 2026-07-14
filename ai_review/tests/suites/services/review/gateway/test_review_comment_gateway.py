@@ -8,6 +8,7 @@ from ai_review.services.review.internal.summary.schema import SummaryCommentSche
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 from ai_review.services.vcs.types import ReviewThreadSchema, ReviewCommentSchema, ThreadKind
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
+from ai_review.tests.fixtures.services.hook import FakeHookService
 from ai_review.tests.fixtures.services.vcs import FakeVCSClient, FakeBatchingVCSClient
 
 
@@ -414,6 +415,29 @@ async def test_clear_inline_comments_deletes_all_ai_comments(
 
 
 @pytest.mark.asyncio
+async def test_clear_inline_comments_emits_start_and_complete_hooks(
+        monkeypatch: pytest.MonkeyPatch,
+        fake_hook_service: FakeHookService,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should emit clear-inline start and complete hooks with deleted comments."""
+    monkeypatch.setattr("ai_review.services.review.gateway.review_comment_gateway.hook", fake_hook_service)
+    comments = [
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} comment 1"),
+        ReviewCommentSchema(id="2", body=f"{settings.review.inline_tag} comment 2"),
+    ]
+    fake_vcs_client.responses["get_inline_comments"] = comments
+
+    await review_comment_gateway.clear_inline_comments()
+
+    assert fake_hook_service.calls == [
+        ("emit_clear_inline_comments_start", {}),
+        ("emit_clear_inline_comments_complete", {"comments": comments}),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_clear_inline_comments_noop_when_no_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
@@ -442,6 +466,29 @@ async def test_clear_summary_comments_deletes_all_ai_comments(
     deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_general_comment"]
     assert len(deleted) == 2
     assert {call[1][0] for call in deleted} == {"10", "11"}
+
+
+@pytest.mark.asyncio
+async def test_clear_summary_comments_emits_start_and_complete_hooks(
+        monkeypatch: pytest.MonkeyPatch,
+        fake_hook_service: FakeHookService,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should emit clear-summary start and complete hooks with deleted comments."""
+    monkeypatch.setattr("ai_review.services.review.gateway.review_comment_gateway.hook", fake_hook_service)
+    comments = [
+        ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} summary 1"),
+        ReviewCommentSchema(id="11", body=f"{settings.review.summary_tag} summary 2"),
+    ]
+    fake_vcs_client.responses["get_general_comments"] = comments
+
+    await review_comment_gateway.clear_summary_comments()
+
+    assert fake_hook_service.calls == [
+        ("emit_clear_summary_comments_start", {}),
+        ("emit_clear_summary_comments_complete", {"comments": comments}),
+    ]
 
 
 @pytest.mark.asyncio
