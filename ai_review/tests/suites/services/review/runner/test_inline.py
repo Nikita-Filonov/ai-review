@@ -102,3 +102,33 @@ async def test_process_file_skips_when_no_comments_after_llm(
     assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert any(call[0] == "apply_for_inline_comments" for call in fake_policy_service.calls)
     assert not any(call[0] == "process_inline_comments" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_finalize(
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Finalization (batch publishing) happens at pipeline level, not inside the runner."""
+    fake_git_service.responses["get_diff_for_file"] = "FAKE_DIFF"
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+
+    await inline_review_runner.run()
+
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_finalize_when_skipping(
+        inline_review_runner: InlineReviewRunner,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Should not finalize when the review is skipped due to existing comments."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} existing")
+    ]
+
+    await inline_review_runner.run()
+
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)

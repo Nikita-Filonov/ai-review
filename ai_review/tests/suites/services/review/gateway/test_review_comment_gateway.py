@@ -8,7 +8,7 @@ from ai_review.services.review.internal.summary.schema import SummaryCommentSche
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 from ai_review.services.vcs.types import ReviewThreadSchema, ReviewCommentSchema, ThreadKind
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
-from ai_review.tests.fixtures.services.vcs import FakeVCSClient
+from ai_review.tests.fixtures.services.vcs import FakeVCSClient, FakeBatchingVCSClient
 
 
 # === INLINE THREADS ===
@@ -472,3 +472,46 @@ async def test_get_summary_comments_excludes_fallback_comments(
 
     assert len(result) == 1
     assert result[0].id == "10"
+
+
+# === FINALIZE ===
+
+@pytest.mark.asyncio
+async def test_finalize_publishes_batched_comments(
+        fake_batching_vcs_client: FakeBatchingVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+):
+    """Should publish batched comments when the VCS client supports batching."""
+    gateway = ReviewCommentGateway(vcs=fake_batching_vcs_client, artifacts=fake_artifacts_service)
+
+    await gateway.finalize()
+
+    assert any(call[0] == "publish_comments" for call in fake_batching_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_finalize_skips_non_batching_vcs(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should be a no-op for VCS clients without the batching capability."""
+    await review_comment_gateway.finalize()
+
+    assert fake_vcs_client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_finalize_swallows_vcs_errors(
+        capsys: pytest.CaptureFixture,
+        fake_batching_vcs_client: FakeBatchingVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+):
+    """Should log and swallow errors from the VCS client."""
+    fake_batching_vcs_client.responses["publish_comments_error"] = RuntimeError("boom")
+    gateway = ReviewCommentGateway(vcs=fake_batching_vcs_client, artifacts=fake_artifacts_service)
+
+    await gateway.finalize()
+    output = capsys.readouterr().out
+
+    assert any(call[0] == "publish_comments" for call in fake_batching_vcs_client.calls)
+    assert "Failed to publish batched comments" in output

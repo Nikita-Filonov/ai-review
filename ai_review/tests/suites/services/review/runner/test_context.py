@@ -57,6 +57,7 @@ async def test_run_skips_when_existing_comments(
     vcs_calls = [call[0] for call in fake_vcs_client.calls]
     assert vcs_calls == []
     assert not any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
 
 
 @pytest.mark.asyncio
@@ -75,6 +76,7 @@ async def test_run_skips_when_no_changed_files(
     vcs_calls = [call[0] for call in fake_vcs_client.calls]
     assert "get_review_info" in vcs_calls
     assert any(call[0] == "apply_for_files" for call in fake_policy_service.calls)
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
 
 
 @pytest.mark.asyncio
@@ -95,3 +97,17 @@ async def test_run_skips_when_no_comments_after_llm(
     assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert any(call[0] == "apply_for_context_comments" for call in fake_policy_service.calls)
     assert not any(call[0] == "process_inline_comments" for call in fake_review_comment_gateway.calls)
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_finalize(
+        context_review_runner: ContextReviewRunner,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Finalization (batch publishing) happens at pipeline level, not inside the runner."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+
+    await context_review_runner.run()
+
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)

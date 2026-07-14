@@ -33,6 +33,9 @@ class GitLabVCSConfig(VCSConfigBase):
     provider: Literal[VCSProvider.GITLAB]
     pipeline: GitLabPipelineConfig
     http_client: GitLabHTTPClientConfig
+    # Post inline comments as draft notes and publish them in one batch,
+    # so reviewers get a single notification. Requires GitLab 15.10+.
+    batch_comments: bool = False
 
 
 class GitHubVCSConfig(VCSConfigBase):

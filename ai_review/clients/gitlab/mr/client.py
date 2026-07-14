@@ -10,6 +10,10 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabCreateMRDiscussionReplyRequestSchema,
     GitLabCreateMRDiscussionReplyResponseSchema
 )
+from ai_review.clients.gitlab.mr.schema.draft_notes import (
+    GitLabDraftNoteSchema,
+    GitLabCreateMRDraftNoteRequestSchema,
+)
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
     GitLabGetMRNotesQuerySchema,
@@ -103,6 +107,24 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/notes/{note_id}"
         )
 
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def create_draft_note_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            request: GitLabCreateMRDraftNoteRequestSchema,
+    ) -> Response:
+        return await self.post(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes",
+            json=request.model_dump(exclude_none=True),
+        )
+
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def bulk_publish_draft_notes_api(self, project_id: str, merge_request_id: str) -> Response:
+        return await self.post(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/bulk_publish"
+        )
+
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         response = await self.get_changes_api(project_id, merge_request_id)
         return GitLabGetMRChangesResponseSchema.model_validate_json(response.text)
@@ -194,3 +216,19 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
 
     async def delete_note(self, project_id: str, merge_request_id: str, note_id: str) -> None:
         await self.delete_note_api(project_id, merge_request_id, note_id)
+
+    async def create_draft_note(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            request: GitLabCreateMRDraftNoteRequestSchema,
+    ) -> GitLabDraftNoteSchema:
+        response = await self.create_draft_note_api(
+            request=request,
+            project_id=project_id,
+            merge_request_id=merge_request_id,
+        )
+        return GitLabDraftNoteSchema.model_validate_json(response.text)
+
+    async def bulk_publish_draft_notes(self, project_id: str, merge_request_id: str) -> None:
+        await self.bulk_publish_draft_notes_api(project_id, merge_request_id)

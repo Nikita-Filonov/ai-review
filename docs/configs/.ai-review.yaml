@@ -110,6 +110,14 @@ vcs:
   # Options: GITLAB | GITHUB | BITBUCKET_CLOUD | BITBUCKET_SERVER | AZURE_DEVOPS | GITEA
   provider: GITLAB
 
+  # --- GitLab only (requires GitLab 15.10+) ---
+  # Part of the GitLab provider config; other providers ignore this option.
+  # Post inline comments and the summary comment as draft notes and publish them in one batch
+  # ("Start a review" -> "Submit review"), so reviewers get a single
+  # email notification for the entire review.
+  # Default: false
+  batch_comments: false
+
   # Pipeline/MR/PR context.
   pipeline:
     # --- GitLab ---

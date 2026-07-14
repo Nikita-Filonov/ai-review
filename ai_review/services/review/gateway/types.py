@@ -50,6 +50,9 @@ class ReviewCommentGatewayProtocol(Protocol):
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         ...
 
+    async def finalize(self) -> None:
+        ...
+
     async def clear_inline_comments(self) -> None:
         ...
 

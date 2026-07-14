@@ -14,6 +14,10 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabCreateMRDiscussionResponseSchema,
     GitLabCreateMRDiscussionReplyResponseSchema,
 )
+from ai_review.clients.gitlab.mr.schema.draft_notes import (
+    GitLabDraftNoteSchema,
+    GitLabCreateMRDraftNoteRequestSchema,
+)
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
     GitLabGetMRNotesResponseSchema,
@@ -175,6 +179,33 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             )
         )
 
+    async def create_draft_note(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            request: GitLabCreateMRDraftNoteRequestSchema,
+    ) -> GitLabDraftNoteSchema:
+        self.calls.append(
+            (
+                "create_draft_note",
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "note": request.note,
+                    "position": request.position,
+                },
+            )
+        )
+        return GitLabDraftNoteSchema(id=500, note=request.note, position=request.position)
+
+    async def bulk_publish_draft_notes(self, project_id: str, merge_request_id: str) -> None:
+        self.calls.append(
+            (
+                "bulk_publish_draft_notes",
+                {"project_id": project_id, "merge_request_id": merge_request_id},
+            )
+        )
+
 
 class FakeGitLabHTTPClient:
     def __init__(self, merge_requests_client: FakeGitLabMergeRequestsHTTPClient):
@@ -219,5 +250,23 @@ def gitlab_http_client_config(monkeypatch: pytest.MonkeyPatch):
             api_url=HttpUrl("https://gitlab.com"),
             api_token=SecretStr("fake-token"),
         )
+    )
+    monkeypatch.setattr(settings, "vcs", fake_config)
+
+
+@pytest.fixture
+def gitlab_batch_http_client_config(monkeypatch: pytest.MonkeyPatch):
+    fake_config = GitLabVCSConfig(
+        provider=VCSProvider.GITLAB,
+        pipeline=GitLabPipelineConfig(
+            project_id="project-id",
+            merge_request_id="merge-request-id"
+        ),
+        http_client=GitLabHTTPClientConfig(
+            timeout=10,
+            api_url=HttpUrl("https://gitlab.com"),
+            api_token=SecretStr("fake-token"),
+        ),
+        batch_comments=True,
     )
     monkeypatch.setattr(settings, "vcs", fake_config)

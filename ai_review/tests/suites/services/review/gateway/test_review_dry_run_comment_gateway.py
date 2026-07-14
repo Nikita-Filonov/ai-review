@@ -8,7 +8,7 @@ from ai_review.services.review.internal.summary.schema import SummaryCommentSche
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 from ai_review.services.vcs.types import ReviewCommentSchema
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
-from ai_review.tests.fixtures.services.vcs import FakeVCSClient
+from ai_review.tests.fixtures.services.vcs import FakeVCSClient, FakeBatchingVCSClient
 
 
 @pytest.mark.asyncio
@@ -186,3 +186,16 @@ async def test_clear_summary_comments_dry_run_logs_each_comment(
     assert "[dry-run] Would delete summary comment 11" in output
 
     assert not any(call[0].startswith("delete_") for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_finalize_does_not_touch_vcs(
+        fake_batching_vcs_client: FakeBatchingVCSClient,
+        fake_artifacts_service: FakeArtifactsService,
+):
+    """Dry run should not publish anything to the VCS, even with a batching client."""
+    gateway = ReviewDryRunCommentGateway(vcs=fake_batching_vcs_client, artifacts=fake_artifacts_service)
+
+    await gateway.finalize()
+
+    assert not any(call[0] == "publish_comments" for call in fake_batching_vcs_client.calls)

@@ -8,7 +8,12 @@ from ai_review.services.review.internal.inline.schema import InlineCommentListSc
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
-from ai_review.services.vcs.types import VCSClientProtocol, ReviewThreadSchema, ReviewCommentSchema
+from ai_review.services.vcs.types import (
+    VCSClientProtocol,
+    ReviewThreadSchema,
+    ReviewCommentSchema,
+    SupportsBatchedComments,
+)
 
 logger = get_logger("REVIEW_COMMENT_GATEWAY")
 
@@ -121,6 +126,15 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         await bounded_gather([self.process_inline_comment(comment) for comment in comments.root])
+
+    async def finalize(self) -> None:
+        if not isinstance(self.vcs, SupportsBatchedComments):
+            return
+
+        try:
+            await self.vcs.publish_comments()
+        except Exception as error:
+            logger.exception(f"Failed to publish batched comments: {error}")
 
     async def clear_inline_comments(self) -> None:
         await hook.emit_clear_inline_comments_start()

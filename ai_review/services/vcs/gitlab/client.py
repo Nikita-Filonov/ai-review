@@ -1,5 +1,6 @@
 from ai_review.clients.gitlab.client import get_gitlab_http_client
 from ai_review.clients.gitlab.mr.schema.discussions import GitLabCreateMRDiscussionRequestSchema
+from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabCreateMRDraftNoteRequestSchema
 from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
@@ -23,6 +24,7 @@ class GitLabVCSClient(VCSClientProtocol):
         self.project_id = settings.vcs.pipeline.project_id
         self.merge_request_id = settings.vcs.pipeline.merge_request_id
         self.merge_request_ref = f"project_id={self.project_id} merge_request_id={self.merge_request_id}"
+        self.pending_comments = 0
 
     # --- Review info ---
     async def get_review_info(self) -> ReviewInfoSchema:
@@ -110,6 +112,10 @@ class GitLabVCSClient(VCSClientProtocol):
             return []
 
     async def create_general_comment(self, message: str) -> None:
+        if settings.vcs.batch_comments:
+            await self.create_draft_general_comment(message)
+            return
+
         try:
             logger.info(f"Posting general comment to {self.merge_request_ref}: {message}")
             await self.http_client.mr.create_note(
@@ -122,7 +128,26 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create general comment in {self.merge_request_ref}: {error}")
             raise
 
+    async def create_draft_general_comment(self, message: str) -> None:
+        try:
+            logger.info(f"Adding draft general comment to {self.merge_request_ref}: {message}")
+            request = GitLabCreateMRDraftNoteRequestSchema(note=message)
+            await self.http_client.mr.create_draft_note(
+                request=request,
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+            )
+            self.pending_comments += 1
+            logger.info(f"Created draft general comment in {self.merge_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to create draft general comment in {self.merge_request_ref}: {error}")
+            raise
+
     async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+        if settings.vcs.batch_comments:
+            await self.create_draft_inline_comment(file=file, line=line, message=message)
+            return
+
         try:
             logger.info(f"Posting inline comment in {self.merge_request_ref} at {file}:{line}: {message}")
 
@@ -150,6 +175,55 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.info(f"Created inline comment in {self.merge_request_ref} at {file}:{line}")
         except Exception as error:
             logger.exception(f"Failed to create inline comment in {self.merge_request_ref} at {file}:{line}: {error}")
+            raise
+
+    async def create_draft_inline_comment(self, file: str, line: int, message: str) -> None:
+        try:
+            logger.info(f"Adding draft inline comment in {self.merge_request_ref} at {file}:{line}: {message}")
+
+            response = await self.http_client.mr.get_changes(
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+            )
+
+            request = GitLabCreateMRDraftNoteRequestSchema(
+                note=message,
+                position=GitLabPositionSchema(
+                    position_type="text",
+                    base_sha=response.diff_refs.base_sha,
+                    head_sha=response.diff_refs.head_sha,
+                    start_sha=response.diff_refs.start_sha,
+                    new_path=file,
+                    new_line=line,
+                ),
+            )
+            await self.http_client.mr.create_draft_note(
+                request=request,
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+            )
+            self.pending_comments += 1
+            logger.info(f"Created draft inline comment in {self.merge_request_ref} at {file}:{line}")
+        except Exception as error:
+            logger.exception(
+                f"Failed to create draft inline comment in {self.merge_request_ref} at {file}:{line}: {error}"
+            )
+            raise
+
+    async def publish_comments(self) -> None:
+        if not settings.vcs.batch_comments or not self.pending_comments:
+            return
+
+        try:
+            logger.info(f"Publishing {self.pending_comments} draft comments in {self.merge_request_ref}")
+            await self.http_client.mr.bulk_publish_draft_notes(
+                project_id=self.project_id,
+                merge_request_id=self.merge_request_id,
+            )
+            self.pending_comments = 0
+            logger.info(f"Published draft comments in {self.merge_request_ref}")
+        except Exception as error:
+            logger.exception(f"Failed to publish draft comments in {self.merge_request_ref}: {error}")
             raise
 
     async def delete_general_comment(self, comment_id: int | str) -> None:
