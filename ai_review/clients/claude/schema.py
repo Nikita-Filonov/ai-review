@@ -17,8 +17,8 @@ class ClaudeChatRequestSchema(BaseModel):
 
 
 class ClaudeContentSchema(BaseModel):
-    type: Literal["text"]
-    text: str
+    type: str
+    text: str | None = None
 
 
 class ClaudeUsageSchema(BaseModel):
@@ -38,7 +38,12 @@ class ClaudeChatResponseSchema(BaseModel):
 
     @property
     def first_text(self) -> str:
-        if not self.content:
-            return ""
+        for block in self.content:
+            if block.type != "text" or not block.text:
+                continue
 
-        return self.content[0].text.strip()
+            text = block.text.strip()
+            if text:
+                return text
+
+        return ""
