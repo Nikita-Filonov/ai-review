@@ -521,6 +521,43 @@ async def test_get_summary_comments_excludes_fallback_comments(
     assert result[0].id == "10"
 
 
+@pytest.mark.asyncio
+async def test_clear_summary_comments_deletes_inline_fallback_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should delete inline-fallback general comments alongside the summary comments."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} summary"),
+        ReviewCommentSchema(id="11", body=f"{settings.review.inline_fallback_tag} fallback"),
+        ReviewCommentSchema(id="12", body="a human wrote this"),
+    ]
+
+    await review_comment_gateway.clear_summary_comments()
+
+    deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_general_comment"]
+    assert {call[1][0] for call in deleted} == {"10", "11"}
+
+
+@pytest.mark.asyncio
+async def test_get_summary_comments_ignores_inline_fallback_comments(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Should keep the summary skip-check blind to fallback comments.
+
+    SummaryReviewRunner skips the summary review when this returns anything, so a
+    leftover fallback comment must not suppress the summary.
+    """
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="11", body=f"{settings.review.inline_fallback_tag} fallback"),
+    ]
+
+    comments = await review_comment_gateway.get_summary_comments()
+
+    assert comments == []
+
+
 # === FINALIZE ===
 
 @pytest.mark.asyncio

@@ -59,6 +59,24 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         logger.info(f"Detected {len(summary_comments)}/{len(comments)} AI summary comments")
         return summary_comments
 
+    async def get_clearable_summary_comments(self) -> list[ReviewCommentSchema]:
+        """General comments that clear-summary removes.
+
+        Wider than get_summary_comments: it also matches the inline-fallback tag, so a
+        comment ai-review posted because a diff position was rejected is cleared too.
+        get_summary_comments must stay narrow — SummaryReviewRunner uses it to decide
+        whether a summary already exists, and a leftover fallback comment must not
+        suppress the summary review.
+        """
+        tags = (settings.review.summary_tag, settings.review.inline_fallback_tag)
+        general_comments = await self.vcs.get_general_comments()
+        comments = [
+            comment for comment in general_comments
+            if any(tag in comment.body for tag in tags)
+        ]
+        logger.info(f"Detected {len(comments)}/{len(general_comments)} clearable AI general comments")
+        return comments
+
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         try:
             await hook.emit_inline_comment_reply_start(reply)
@@ -158,7 +176,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         await hook.emit_clear_summary_comments_start()
 
         try:
-            comments = await self.get_summary_comments()
+            comments = await self.get_clearable_summary_comments()
             if not comments:
                 logger.info("No AI summary comments to clear")
                 await hook.emit_clear_summary_comments_complete(comments=comments)
