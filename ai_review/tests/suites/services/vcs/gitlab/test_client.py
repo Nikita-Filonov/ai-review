@@ -1,5 +1,8 @@
+import asyncio
+
 import pytest
 
+from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabDraftNoteSchema
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 from ai_review.services.vcs.types import (
     ReviewInfoSchema,
@@ -421,3 +424,118 @@ async def test_publish_comments_covers_inline_and_general_drafts(
 def test_gitlab_client_has_batching_capability(gitlab_vcs_client: GitLabVCSClient):
     """GitLabVCSClient should expose the optional SupportsBatchedComments capability."""
     assert isinstance(gitlab_vcs_client, SupportsBatchedComments)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_discards_stale_drafts_before_staging(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete leftover draft notes before creating the first new one."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+        GitLabDraftNoteSchema(id=902, note="stale summary #ai-review-summary"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.index("get_draft_notes") < called_methods.index("create_draft_note")
+
+    deleted = sorted(
+        args["draft_note_id"] for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_draft_note"
+    )
+    assert deleted == ["901", "902"]
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_concurrent_draft_comments_discard_stale_drafts_once(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should discard stale drafts exactly once even when comments are staged concurrently."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+    ]
+
+    await asyncio.gather(
+        gitlab_vcs_client.create_inline_comment(file="a.py", line=1, message="A"),
+        gitlab_vcs_client.create_inline_comment(file="b.py", line=2, message="B"),
+        gitlab_vcs_client.create_general_comment("C"),
+    )
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("get_draft_notes") == 1
+    assert called_methods.count("delete_draft_note") == 1
+    assert called_methods.count("create_draft_note") == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_does_not_discard_drafts_without_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should never touch draft notes when batch_comments is disabled."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Immediate comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" not in called_methods
+    assert "delete_draft_note" not in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_deletes_nothing_when_no_stale_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should look for stale drafts but delete nothing when the list is empty."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" in called_methods
+    assert "delete_draft_note" not in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_stages_note_when_discard_fails(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep staging comments when the stale-draft lookup fails."""
+    fake_gitlab_merge_requests_http_client.get_draft_notes_error = RuntimeError("gitlab is down")
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_does_not_retry_purge_within_run_after_failure(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not retry the stale-draft lookup within a run once it has failed, even
+    though staging keeps succeeding for every comment after that."""
+    fake_gitlab_merge_requests_http_client.get_draft_notes_error = RuntimeError("gitlab is down")
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="First")
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=14, message="Second")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("get_draft_notes") == 1
+    assert called_methods.count("create_draft_note") == 2
+    assert gitlab_vcs_client.pending_comments == 2
