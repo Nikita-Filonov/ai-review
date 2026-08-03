@@ -289,7 +289,11 @@ class GitLabVCSClient(VCSClientProtocol):
             self.pending_comments = 0
             logger.info(f"Published draft comments in {self.merge_request_ref}")
         except Exception as error:
-            logger.exception(f"Failed to publish draft comments in {self.merge_request_ref}: {error}")
+            logger.exception(
+                f"Failed to publish draft comments in {self.merge_request_ref}: {error}. "
+                f"GitLab may have published part of the batch; the remaining drafts stay pending "
+                f"and the next run discards them"
+            )
             raise
 
     async def delete_general_comment(self, comment_id: int | str) -> None:

@@ -29,6 +29,7 @@ from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
 from ai_review.libs.http.paginate import paginate
+from ai_review.libs.http.transports.retry import NO_RETRY
 
 
 class GitLabMergeRequestsHTTPClientError(HTTPClientError):
@@ -146,8 +147,12 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
     async def bulk_publish_draft_notes_api(self, project_id: str, merge_request_id: str) -> Response:
+        # Not idempotent: GitLab publishes draft notes one by one without a
+        # surrounding transaction, so a 500 can mean "some notes were published".
+        # Retrying would publish more of them and duplicate the ones that landed.
         return await self.post(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/bulk_publish"
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/bulk_publish",
+            extensions=NO_RETRY,
         )
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
