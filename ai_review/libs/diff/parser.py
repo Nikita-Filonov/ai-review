@@ -85,7 +85,10 @@ class DiffParser:
 
             if current_hunk and is_source_line(raw):
                 line_type = get_line_type(raw)
-                content = raw[1:]
+                if line_type is DiffLineType.UNCHANGED and not raw.startswith(" "):
+                    content = raw
+                else:
+                    content = raw[1:]
 
                 if line_type is DiffLineType.ADDED:
                     line = DiffLine(line_type, added_count, content, diff_pos)

@@ -20,5 +20,7 @@ def get_line_type(line: str) -> DiffLineType:
             return DiffLineType.REMOVED
         case " ":
             return DiffLineType.UNCHANGED
+        case c if c.isspace():
+            return DiffLineType.UNCHANGED
         case _:
             raise ValueError(f"Unknown diff line prefix: {line!r}")
