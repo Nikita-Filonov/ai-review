@@ -60,3 +60,30 @@ def test_get_line_type_unknown_prefix_raises():
     """Should raise ValueError if line starts with unknown prefix."""
     with pytest.raises(ValueError):
         tools.get_line_type("@@ -1,2 +1,2 @@")
+
+
+def test_get_line_type_tab_prefix_is_unchanged():
+    """git may omit the leading space on context lines whose content begins with
+    a tab (typical for tab-indented code such as 1C:Enterprise BSL). Such a line
+    must be classified as UNCHANGED rather than raising ValueError."""
+    assert tools.get_line_type("\tfoo") == DiffLineType.UNCHANGED
+    assert tools.get_line_type("\tКонецЕсли;") == DiffLineType.UNCHANGED
+
+
+def test_get_line_type_space_only_line_is_unchanged():
+    """A single whitespace character as the entire line is still a valid
+    UNCHANGED context line — it cannot be an addition or a removal."""
+    assert tools.get_line_type("\t") == DiffLineType.UNCHANGED
+    assert tools.get_line_type("\v") == DiffLineType.UNCHANGED
+    assert tools.get_line_type("\f") == DiffLineType.UNCHANGED
+
+
+def test_get_line_type_unknown_non_whitespace_raises():
+    """A prefix that is neither '+', '-', ' ' nor whitespace must still raise
+    ValueError — the relaxed matching applies only to whitespace."""
+    with pytest.raises(ValueError):
+        tools.get_line_type("?foo")
+    with pytest.raises(ValueError):
+        tools.get_line_type("=foo")
+    with pytest.raises(ValueError):
+        tools.get_line_type("Qfoo")

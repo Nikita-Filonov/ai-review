@@ -113,3 +113,92 @@ deleted file mode 100644
     assert file.mode == FileMode.DELETED
     assert file.orig_name == "x"
     assert [line.content for line in file.hunks[0].orig_range.lines] == ["old line"]
+
+
+def test_parse_context_line_with_tab_prefix_preserves_tab() -> None:
+    """When git strips the leading space on a context line whose content begins
+    with a tab, the parser must accept the line as UNCHANGED and keep the tab as
+    part of the content."""
+    raw_diff = (
+        "diff --git a/x b/x\n"
+        "index 0000000..1111111 100644\n"
+        "--- a/x\n"
+        "+++ b/x\n"
+        "@@ -1,4 +1,4 @@\n"
+        " line1\n"
+        "-line2\n"
+        "+line2_changed\n"
+        "\tКонецЕсли;\n"
+        " line3\n"
+    )
+    file = parse_and_get_file(raw_diff)
+    hunk = file.hunks[0]
+
+    assert [line.content for line in hunk.lines] == [
+        "line1",
+        "line2",
+        "line2_changed",
+        "\tКонецЕсли;",
+        "line3",
+    ]
+    assert hunk.lines[3].type is DiffLineType.UNCHANGED
+    assert [line.type for line in hunk.lines] == [
+        DiffLineType.UNCHANGED,
+        DiffLineType.REMOVED,
+        DiffLineType.ADDED,
+        DiffLineType.UNCHANGED,
+        DiffLineType.UNCHANGED,
+    ]
+
+
+def test_parse_context_line_with_only_whitespace_prefix() -> None:
+    """A context line that is just whitespace (e.g. a tab-only line) must parse
+    as UNCHANGED with the tab preserved as content."""
+    raw_diff = (
+        "diff --git a/x b/x\n"
+        "index 0000000..1111111 100644\n"
+        "--- a/x\n"
+        "+++ b/x\n"
+        "@@ -1,3 +1,3 @@\n"
+        " line1\n"
+        "\t\n"
+        " line3\n"
+    )
+    file = parse_and_get_file(raw_diff)
+    contents = [line.content for line in file.hunks[0].lines]
+
+    assert contents == ["line1", "\t", "line3"]
+
+
+def test_parse_real_world_bsl_diff_with_missing_leading_space() -> None:
+    """Reproduces the failure observed in 214group/ufa-tariff!71: a BSL file
+    where two context lines lack their leading space after a block of removals.
+    Without the fix, the parser raises ValueError on lines 2336 and 7373."""
+    raw_diff = (
+        "diff --git a/Module.bsl b/Module.bsl\n"
+        "index 1111111..2222222 100644\n"
+        "--- a/Module.bsl\n"
+        "+++ b/Module.bsl\n"
+        "@@ -2330,12 +2330,12 @@\n"
+        "-removed_line_one\n"
+        "-removed_line_two\n"
+        "-removed_line_three\n"
+        "\tКонецЕсли;\n"
+        "-removed_line_five\n"
+        "-removed_line_six\n"
+        "+added_line_one\n"
+        "+added_line_two\n"
+        "+added_line_three\n"
+        "+added_line_five\n"
+        "+added_line_six\n"
+    )
+    file = parse_and_get_file(raw_diff)
+    contents = [line.content for line in file.hunks[0].lines]
+
+    assert file.mode == FileMode.MODIFIED
+    assert "\tКонецЕсли;" in contents
+    assert contents.count("\tКонецЕсли;") == 1
+    unchanged_indices = [
+        i for i, line in enumerate(file.hunks[0].lines) if line.type is DiffLineType.UNCHANGED
+    ]
+    assert unchanged_indices == [3]
