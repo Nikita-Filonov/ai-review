@@ -24,6 +24,20 @@ class DiffLine:
 
 
 @dataclass
+class DiffLinePosition:
+    """
+    A diff line addressed on both sides of the change.
+
+    An added line exists only in the new file, a removed line only in the old
+    one, and an unchanged line in both. VCS providers that validate a diff
+    position need the pair, not just one side.
+    """
+    type: DiffLineType
+    old_line: int | None
+    new_line: int | None
+
+
+@dataclass
 class DiffRange:
     start: int
     length: int
@@ -67,6 +81,54 @@ class DiffFile:
 
     def removed_line_numbers(self) -> set[int]:
         return {line.number for line in self.removed_old_lines() if line.number is not None}
+
+    def line_positions(self) -> list[DiffLinePosition]:
+        """
+        Pair old and new line numbers for every line of every hunk.
+
+        Each hunk is numbered from its own `@@ -a,b +c,d @@` header, so an
+        earlier hunk that inserts or deletes lines cannot shift a later one.
+        """
+        positions: list[DiffLinePosition] = []
+
+        for hunk in self.hunks:
+            old_line = hunk.orig_range.start
+            new_line = hunk.new_range.start
+
+            for line in hunk.lines:
+                if line.type is DiffLineType.ADDED:
+                    positions.append(DiffLinePosition(line.type, None, new_line))
+                    new_line += 1
+                elif line.type is DiffLineType.REMOVED:
+                    positions.append(DiffLinePosition(line.type, old_line, None))
+                    old_line += 1
+                else:
+                    positions.append(DiffLinePosition(line.type, old_line, new_line))
+                    old_line += 1
+                    new_line += 1
+
+        return positions
+
+    def find_line_position(self, line: int) -> DiffLinePosition | None:
+        """
+        Resolve a bare line number to the diff line it addresses.
+
+        The number is read as a new-file line first, which covers added and
+        unchanged lines and matches how the diff is rendered for the model. Only
+        if no new-file line matches is it read as the old-file line of a removed
+        line, which is the one case that has no new-file number at all.
+        """
+        positions = self.line_positions()
+
+        for position in positions:
+            if position.new_line == line:
+                return position
+
+        for position in positions:
+            if position.type is DiffLineType.REMOVED and position.old_line == line:
+                return position
+
+        return None
 
 
 @dataclass
