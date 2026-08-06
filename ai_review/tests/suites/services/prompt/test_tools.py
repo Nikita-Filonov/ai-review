@@ -225,3 +225,16 @@ def test_format_traces_joins_entries_with_separator():
     assert "Iteration: 1" in result
     assert "Iteration: 2" in result
     assert "\n\n---\n\n" in result
+
+
+def test_format_trace_without_step_renders_warning_only():
+    trace = AgentTraceSchema(
+        iteration=2,
+        warning="Invalid response discarded: it carried an agent action but was not a single valid JSON object.",
+        raw_output='{"action":"TOOL_CALL","command":"git grep -n "x" -- docs"}',
+    )
+    result = format_trace(trace)
+    assert "Iteration: 2" in result
+    assert "Invalid response discarded" in result
+    assert "Command:" not in result
+    assert "Content:" not in result
