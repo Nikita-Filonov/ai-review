@@ -17,6 +17,12 @@ NEW_FILE_PREFIX = "+++ b/"
 
 
 class DiffParser:
+    @staticmethod
+    def start_file(files: list[DiffFile], header: str = "") -> DiffFile:
+        file = DiffFile(header=header, mode=FileMode.MODIFIED, orig_name="", new_name="", hunks=[])
+        files.append(file)
+        return file
+
     @classmethod
     def parse(cls, diff_string: str) -> Diff:
         lines = diff_string.split("\n")
@@ -33,19 +39,16 @@ class DiffParser:
 
             # Начало нового файла
             if raw.startswith("diff "):
-                current_file = DiffFile(
-                    header=raw,
-                    mode=FileMode.MODIFIED,
-                    orig_name="",
-                    new_name="",
-                    hunks=[],
-                )
-                files.append(current_file)
+                current_file = cls.start_file(files, header=raw)
                 continue
 
             # Дополняем header файла
             if raw.startswith("index ") or raw.startswith("--- ") or raw.startswith("+++ "):
-                current_file.header += "\n" + raw
+                # Diff bodies without a `diff ` line, e.g. the GitLab changes API payload
+                if current_file is None:
+                    current_file = cls.start_file(files)
+
+                current_file.header = f"{current_file.header}\n{raw}" if current_file.header else raw
 
             if raw.startswith(OLD_FILE_PREFIX):
                 current_file.orig_name = raw[len(OLD_FILE_PREFIX):]
@@ -67,6 +70,10 @@ class DiffParser:
                 match = HUNK_RE.match(raw)
                 if not match:
                     raise ValueError(f"Invalid hunk header: {raw}")
+
+                # Diff bodies without a `diff ` line, e.g. the GitLab changes API payload
+                if current_file is None:
+                    current_file = cls.start_file(files)
 
                 a, b, c, d, header = match.groups()
                 orig_start, orig_len = int(a), int(b or 0)
