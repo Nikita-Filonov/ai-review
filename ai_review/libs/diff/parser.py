@@ -43,7 +43,7 @@ class DiffParser:
                 continue
 
             # Дополняем header файла
-            if raw.startswith("index ") or raw.startswith("--- ") or raw.startswith("+++ "):
+            if raw.startswith(("index ", "--- ", "+++ ")):
                 # Diff bodies without a `diff ` line, e.g. the GitLab changes API payload
                 if current_file is None:
                     current_file = cls.start_file(files)

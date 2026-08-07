@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List
 
 
 class FileMode(Enum):
@@ -41,7 +40,7 @@ class DiffLinePosition:
 class DiffRange:
     start: int
     length: int
-    lines: List[DiffLine]
+    lines: list[DiffLine]
 
 
 @dataclass
@@ -49,7 +48,7 @@ class DiffHunk:
     header: str
     orig_range: DiffRange
     new_range: DiffRange
-    lines: List[DiffLine]
+    lines: list[DiffLine]
 
 
 @dataclass
@@ -58,7 +57,7 @@ class DiffFile:
     mode: FileMode
     orig_name: str
     new_name: str
-    hunks: List[DiffHunk]
+    hunks: list[DiffHunk]
 
     def added_new_lines(self) -> list[DiffLine]:
         return [
@@ -133,7 +132,7 @@ class DiffFile:
 
 @dataclass
 class Diff:
-    files: List[DiffFile]
+    files: list[DiffFile]
     raw: str
 
     def summary(self) -> str:
