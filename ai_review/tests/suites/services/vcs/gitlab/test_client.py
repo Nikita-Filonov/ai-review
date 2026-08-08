@@ -453,6 +453,52 @@ async def test_create_inline_comment_discards_stale_drafts_before_staging(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_preserves_unrelated_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not delete drafts that do not contain a configured ai-review tag."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="Human review draft"),
+        GitLabDraftNoteSchema(id=902, note="Draft from another integration #other-tool"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" in called_methods
+    assert "delete_draft_note" not in called_methods
+    assert "create_draft_note" in called_methods
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_only_discards_tagged_drafts_from_mixed_list(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete ai-review drafts while preserving unrelated drafts from the same user."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="Stale inline #ai-review-inline"),
+        GitLabDraftNoteSchema(id=902, note="Human review draft"),
+        GitLabDraftNoteSchema(id=903, note="Stale fallback #ai-review-inline-fallback"),
+        GitLabDraftNoteSchema(id=904, note="Draft from another integration #other-tool"),
+        GitLabDraftNoteSchema(id=905, note="Stale summary reply #ai-review-summary-reply"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    deleted = sorted(
+        args["draft_note_id"] for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_draft_note"
+    )
+    assert deleted == ["901", "903", "905"]
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
 async def test_concurrent_draft_comments_discard_stale_drafts_once(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,

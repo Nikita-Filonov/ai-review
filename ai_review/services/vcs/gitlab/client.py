@@ -8,6 +8,7 @@ from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
+from ai_review.services.vcs.gitlab.tools import filter_ai_review_drafts
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     UserSchema,
@@ -140,8 +141,8 @@ class GitLabVCSClient(VCSClientProtocol):
         draft note the token user has on the merge request, regardless of which run staged
         it. Leftover drafts would therefore be posted retroactively, with diff refs that no
         longer resolve. GitLab scopes the draft-note endpoints to
-        ``authored_by(current_user)``, so this only ever sees ai-review's own pending notes,
-        never a human reviewer's staged review.
+        ``authored_by(current_user)``. Filter those notes by the configured ai-review tags
+        so a personal or shared token cannot cause unrelated drafts to be discarded.
         """
         # Guards against a future await landing between the flag check and the flag set below; today there is none.
         async with self.discard_stale_drafts_lock:
@@ -162,17 +163,24 @@ class GitLabVCSClient(VCSClientProtocol):
                 )
                 return
 
-            if not response.root:
-                logger.debug(f"No stale draft comments in {self.merge_request_ref}")
+            stale_drafts = filter_ai_review_drafts(response.root)
+            preserved_count = len(response.root) - len(stale_drafts)
+
+            if not stale_drafts:
+                logger.debug(
+                    f"No stale ai-review draft comments in {self.merge_request_ref}; "
+                    f"preserving {preserved_count} unrelated drafts"
+                )
                 return
 
             logger.debug(
-                f"Discarding stale draft notes in {self.merge_request_ref}: "
-                f"{[(draft_note.id, draft_note.note) for draft_note in response.root]}"
+                f"Discarding stale ai-review draft notes in {self.merge_request_ref}: "
+                f"{[(draft_note.id, draft_note.note) for draft_note in stale_drafts]}"
             )
             logger.warning(
-                f"Discarding {len(response.root)} pending draft comments from a previous run "
-                f"or a concurrent job in {self.merge_request_ref}"
+                f"Discarding {len(stale_drafts)} pending ai-review draft comments from a "
+                f"previous run or a concurrent job in {self.merge_request_ref}; preserving "
+                f"{preserved_count} unrelated drafts"
             )
             results = await bounded_gather([
                 self.http_client.mr.delete_draft_note(
@@ -180,13 +188,13 @@ class GitLabVCSClient(VCSClientProtocol):
                     merge_request_id=self.merge_request_id,
                     draft_note_id=str(draft_note.id),
                 )
-                for draft_note in response.root
+                for draft_note in stale_drafts
             ])
 
             failures = [result for result in results if isinstance(result, Exception)]
             if failures:
                 logger.error(
-                    f"Failed to discard {len(failures)}/{len(response.root)} stale draft comments "
+                    f"Failed to discard {len(failures)}/{len(stale_drafts)} stale draft comments "
                     f"in {self.merge_request_ref}"
                 )
 
