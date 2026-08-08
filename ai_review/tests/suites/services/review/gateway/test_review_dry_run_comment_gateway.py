@@ -189,6 +189,30 @@ async def test_clear_summary_comments_dry_run_logs_each_comment(
 
 
 @pytest.mark.asyncio
+async def test_clear_summary_comments_dry_run_includes_inline_fallback_comments(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    """Dry-run: should preview inline-fallback comments too, matching a real clear."""
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="10", body=f"{settings.review.summary_tag} AI summary"),
+        ReviewCommentSchema(id="11", body=f"{settings.review.inline_fallback_tag} AI fallback"),
+        ReviewCommentSchema(id="12", body="a human wrote this"),
+    ]
+
+    await review_dry_run_comment_gateway.clear_summary_comments()
+    output = capsys.readouterr().out
+
+    assert "[dry-run] Would clear 2 AI summary comments" in output
+    assert "[dry-run] Would delete summary comment 10" in output
+    assert "[dry-run] Would delete summary comment 11" in output
+    assert "[dry-run] Would delete summary comment 12" not in output
+
+    assert not any(call[0].startswith("delete_") for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
 async def test_finalize_does_not_touch_vcs(
         fake_batching_vcs_client: FakeBatchingVCSClient,
         fake_artifacts_service: FakeArtifactsService,

@@ -71,7 +71,7 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
     async def clear_summary_comments(self) -> None:
         await hook.emit_clear_summary_comments_start()
 
-        comments = await self.get_summary_comments()
+        comments = await self.get_clearable_summary_comments()
         if not comments:
             logger.info("[dry-run] No AI summary comments to clear")
             await hook.emit_clear_summary_comments_complete(comments=comments)

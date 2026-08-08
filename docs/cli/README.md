@@ -40,7 +40,7 @@ ai-review --help
 | `ai-review run-inline-reply`  | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`  |
 | `ai-review run-summary-reply` | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply` |
 | `ai-review clear-inline`      | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`      |
-| `ai-review clear-summary`     | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`     |
+| `ai-review clear-summary`     | Removes all **AI summary and inline-fallback comments** from the review.  | `ai-review clear-summary`     |
 | `ai-review show-config`       | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`       |
 
 ---
@@ -118,7 +118,8 @@ ai-review clear-inline
 
 ### 🧽 Clear Summary Comments
 
-Removes all AI-generated summary comments:
+Removes all AI-generated summary comments,
+including the inline-fallback comments posted when a diff position is rejected:
 
 ```bash
 ai-review clear-summary
@@ -126,10 +127,10 @@ ai-review clear-summary
 
 > ⚠️ **Warning**
 >
-> This command **permanently deletes** all summary review comments created by AI Review.
+> This command **permanently deletes** all summary and inline-fallback comments created by AI Review.
 >
 > - The operation cannot be undone
-> - Only AI Review summary comments are removed
+> - Only AI Review summary and inline-fallback comments are removed
 > - No new comments are created as part of this command
 >
 > Use with caution, especially in shared or long-running pull requests.
