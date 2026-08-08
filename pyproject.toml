@@ -77,3 +77,6 @@ include = ["ai_review*"]
 [tool.setuptools.package-data]
 "ai_review.prompts" = ["*.md"]
 "ai_review.resources" = ["*.yaml"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
