@@ -13,6 +13,8 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
 from ai_review.clients.gitlab.mr.schema.draft_notes import (
     GitLabDraftNoteSchema,
     GitLabCreateMRDraftNoteRequestSchema,
+    GitLabGetMRDraftNotesQuerySchema,
+    GitLabGetMRDraftNotesResponseSchema,
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
@@ -27,6 +29,7 @@ from ai_review.config import settings
 from ai_review.libs.http.client import HTTPClient
 from ai_review.libs.http.handlers import handle_http_error, HTTPClientError
 from ai_review.libs.http.paginate import paginate
+from ai_review.libs.http.transports.retry import NO_RETRY
 
 
 class GitLabMergeRequestsHTTPClientError(HTTPClientError):
@@ -120,9 +123,36 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
         )
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def get_draft_notes_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            query: GitLabGetMRDraftNotesQuerySchema,
+    ) -> Response:
+        return await self.get(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes",
+            query=QueryParams(**query.model_dump())
+        )
+
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def delete_draft_note_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            draft_note_id: str,
+    ) -> Response:
+        return await self.delete(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/{draft_note_id}"
+        )
+
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
     async def bulk_publish_draft_notes_api(self, project_id: str, merge_request_id: str) -> Response:
+        # Not idempotent: GitLab publishes draft notes one by one without a
+        # surrounding transaction, so a 500 can mean "some notes were published".
+        # Retrying would publish more of them and duplicate the ones that landed.
         return await self.post(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/bulk_publish"
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/draft_notes/bulk_publish",
+            extensions=NO_RETRY,
         )
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
@@ -229,6 +259,30 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
             merge_request_id=merge_request_id,
         )
         return GitLabDraftNoteSchema.model_validate_json(response.text)
+
+    async def get_draft_notes(
+            self,
+            project_id: str,
+            merge_request_id: str
+    ) -> GitLabGetMRDraftNotesResponseSchema:
+        async def fetch_page(page: int) -> Response:
+            query = GitLabGetMRDraftNotesQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_draft_notes_api(project_id, merge_request_id, query)
+
+        def extract_items(response: Response) -> list[GitLabDraftNoteSchema]:
+            result = GitLabGetMRDraftNotesResponseSchema.model_validate_json(response.text)
+            return result.root
+
+        items = await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=gitlab_has_next_page
+        )
+        return GitLabGetMRDraftNotesResponseSchema(root=items)
+
+    async def delete_draft_note(self, project_id: str, merge_request_id: str, draft_note_id: str) -> None:
+        await self.delete_draft_note_api(project_id, merge_request_id, draft_note_id)
 
     async def bulk_publish_draft_notes(self, project_id: str, merge_request_id: str) -> None:
         await self.bulk_publish_draft_notes_api(project_id, merge_request_id)

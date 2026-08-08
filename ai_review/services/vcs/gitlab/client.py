@@ -1,8 +1,11 @@
+import asyncio
+
 from ai_review.clients.gitlab.client import get_gitlab_http_client
 from ai_review.clients.gitlab.mr.schema.discussions import GitLabCreateMRDiscussionRequestSchema
 from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabCreateMRDraftNoteRequestSchema
 from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.config import settings
+from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
 from ai_review.services.vcs.types import (
@@ -25,6 +28,8 @@ class GitLabVCSClient(VCSClientProtocol):
         self.merge_request_id = settings.vcs.pipeline.merge_request_id
         self.merge_request_ref = f"project_id={self.project_id} merge_request_id={self.merge_request_id}"
         self.pending_comments = 0
+        self.discarded_stale_drafts = False
+        self.discard_stale_drafts_lock = asyncio.Lock()
 
     # --- Review info ---
     async def get_review_info(self) -> ReviewInfoSchema:
@@ -128,7 +133,66 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create general comment in {self.merge_request_ref}: {error}")
             raise
 
+    async def discard_stale_draft_comments(self) -> None:
+        """Delete draft notes left behind by an earlier run or a concurrent job, once per process.
+
+        GitLab's bulk publish endpoint takes no draft-note selector: it publishes every
+        draft note the token user has on the merge request, regardless of which run staged
+        it. Leftover drafts would therefore be posted retroactively, with diff refs that no
+        longer resolve. GitLab scopes the draft-note endpoints to
+        ``authored_by(current_user)``, so this only ever sees ai-review's own pending notes,
+        never a human reviewer's staged review.
+        """
+        # Guards against a future await landing between the flag check and the flag set below; today there is none.
+        async with self.discard_stale_drafts_lock:
+            if self.discarded_stale_drafts:
+                return
+
+            self.discarded_stale_drafts = True
+
+            try:
+                response = await self.http_client.mr.get_draft_notes(
+                    project_id=self.project_id,
+                    merge_request_id=self.merge_request_id,
+                )
+            except Exception as error:
+                logger.exception(
+                    f"Failed to look up stale draft comments in {self.merge_request_ref}: {error}. "
+                    f"Publishing may post leftovers from an earlier run"
+                )
+                return
+
+            if not response.root:
+                logger.debug(f"No stale draft comments in {self.merge_request_ref}")
+                return
+
+            logger.debug(
+                f"Discarding stale draft notes in {self.merge_request_ref}: "
+                f"{[(draft_note.id, draft_note.note) for draft_note in response.root]}"
+            )
+            logger.warning(
+                f"Discarding {len(response.root)} pending draft comments from a previous run "
+                f"or a concurrent job in {self.merge_request_ref}"
+            )
+            results = await bounded_gather([
+                self.http_client.mr.delete_draft_note(
+                    project_id=self.project_id,
+                    merge_request_id=self.merge_request_id,
+                    draft_note_id=str(draft_note.id),
+                )
+                for draft_note in response.root
+            ])
+
+            failures = [result for result in results if isinstance(result, Exception)]
+            if failures:
+                logger.error(
+                    f"Failed to discard {len(failures)}/{len(response.root)} stale draft comments "
+                    f"in {self.merge_request_ref}"
+                )
+
     async def create_draft_general_comment(self, message: str) -> None:
+        await self.discard_stale_draft_comments()
+
         try:
             logger.info(f"Adding draft general comment to {self.merge_request_ref}: {message}")
             request = GitLabCreateMRDraftNoteRequestSchema(note=message)
@@ -178,6 +242,8 @@ class GitLabVCSClient(VCSClientProtocol):
             raise
 
     async def create_draft_inline_comment(self, file: str, line: int, message: str) -> None:
+        await self.discard_stale_draft_comments()
+
         try:
             logger.info(f"Adding draft inline comment in {self.merge_request_ref} at {file}:{line}: {message}")
 
@@ -223,7 +289,11 @@ class GitLabVCSClient(VCSClientProtocol):
             self.pending_comments = 0
             logger.info(f"Published draft comments in {self.merge_request_ref}")
         except Exception as error:
-            logger.exception(f"Failed to publish draft comments in {self.merge_request_ref}: {error}")
+            logger.exception(
+                f"Failed to publish draft comments in {self.merge_request_ref}: {error}. "
+                f"GitLab may have published part of the batch; the remaining drafts stay pending "
+                f"and the next run discards them"
+            )
             raise
 
     async def delete_general_comment(self, comment_id: int | str) -> None:

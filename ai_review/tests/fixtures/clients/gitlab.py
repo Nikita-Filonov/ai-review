@@ -17,6 +17,7 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
 from ai_review.clients.gitlab.mr.schema.draft_notes import (
     GitLabDraftNoteSchema,
     GitLabCreateMRDraftNoteRequestSchema,
+    GitLabGetMRDraftNotesResponseSchema,
 )
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
@@ -35,6 +36,8 @@ from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
     def __init__(self):
         self.calls: list[tuple[str, dict]] = []
+        self.draft_notes: list[GitLabDraftNoteSchema] = []
+        self.get_draft_notes_error: Exception | None = None
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         self.calls.append(("get_changes", {"project_id": project_id, "merge_request_id": merge_request_id}))
@@ -203,6 +206,30 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             (
                 "bulk_publish_draft_notes",
                 {"project_id": project_id, "merge_request_id": merge_request_id},
+            )
+        )
+
+    async def get_draft_notes(
+            self,
+            project_id: str,
+            merge_request_id: str
+    ) -> GitLabGetMRDraftNotesResponseSchema:
+        self.calls.append(("get_draft_notes", {"project_id": project_id, "merge_request_id": merge_request_id}))
+
+        if self.get_draft_notes_error:
+            raise self.get_draft_notes_error
+
+        return GitLabGetMRDraftNotesResponseSchema(root=list(self.draft_notes))
+
+    async def delete_draft_note(self, project_id: str, merge_request_id: str, draft_note_id: str) -> None:
+        self.calls.append(
+            (
+                "delete_draft_note",
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "draft_note_id": draft_note_id,
+                },
             )
         )
 
