@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 
 class OpenAIResponseUsageSchema(BaseModel):
@@ -23,10 +25,29 @@ class OpenAIResponseOutputSchema(BaseModel):
     content: list[OpenAIResponseContentSchema] | None = None
 
 
+class OpenAIReasoningSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    effort: Literal[
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+    ] | None = None
+    summary: Literal["auto", "concise", "detailed"] | None = None
+    context: Literal["auto", "current_turn", "all_turns"] | None = None
+    mode: Literal["standard", "pro"] | None = None
+    generate_summary: Literal["auto", "concise", "detailed"] | None = None
+
+
 class OpenAIResponsesRequestSchema(BaseModel):
     model: str
     input: list[OpenAIInputMessageSchema]
     stream: bool = False
+    reasoning: OpenAIReasoningSchema | None = None
     temperature: float | None = None
     instructions: str | None = None
     max_output_tokens: int | None = None

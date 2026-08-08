@@ -17,6 +17,12 @@ llm:
     model: gpt-4o-mini  # e.g., gpt-4o, gpt-4o-mini, gpt-3.5-turbo, gpt-4.1, gpt-4.1-mini, gpt-5
     max_tokens: 1200    # (optional) Maximum tokens for completion
     temperature: 0.3    # (optional) Creativity of responses (0 = deterministic)
+    # reasoning:                  # (optional) OpenAI Responses API options for reasoning models
+    #   effort: medium            # none | minimal | low | medium | high | xhigh | max
+    #   summary: concise          # auto | concise | detailed
+    #   context: all_turns        # auto | current_turn | all_turns
+    #   mode: standard            # standard | pro
+    #   generate_summary: concise # deprecated; use summary instead
 
     # --- Gemini ---
     # model: gemini-2.0-pro

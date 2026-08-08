@@ -26,3 +26,29 @@ def test_is_v2_model_default_false():
     assert meta.model == "gpt-4o-mini"
     assert meta.is_v2_model is False
     assert meta.max_tokens is None
+
+
+def test_reasoning_config_parses_string_fields():
+    meta = OpenAIMetaConfig(
+        model="gpt-5.6-sol",
+        reasoning={
+            "effort": "provider-effort",
+            "summary": "provider-summary",
+            "context": "provider-context",
+            "mode": "provider-mode",
+            "generate_summary": "provider-generate-summary",
+        },
+    )
+
+    assert meta.reasoning is not None
+    assert meta.reasoning.model_dump(exclude_unset=True) == {
+        "effort": "provider-effort",
+        "summary": "provider-summary",
+        "context": "provider-context",
+        "mode": "provider-mode",
+        "generate_summary": "provider-generate-summary",
+    }
+
+
+def test_reasoning_config_defaults_to_none():
+    assert OpenAIMetaConfig().reasoning is None

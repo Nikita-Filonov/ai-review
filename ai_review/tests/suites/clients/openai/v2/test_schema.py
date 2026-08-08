@@ -1,8 +1,12 @@
+import pytest
+from pydantic import ValidationError
+
 from ai_review.clients.openai.v2.schema import (
     OpenAIResponseUsageSchema,
     OpenAIInputMessageSchema,
     OpenAIResponseContentSchema,
     OpenAIResponseOutputSchema,
+    OpenAIReasoningSchema,
     OpenAIResponsesRequestSchema,
     OpenAIResponsesResponseSchema,
 )
@@ -78,6 +82,52 @@ def test_responses_request_schema_allows_none_tokens():
 
     dumped = req.model_dump(exclude_none=True)
     assert "max_output_tokens" not in dumped
+
+
+def test_responses_request_schema_includes_reasoning_object():
+    req = OpenAIResponsesRequestSchema(
+        model="gpt-5.6-sol",
+        input=[OpenAIInputMessageSchema(role="user", content="test")],
+        reasoning={
+            "effort": "medium",
+            "summary": "concise",
+            "context": "all_turns",
+            "mode": "pro",
+            "generate_summary": "detailed",
+        },
+    )
+
+    assert req.model_dump(exclude_none=True)["reasoning"] == {
+        "effort": "medium",
+        "summary": "concise",
+        "context": "all_turns",
+        "mode": "pro",
+        "generate_summary": "detailed",
+    }
+
+
+def test_responses_request_schema_omits_reasoning_by_default():
+    req = OpenAIResponsesRequestSchema(
+        model="gpt-5",
+        input=[OpenAIInputMessageSchema(role="user", content="test")],
+    )
+
+    assert "reasoning" not in req.model_dump(exclude_none=True)
+
+
+@pytest.mark.parametrize(
+    "reasoning",
+    [
+        {"effort": "invalid"},
+        {"summary": "invalid"},
+        {"context": "invalid"},
+        {"mode": "invalid"},
+        {"unknown_option": True},
+    ],
+)
+def test_reasoning_schema_rejects_invalid_contract(reasoning: dict):
+    with pytest.raises(ValidationError):
+        OpenAIReasoningSchema(**reasoning)
 
 
 def test_responses_request_schema_stream_defaults_to_false():
