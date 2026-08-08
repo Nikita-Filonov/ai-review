@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.libs.json import sanitize_json_string
+from ai_review.libs.json import extract_json_objects, sanitize_json_string
 
 
 @pytest.mark.parametrize(
@@ -25,3 +25,24 @@ def test_sanitize_idempotent() -> None:
     once = sanitize_json_string(raw)
     twice = sanitize_json_string(once)
     assert once == twice
+
+
+def test_extract_json_objects_from_surrounding_text() -> None:
+    raw = 'reasoning {not json} {"action":"TOOL_CALL","command":"cat {file}.py"} trailing'
+
+    assert extract_json_objects(raw) == [
+        '{"action":"TOOL_CALL","command":"cat {file}.py"}',
+    ]
+
+
+def test_extract_json_objects_returns_complete_top_level_objects() -> None:
+    raw = '{"outer":{"value":1}} and {"second":2}'
+
+    assert extract_json_objects(raw) == [
+        '{"outer":{"value":1}}',
+        '{"second":2}',
+    ]
+
+
+def test_extract_json_objects_returns_empty_list_without_complete_object() -> None:
+    assert extract_json_objects('text {"incomplete": true') == []

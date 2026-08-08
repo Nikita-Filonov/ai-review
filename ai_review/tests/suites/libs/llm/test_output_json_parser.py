@@ -106,6 +106,41 @@ def test_parse_output_with_extra_text_around_json(llm_output_json_parser: LLMOut
     assert result.text == "valid"
 
 
+def test_parse_output_with_thinking_tag_before_json(llm_output_json_parser: LLMOutputJSONParser):
+    output = '</think>{"text":"valid"}'
+
+    result = llm_output_json_parser.parse_output(output)
+
+    assert isinstance(result, DummyModel)
+    assert result.text == "valid"
+
+
+def test_parse_output_with_prose_before_json(llm_output_json_parser: LLMOutputJSONParser):
+    output = 'I need more context. {"text":"valid"}'
+
+    result = llm_output_json_parser.parse_output(output)
+
+    assert isinstance(result, DummyModel)
+    assert result.text == "valid"
+
+
+def test_parse_output_ignores_embedded_object_that_does_not_match_schema(
+        llm_output_json_parser: LLMOutputJSONParser,
+):
+    output = 'metadata {"value":1} result {"text":"valid"}'
+
+    result = llm_output_json_parser.parse_output(output)
+
+    assert isinstance(result, DummyModel)
+    assert result.text == "valid"
+
+
+def test_parse_output_rejects_multiple_valid_embedded_objects(llm_output_json_parser: LLMOutputJSONParser):
+    output = 'first {"text":"one"} second {"text":"two"}'
+
+    assert llm_output_json_parser.parse_output(output) is None
+
+
 def test_parse_output_with_broken_json_then_valid_block(llm_output_json_parser: LLMOutputJSONParser):
     """Should skip broken JSON and parse valid fenced one."""
     output = '{"text": invalid}\n```json\n{"text": "fixed"}\n```'

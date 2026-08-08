@@ -90,6 +90,33 @@ async def test_run_executes_tool_call_then_returns_final(
 
 
 @pytest.mark.asyncio
+async def test_run_executes_tool_call_embedded_in_model_reasoning(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            '</think>{"action":"TOOL_CALL","command":"cat modules/Example.java"}',
+            'The review is complete. {"action":"FINAL","content":"done"}',
+        ]),
+    )
+    fake_agent_tool_service.responses["execute"] = "file-content"
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "final"
+    assert result.final_text == "done"
+    assert fake_agent_tool_service.calls == [
+        ("execute", {"command": "cat modules/Example.java"}),
+    ]
+    assert result.traces[0].tool_output == "file-content"
+
+
+@pytest.mark.asyncio
 async def test_run_blocks_duplicate_tool_call_signature(
         monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
