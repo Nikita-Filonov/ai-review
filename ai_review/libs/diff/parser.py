@@ -19,7 +19,7 @@ NEW_FILE_PREFIX = "+++ b/"
 class DiffParser:
     @classmethod
     def parse(cls, diff_string: str) -> Diff:
-        lines = diff_string.splitlines()
+        lines = diff_string.split("\n")
         files: list[DiffFile] = []
 
         current_file: DiffFile | None = None

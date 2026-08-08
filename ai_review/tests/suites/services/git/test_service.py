@@ -6,6 +6,28 @@ from ai_review.config import settings
 from ai_review.services.git.service import GitService
 
 
+def test_run_git_decodes_utf8_output_without_using_system_encoding(
+        monkeypatch: pytest.MonkeyPatch,
+        git_service: GitService,
+) -> None:
+    def fake_run(command: list[str], **kwargs) -> subprocess.CompletedProcess[bytes]:
+        assert command == ["git", "diff"]
+        assert kwargs["capture_output"] is True
+        assert kwargs["check"] is True
+        assert "text" not in kwargs
+        assert "encoding" not in kwargs
+        return subprocess.CompletedProcess(
+            command,
+            returncode=0,
+            stdout="+Привет, мир!\n".encode(),
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert git_service.run_git("diff") == "+Привет, мир!\n"
+
+
 def test_get_renamed_files_returns_rename_only_paths(
         monkeypatch: pytest.MonkeyPatch,
         git_service: GitService,

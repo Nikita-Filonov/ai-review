@@ -113,3 +113,29 @@ deleted file mode 100644
     assert file.mode == FileMode.DELETED
     assert file.orig_name == "x"
     assert [line.content for line in file.hunks[0].orig_range.lines] == ["old line"]
+
+
+def test_parse_preserves_standalone_carriage_return_inside_diff_record() -> None:
+    """A bare CR belongs to file content and must not create an extra diff line."""
+    raw_diff = (
+        "diff --git a/x b/x\n"
+        "index 0000000..1111111 100644\n"
+        "--- a/x\n"
+        "+++ b/x\n"
+        "@@ -1,1 +1,1 @@\n"
+        "-old\r\tКонецЕсли;\n"
+        "+new\r\tКонецЕсли;\n"
+    )
+
+    hunk = parse_and_get_file(raw_diff).hunks[0]
+
+    assert [line.type for line in hunk.lines] == [
+        DiffLineType.REMOVED,
+        DiffLineType.ADDED,
+    ]
+    assert [line.content for line in hunk.lines] == [
+        "old\r\tКонецЕсли;",
+        "new\r\tКонецЕсли;",
+    ]
+    assert len(hunk.orig_range.lines) == hunk.orig_range.length == 1
+    assert len(hunk.new_range.lines) == hunk.new_range.length == 1

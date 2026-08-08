@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ai_review.config import settings
 from ai_review.libs.logger import get_logger
+from ai_review.services.git.tools import decode_git_output
 from ai_review.services.git.types import GitServiceProtocol
 
 logger = get_logger("GIT_SERVICE")
@@ -21,16 +22,17 @@ class GitService(GitServiceProtocol):
                 cmd,
                 cwd=self.repo_dir,
                 capture_output=True,
-                text=True,
                 check=True,
             )
-            if result.stderr.strip():
-                logger.debug(f"Git stderr: {result.stderr.strip()}")
-            return result.stdout
+            stdout = decode_git_output(result.stdout)
+            stderr = decode_git_output(result.stderr)
+            if stderr.strip():
+                logger.debug(f"Git stderr: {stderr.strip()}")
+            return stdout
         except subprocess.CalledProcessError as error:
             logger.warning(
                 f"Git command failed (exit={error.returncode}): {' '.join(cmd)}\n"
-                f"stderr: {error.stderr.strip()}"
+                f"stderr: {decode_git_output(error.stderr).strip()}"
             )
             raise
 
