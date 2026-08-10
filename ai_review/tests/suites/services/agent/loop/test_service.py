@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.services.agent.loop.service import AgentLoopService
+from ai_review.services.agent.loop.service import AgentLoopService, is_attempted_action
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.services.agent.tool import FakeAgentToolService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
@@ -19,6 +19,15 @@ def sequence_chat_results(outputs: list[ChatResultSchema]):
         return outputs.pop(0)
 
     return chat
+
+
+MALFORMED_TOOL_CALL = '{"action":"TOOL_CALL","command":"git grep -n -i -l "migration" -- docs"}'
+REASONING_PREFIXED_TOOL_CALL = '</think>{"action":"TOOL_CALL","command":"cat modules/Sample.java"}'
+PROSE_WRAPPED_TOOL_CALL = (
+    'Let me examine the key files first.{"action":"TOOL_CALL","command":"cat modules/Sample.java"}'
+)
+MARKDOWN_SUMMARY = "## Summary\n\n- The change looks correct.\n\n```python\nprint(1)\n```\n"
+INLINE_COMMENTS_JSON = '[{"file":"a.py","line":10,"message":"Unused import","suggestion":null}]'
 
 
 @pytest.mark.asyncio
@@ -325,3 +334,234 @@ async def test_run_persists_llm_tokens_in_traces(
     assert result.prompt_tokens == 15
     assert result.completion_tokens == 30
     assert result.total_tokens == 45
+
+
+@pytest.mark.parametrize(
+    "output, expected",
+    [
+        (MALFORMED_TOOL_CALL, True),
+        (REASONING_PREFIXED_TOOL_CALL, True),
+        (PROSE_WRAPPED_TOOL_CALL, True),
+        ('{"action": "final", "content": "oops', True),
+        (MARKDOWN_SUMMARY, False),
+        (INLINE_COMMENTS_JSON, False),
+        ("", False),
+        ("The action taken by the FINAL migration is unclear", False),
+    ],
+)
+def test_is_attempted_action_detects_the_protocol_envelope(output: str, expected: bool) -> None:
+    assert is_attempted_action(output) is expected
+
+
+@pytest.mark.asyncio
+async def test_run_retries_when_attempted_action_is_malformed(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_prompt_service: FakePromptService,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            MALFORMED_TOOL_CALL,
+            '{"action":"FINAL","content":"review-complete"}',
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "final"
+    assert result.final_text == "review-complete"
+    assert MALFORMED_TOOL_CALL not in result.final_text
+    assert len(result.traces) == 2
+    assert result.traces[0].step is None
+    assert result.traces[0].raw_output == MALFORMED_TOOL_CALL
+    assert "Invalid response discarded" in (result.traces[0].warning or "")
+    assert fake_agent_tool_service.calls == []
+    assert [
+        call[1]["force_final"] for call in fake_prompt_service.calls
+        if call[0] == "build_agent_request"
+    ] == [False, False]
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_execute_the_command_of_a_malformed_action(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            MALFORMED_TOOL_CALL,
+            '{"action":"TOOL_CALL","command":"ls"}',
+            '{"action":"FINAL","content":"done"}',
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "done"
+    assert fake_agent_tool_service.calls == [("execute", {"command": "ls"})]
+
+
+@pytest.mark.asyncio
+async def test_run_counts_tokens_of_a_discarded_attempted_action(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat_results([
+            ChatResultSchema(
+                text=MALFORMED_TOOL_CALL,
+                total_tokens=30,
+                prompt_tokens=10,
+                completion_tokens=20,
+            ),
+            ChatResultSchema(
+                text='{"action":"FINAL","content":"done"}',
+                total_tokens=15,
+                prompt_tokens=5,
+                completion_tokens=10,
+            ),
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "done"
+    assert result.total_tokens == 45
+
+
+@pytest.mark.asyncio
+async def test_run_forces_final_when_malformed_actions_exhaust_the_budget(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_prompt_service: FakePromptService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            MALFORMED_TOOL_CALL,
+            MALFORMED_TOOL_CALL,
+            MALFORMED_TOOL_CALL,
+            '{"action":"FINAL","content":"forced-final"}',
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "forced-final"
+    assert MALFORMED_TOOL_CALL not in result.final_text
+    assert any(
+        call[0] == "build_agent_request" and call[1]["force_final"] is True
+        for call in fake_prompt_service.calls
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_resets_the_malformed_action_budget_between_runs(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    for expected in ("one", "two"):
+        monkeypatch.setattr(
+            fake_llm_client,
+            "chat",
+            sequence_chat([
+                MALFORMED_TOOL_CALL,
+                MALFORMED_TOOL_CALL,
+                f'{{"action":"FINAL","content":"{expected}"}}',
+            ]),
+        )
+
+        result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+        assert result.stop_reason == "final"
+        assert result.final_text == expected
+
+
+@pytest.mark.asyncio
+async def test_run_returns_markdown_summary_as_final_text(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([MARKDOWN_SUMMARY]))
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "unstructured_response"
+    assert result.final_text == MARKDOWN_SUMMARY
+    assert len(result.traces) == 1
+
+
+@pytest.mark.asyncio
+async def test_run_returns_inline_comment_json_array_as_final_text(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([INLINE_COMMENTS_JSON]))
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "unstructured_response"
+    assert result.final_text == INLINE_COMMENTS_JSON
+    assert len(result.traces) == 1
+
+
+@pytest.mark.asyncio
+async def test_run_recovers_from_reasoning_delimiter_before_the_action(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            REASONING_PREFIXED_TOOL_CALL,
+            '{"action":"TOOL_CALL","command":"cat modules/Sample.java"}',
+            '{"action":"FINAL","content":"review-complete"}',
+        ]),
+    )
+    fake_agent_tool_service.responses["execute"] = "class Sample {}"
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "final"
+    assert result.final_text == "review-complete"
+    assert fake_agent_tool_service.calls == [("execute", {"command": "cat modules/Sample.java"})]
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_promote_prose_wrapped_action_to_final_text(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat([
+            PROSE_WRAPPED_TOOL_CALL,
+            '{"action":"FINAL","content":"review-complete"}',
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "review-complete"
+    assert result.final_text != PROSE_WRAPPED_TOOL_CALL
