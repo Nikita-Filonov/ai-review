@@ -1,5 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Literal
+
+Side = Literal["new", "old"]
+"""Which file of the change a line number belongs to.
+
+A bare line number cannot say: a removed line is numbered in the old file and an
+added line in the new one, so the same number can address two different lines of
+the same diff. A caller that knows the side says so and skips the guess.
+"""
 
 
 class FileMode(Enum):
@@ -108,20 +117,39 @@ class DiffFile:
 
         return positions
 
-    def find_line_position(self, line: int) -> DiffLinePosition | None:
+    def find_line_position(self, line: int, side: Side | None = None) -> DiffLinePosition | None:
         """
-        Resolve a bare line number to the diff line it addresses.
+        Resolve a line number to the diff line it addresses.
 
-        The number is read as a new-file line first, which covers added and
-        unchanged lines and matches how the diff is rendered for the model. Only
-        if no new-file line matches is it read as the old-file line of a removed
-        line, which is the one case that has no new-file number at all.
+        `side` names the file the number was read from, and is authoritative when
+        given. `"old"` matches the old file, so a removed line is found by its own
+        number even when that number is also a new-file line elsewhere in the
+        diff; `"new"` matches the new file and never falls back, so a number
+        declared as new-file is not silently reinterpreted.
+
+        Without a side the number is a bare one — all that
+        `create_inline_comment(file, line, message)` carries — and the reading is
+        a guess: new-file first, which covers added and unchanged lines and
+        matches how the diff is rendered for the model, then the old-file line of
+        a removed line, the one case that has no new-file number at all. Where
+        both readings are possible the new side wins, which can mis-anchor a
+        comment about a deleted line; passing `side` is how a caller avoids that.
         """
         positions = self.line_positions()
+
+        if side == "old":
+            for position in positions:
+                if position.old_line == line:
+                    return position
+
+            return None
 
         for position in positions:
             if position.new_line == line:
                 return position
+
+        if side == "new":
+            return None
 
         for position in positions:
             if position.type is DiffLineType.REMOVED and position.old_line == line:

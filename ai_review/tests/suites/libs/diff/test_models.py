@@ -8,6 +8,7 @@ from ai_review.libs.diff.models import (
     DiffFile,
     Diff,
     FileMode,
+    DiffLinePosition,
 )
 from ai_review.libs.diff.parser import DiffParser
 
@@ -188,6 +189,58 @@ def test_find_line_position_prefers_the_new_side(deletion_file: DiffFile) -> Non
     assert position is not None
     assert position.type is DiffLineType.UNCHANGED
     assert (position.old_line, position.new_line) == (5, 2)
+
+
+def test_find_line_position_with_the_old_side_resolves_the_removed_line(deletion_file: DiffFile) -> None:
+    """An explicit old side must beat the new-first guess, or the comment mis-anchors.
+
+    Old line 2 is the removed `beta`, and new line 2 is the surviving `epsilon`.
+    Without a side the new side wins, which puts a comment about a deleted line
+    onto an unrelated line of code.
+    """
+    position = deletion_file.find_line_position(2, side="old")
+
+    assert position is not None
+    assert position.type is DiffLineType.REMOVED
+    assert (position.old_line, position.new_line) == (2, None)
+
+
+def test_find_line_position_with_the_old_side_resolves_a_context_line_by_its_old_number(
+        deletion_file: DiffFile,
+) -> None:
+    """A context line addressed on the old side still yields both numbers, which GitLab needs."""
+    position = deletion_file.find_line_position(5, side="old")
+
+    assert position is not None
+    assert position.type is DiffLineType.UNCHANGED
+    assert (position.old_line, position.new_line) == (5, 2)
+
+
+def test_find_line_position_with_the_old_side_ignores_the_new_side_entirely(two_hunk_file: DiffFile) -> None:
+    """The ambiguity from the shift of an earlier hunk is resolved by the declared side.
+
+    Old line 128 is the removed `session.delete(entry)` while new line 128 is the
+    surviving `entry = session.get(key)`.
+    """
+    position = two_hunk_file.find_line_position(128, side="old")
+
+    assert position is not None
+    assert position.type is DiffLineType.REMOVED
+    assert (position.old_line, position.new_line) == (128, None)
+
+    assert two_hunk_file.find_line_position(128) == DiffLinePosition(DiffLineType.UNCHANGED, 127, 128)
+
+
+def test_find_line_position_with_the_new_side_never_falls_back_to_the_old_one(deletion_file: DiffFile) -> None:
+    """A number declared as new-file must not be silently reinterpreted as an old one."""
+    assert deletion_file.find_line_position(2, side="new") == DiffLinePosition(DiffLineType.UNCHANGED, 5, 2)
+    assert deletion_file.find_line_position(3, side="new") is None
+
+
+def test_find_line_position_with_a_side_returns_none_for_an_unknown_line(deletion_file: DiffFile) -> None:
+    """A declared side does not invent a position for a line outside every hunk."""
+    assert deletion_file.find_line_position(500, side="old") is None
+    assert deletion_file.find_line_position(500, side="new") is None
 
 
 def test_find_line_position_returns_none_for_unknown_line(two_hunk_file: DiffFile) -> None:
