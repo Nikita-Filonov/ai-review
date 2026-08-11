@@ -6,6 +6,7 @@ from ai_review.clients.github.pr.schema.comments import (
     GitHubCreateReviewCommentRequestSchema
 )
 from ai_review.config import settings
+from ai_review.libs.diff.models import Side
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.github.adapter import (
     get_review_comment_from_github_pr_comment,
@@ -125,7 +126,8 @@ class GitHubVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create general comment in PR {self.pull_request_ref}: {error}")
             raise
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
+        # GitHub anchors on the new file only; `side` is accepted for the protocol and ignored.
         try:
             logger.info(f"Posting inline comment in {self.pull_request_ref} at {file}:{line}: {message}")
 

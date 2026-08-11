@@ -97,6 +97,58 @@ def test_build_inline_position_omits_the_new_line_for_a_removed_line() -> None:
     assert position.new_line is None
 
 
+def test_build_inline_position_anchors_a_removed_line_declared_on_the_old_side() -> None:
+    """A declared old side must beat the new-first guess, or GitLab anchors the wrong line.
+
+    Old line 128 is the removed `session.delete(entry)`; new line 128 is the
+    surviving `entry = session.get(key)`. Both readings are possible, so the
+    guess picks the wrong one and reports nothing.
+    """
+    position = build_inline_position(file="src/db.py", line=128, side="old", diff_refs=DIFF_REFS, changes=CHANGES)
+
+    assert position.old_path == "src/db.py"
+    assert position.new_path == "src/db.py"
+    assert position.old_line == 128
+    assert position.new_line is None
+
+
+def test_build_inline_position_without_a_side_keeps_preferring_the_new_line() -> None:
+    """ai-review's own path sends bare numbers, so its behaviour must not change."""
+    position = build_inline_position(file="src/db.py", line=128, diff_refs=DIFF_REFS, changes=CHANGES)
+
+    assert position.old_line == 127
+    assert position.new_line == 128
+
+
+def test_build_inline_position_pairs_a_context_line_declared_on_the_old_side() -> None:
+    """Old line 126 is a context line the guess cannot resolve at all, having no new-side twin."""
+    position = build_inline_position(file="src/db.py", line=126, side="old", diff_refs=DIFF_REFS, changes=CHANGES)
+
+    assert position.old_line == 126
+    assert position.new_line == 127
+
+    unresolved = build_inline_position(file="src/db.py", line=126, diff_refs=DIFF_REFS, changes=CHANGES)
+    assert (unresolved.old_path, unresolved.old_line, unresolved.new_line) == (None, None, 126)
+
+
+def test_build_inline_position_omits_the_old_line_for_an_added_line_declared_on_the_new_side() -> None:
+    """An added line declared on the new side still carries no old_line."""
+    position = build_inline_position(file="src/db.py", line=129, side="new", diff_refs=DIFF_REFS, changes=CHANGES)
+
+    assert position.old_path == "src/db.py"
+    assert position.old_line is None
+    assert position.new_line == 129
+
+
+def test_build_inline_position_keeps_the_new_line_when_the_declared_new_side_has_no_such_line() -> None:
+    """A number declared new-file is not reinterpreted as an old one; it stays unresolved."""
+    position = build_inline_position(file="src/db.py", line=126, side="new", diff_refs=DIFF_REFS, changes=CHANGES)
+
+    assert position.old_path is None
+    assert position.old_line is None
+    assert position.new_line == 126
+
+
 def test_build_inline_position_uses_both_paths_of_a_rename() -> None:
     """Should carry the pre- and post-rename paths, which GitLab uses to locate the diff file."""
     changes = [GitLabMRChangeSchema(diff=TWO_HUNK_DIFF, old_path="src/old.py", new_path="src/new.py")]

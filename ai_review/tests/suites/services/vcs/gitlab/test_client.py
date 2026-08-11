@@ -660,6 +660,75 @@ async def test_create_draft_inline_comment_sends_paired_position_for_context_lin
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_anchors_a_removed_line_declared_on_the_old_side(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should address the old side when the caller declares it, not the colliding new line.
+
+    Old line 128 is the removed `session.delete(entry)`; new line 128 is the
+    surviving `entry = session.get(key)`. Sending new_line=128 would put the
+    comment on a line the finding is not about.
+    """
+    await gitlab_vcs_client.create_inline_comment(
+        file="src/db.py", line=128, message="Removed the delete", side="old"
+    )
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.old_path == "src/db.py"
+    assert position.new_path == "src/db.py"
+    assert position.old_line == 128
+    assert position.new_line is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_draft_inline_comment_anchors_a_removed_line_declared_on_the_old_side(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should carry the declared side into the draft note as well, where a bad position is lost silently."""
+    await gitlab_vcs_client.create_inline_comment(
+        file="src/db.py", line=128, message="Removed the delete", side="old"
+    )
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    )
+    position = call["position"]
+
+    assert position.old_path == "src/db.py"
+    assert position.old_line == 128
+    assert position.new_line is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_without_a_side_still_resolves_against_the_new_file(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should leave the LLM review path, which sends bare line numbers, exactly as it was."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=128, message="Context finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.old_line == 127
+    assert position.new_line == 128
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
 async def test_create_inline_comment_omits_old_line_for_added_line(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,

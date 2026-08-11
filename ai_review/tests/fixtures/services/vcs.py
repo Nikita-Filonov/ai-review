@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 
+from ai_review.libs.diff.models import Side
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     ReviewInfoSchema,
@@ -37,8 +38,8 @@ class FakeVCSClient(VCSClientProtocol):
 
         return self.responses.get("create_general_comment_result", None)
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
-        self.calls.append(("create_inline_comment", (file, line, message), {}))
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
+        self.calls.append(("create_inline_comment", (file, line, message), {"side": side}))
         if error := self.responses.get("create_inline_comment_error"):
             raise error
 

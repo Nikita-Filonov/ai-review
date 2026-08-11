@@ -1,5 +1,6 @@
 from ai_review.clients.gitlab.mr.schema.changes import GitLabDiffRefsSchema, GitLabMRChangeSchema
 from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
+from ai_review.libs.diff.models import Side
 from ai_review.libs.diff.parser import DiffParser
 from ai_review.libs.logger import get_logger
 from ai_review.services.diff.tools import normalize_file_path
@@ -26,6 +27,7 @@ def build_inline_position(
         line: int,
         diff_refs: GitLabDiffRefsSchema,
         changes: list[GitLabMRChangeSchema],
+        side: Side | None = None,
 ) -> GitLabPositionSchema:
     """
     Build the diff position of an inline comment.
@@ -38,11 +40,18 @@ def build_inline_position(
     Resolving the line against the diff GitLab itself reported lets us send both
     numbers, and lets us address a removed line by its old number.
 
+    `side` says which file `line` is numbered in. Without it the number is read
+    as a new-file line first, which is the only thing a bare number supports but
+    is still a guess: a removed line's old number is frequently also a new-file
+    number in the same diff, and then the comment lands on unrelated code with no
+    error to show for it. A caller that resolved the line itself passes the side
+    and the guess is skipped.
+
     When the line cannot be resolved — the file is absent from the changes
-    payload, GitLab omitted the diff body, or the body does not parse — the
-    position keeps `new_path` and `new_line` only. That is what the caller sent
-    before, so such comments keep taking the same path through the inline
-    fallback as they do today.
+    payload, GitLab omitted the diff body, the body does not parse, or the number
+    is not a line of the declared side — the position keeps `new_path` and
+    `new_line` only. That is what the caller sent before, so such comments keep
+    taking the same path through the inline fallback as they do today.
     """
     position = GitLabPositionSchema(
         position_type="text",
@@ -70,9 +79,9 @@ def build_inline_position(
         logger.warning(f"MR diff of {file} contains no hunks, cannot resolve the old line of {file}:{line}")
         return position
 
-    line_position = diff.files[0].find_line_position(line)
+    line_position = diff.files[0].find_line_position(line, side=side)
     if line_position is None:
-        logger.warning(f"Line {line} is not part of the MR diff of {file}")
+        logger.warning(f"Line {line} is not part of the MR diff of {file} on side {side or 'new/old'}")
         return position
 
     return position.model_copy(

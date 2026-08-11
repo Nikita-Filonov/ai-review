@@ -5,6 +5,7 @@ from ai_review.clients.gitlab.mr.schema.discussions import GitLabCreateMRDiscuss
 from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabCreateMRDraftNoteRequestSchema
 from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
+from ai_review.libs.diff.models import Side
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
 from ai_review.services.vcs.gitlab.position import build_inline_position
@@ -215,9 +216,9 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create draft general comment in {self.merge_request_ref}: {error}")
             raise
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
         if settings.vcs.batch_comments:
-            await self.create_draft_inline_comment(file=file, line=line, message=message)
+            await self.create_draft_inline_comment(file=file, line=line, message=message, side=side)
             return
 
         try:
@@ -233,6 +234,7 @@ class GitLabVCSClient(VCSClientProtocol):
                 position=build_inline_position(
                     file=file,
                     line=line,
+                    side=side,
                     diff_refs=response.diff_refs,
                     changes=response.changes,
                 ),
@@ -247,7 +249,13 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.merge_request_ref} at {file}:{line}: {error}")
             raise
 
-    async def create_draft_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_draft_inline_comment(
+            self,
+            file: str,
+            line: int,
+            message: str,
+            side: Side | None = None,
+    ) -> None:
         await self.discard_stale_draft_comments()
 
         try:
@@ -263,6 +271,7 @@ class GitLabVCSClient(VCSClientProtocol):
                 position=build_inline_position(
                     file=file,
                     line=line,
+                    side=side,
                     diff_refs=response.diff_refs,
                     changes=response.changes,
                 ),

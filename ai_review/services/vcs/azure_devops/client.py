@@ -8,6 +8,7 @@ from ai_review.clients.azure_devops.pr.schema.threads import (
     AzureDevOpsPullRequestThreadContextSchema,
 )
 from ai_review.config import settings
+from ai_review.libs.diff.models import Side
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.azure_devops.adapter import get_review_comment_from_azure_devops_comment
 from ai_review.services.vcs.types import (
@@ -169,7 +170,8 @@ class AzureDevOpsVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create general comment in {self.pull_request_ref}: {error}")
             raise
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
+        # Azure DevOps anchors on the right-hand file only; `side` is accepted for the protocol and ignored.
         try:
             logger.info(f"Posting inline comment in {self.pull_request_ref} at {file}:{line}: {message}")
 
