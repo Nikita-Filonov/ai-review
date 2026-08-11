@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class LLMProvider(StrEnum):
+    ATLAS_CLOUD = "ATLAS_CLOUD"
     OPENAI = "OPENAI"
     GEMINI = "GEMINI"
     CLAUDE = "CLAUDE"

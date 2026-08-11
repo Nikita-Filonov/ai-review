@@ -52,7 +52,7 @@ improve code quality, enforce consistency, and speed up the review process.
 
 ✨ Key features:
 
-- **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, **Bedrock**,
+- **Multiple LLM providers** — choose between **Atlas Cloud**, **OpenAI**, **Claude**, **Gemini**, **Ollama**, **Bedrock**,
   **OpenRouter**, or **Azure OpenAI** and switch anytime.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**.
@@ -167,7 +167,7 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, Ollama, Bedrock, OpenRouter, or Azure OpenAI
+- **LLM provider** — Atlas Cloud, OpenAI, Gemini, Claude, Ollama, Bedrock, OpenRouter, or Azure OpenAI
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**

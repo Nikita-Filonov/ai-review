@@ -1,5 +1,15 @@
 import pytest
 
+from pydantic import SecretStr
+
+from ai_review.config import settings
+from ai_review.libs.config.llm.atlas_cloud import (
+    AtlasCloudHTTPClientConfig,
+    AtlasCloudMetaConfig,
+)
+from ai_review.libs.config.llm.base import AtlasCloudLLMConfig
+from ai_review.libs.constants.llm_provider import LLMProvider
+from ai_review.services.llm.atlas_cloud.client import AtlasCloudLLMClient
 from ai_review.services.llm.azure_openai.client import AzureOpenAILLMClient
 from ai_review.services.llm.bedrock.client import BedrockLLMClient
 from ai_review.services.llm.claude.client import ClaudeLLMClient
@@ -8,6 +18,19 @@ from ai_review.services.llm.gemini.client import GeminiLLMClient
 from ai_review.services.llm.ollama.client import OllamaLLMClient
 from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.openrouter.client import OpenRouterLLMClient
+
+
+def test_get_llm_client_returns_atlas_cloud(monkeypatch: pytest.MonkeyPatch):
+    config = AtlasCloudLLMConfig(
+        provider=LLMProvider.ATLAS_CLOUD,
+        meta=AtlasCloudMetaConfig(),
+        http_client=AtlasCloudHTTPClientConfig(api_token=SecretStr("fake-token")),
+    )
+    monkeypatch.setattr(settings, "llm", config)
+
+    client = get_llm_client()
+
+    assert isinstance(client, AtlasCloudLLMClient)
 
 
 @pytest.mark.usefixtures("openai_v1_http_client_config")

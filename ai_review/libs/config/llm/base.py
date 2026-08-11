@@ -4,6 +4,10 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import BaseModel, Field, FilePath
 
+from ai_review.libs.config.llm.atlas_cloud import (
+    AtlasCloudHTTPClientConfig,
+    AtlasCloudMetaConfig,
+)
 from ai_review.libs.config.llm.azure_openai import AzureOpenAIHTTPClientConfig, AzureOpenAIMetaConfig
 from ai_review.libs.config.llm.bedrock import BedrockHTTPClientConfig, BedrockMetaConfig
 from ai_review.libs.config.llm.claude import ClaudeHTTPClientConfig, ClaudeMetaConfig
@@ -39,6 +43,12 @@ class LLMConfigBase(BaseModel):
         data = self.pricing_file_or_default.read_text(encoding="utf-8")
         raw = yaml.safe_load(data)
         return {model: LLMPricingConfig(**values) for model, values in raw.items()}
+
+
+class AtlasCloudLLMConfig(LLMConfigBase):
+    meta: AtlasCloudMetaConfig = Field(default_factory=AtlasCloudMetaConfig)
+    provider: Literal[LLMProvider.ATLAS_CLOUD]
+    http_client: AtlasCloudHTTPClientConfig
 
 
 class OpenAILLMConfig(LLMConfigBase):
@@ -84,7 +94,8 @@ class AzureOpenAILLMConfig(LLMConfigBase):
 
 
 LLMConfig = Annotated[
-    OpenAILLMConfig
+    AtlasCloudLLMConfig
+    | OpenAILLMConfig
     | GeminiLLMConfig
     | ClaudeLLMConfig
     | OllamaLLMConfig
