@@ -139,3 +139,61 @@ def test_parse_preserves_standalone_carriage_return_inside_diff_record() -> None
     ]
     assert len(hunk.orig_range.lines) == hunk.orig_range.length == 1
     assert len(hunk.new_range.lines) == hunk.new_range.length == 1
+
+
+def test_parse_diff_without_file_header() -> None:
+    """Should parse a bare unified diff body, as returned by the GitLab changes API."""
+    raw_diff = """@@ -1,2 +1,2 @@
+-old line
++new line
+ kept line
+"""
+    file = parse_and_get_file(raw_diff)
+
+    assert file.mode == FileMode.MODIFIED
+    assert file.orig_name == ""
+    assert file.new_name == ""
+    assert len(file.hunks) == 1
+
+    hunk = file.hunks[0]
+    assert [line.content for line in hunk.lines] == ["old line", "new line", "kept line"]
+    assert [line.type for line in hunk.lines] == [
+        DiffLineType.REMOVED,
+        DiffLineType.ADDED,
+        DiffLineType.UNCHANGED,
+    ]
+
+
+def test_parse_multiple_hunks_tracks_independent_line_numbers() -> None:
+    """Should number each hunk from its own header, so a shift in one hunk does not leak."""
+    raw_diff = """diff --git a/x b/x
+index 6666666..7777777 100644
+--- a/x
++++ b/x
+@@ -80,4 +80,5 @@
+ class Store:
+     def __init__(self, session):
++        self.cache = {}
+     def get(self, key):
+         return self.session.get(key)
+@@ -126,4 +127,5 @@
+ def remove(session, key):
+     entry = session.get(key)
+-    session.delete(entry)
++    session.mark_deleted(entry)
++    session.flush()
+     session.commit()
+"""
+    file = parse_and_get_file(raw_diff)
+
+    assert len(file.hunks) == 2
+
+    first, second = file.hunks
+    assert (first.orig_range.start, first.new_range.start) == (80, 80)
+    assert (second.orig_range.start, second.new_range.start) == (126, 127)
+
+    assert file.added_line_numbers() == {82, 129, 130}
+    assert file.removed_line_numbers() == {128}
+
+    assert [line.number for line in second.new_range.lines] == [127, 128, 129, 130, 131]
+    assert [line.number for line in second.orig_range.lines] == [126, 127, 128, 129]

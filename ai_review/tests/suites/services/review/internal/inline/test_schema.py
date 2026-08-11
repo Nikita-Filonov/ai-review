@@ -46,6 +46,39 @@ def test_fallback_body(monkeypatch: pytest.MonkeyPatch):
     assert comment.fallback_body.startswith("**a.py:42** — missing check")
 
 
+def test_side_is_unset_by_default():
+    """ai-review's own review path emits bare line numbers, so no side is claimed."""
+    assert InlineCommentSchema(file="a.py", line=1, message="msg").side is None
+
+
+def test_side_can_be_declared():
+    """A caller that resolved the line against the diff carries the side it found."""
+    assert InlineCommentSchema(file="a.py", line=1, message="msg", side="old").side == "old"
+
+
+def test_fallback_body_marks_a_comment_on_the_old_side():
+    """The fallback is read by a human, who would otherwise look up the wrong line."""
+    comment = InlineCommentSchema(file="a.py", line=42, message="deleted the guard", side="old")
+
+    assert comment.fallback_body.startswith("**a.py:42 (old side)** — deleted the guard")
+
+
+def test_fallback_body_is_unchanged_for_the_new_side():
+    """Only the old side needs the marker, so the usual output must not change."""
+    for side in (None, "new"):
+        comment = InlineCommentSchema(file="a.py", line=42, message="missing check", side=side)
+        assert comment.fallback_body == "**a.py:42** — missing check"
+
+
+def test_dedup_key_differs_on_side():
+    """The two sides of one line number are two different lines, not a duplicate."""
+    old_side = InlineCommentSchema(file="a.py", line=1, message="msg", side="old")
+    new_side = InlineCommentSchema(file="a.py", line=1, message="msg", side="new")
+
+    assert old_side.dedup_key != new_side.dedup_key
+    assert len(InlineCommentListSchema(root=[old_side, new_side]).dedupe().root) == 2
+
+
 def test_dedup_key_differs_on_message_and_suggestion():
     c1 = InlineCommentSchema(file="a.py", line=1, message="msg one")
     c2 = InlineCommentSchema(file="a.py", line=1, message="msg one", suggestion="x = 1")

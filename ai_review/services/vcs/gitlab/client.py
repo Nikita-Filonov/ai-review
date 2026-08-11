@@ -3,11 +3,12 @@ import asyncio
 from ai_review.clients.gitlab.client import get_gitlab_http_client
 from ai_review.clients.gitlab.mr.schema.discussions import GitLabCreateMRDiscussionRequestSchema
 from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabCreateMRDraftNoteRequestSchema
-from ai_review.clients.gitlab.mr.schema.position import GitLabPositionSchema
 from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
+from ai_review.libs.diff.models import Side
 from ai_review.libs.logger import get_logger
 from ai_review.services.vcs.gitlab.adapter import get_user_from_gitlab_user, get_review_comment_from_gitlab_note
+from ai_review.services.vcs.gitlab.position import build_inline_position
 from ai_review.services.vcs.gitlab.tools import filter_ai_review_drafts
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
@@ -215,9 +216,9 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create draft general comment in {self.merge_request_ref}: {error}")
             raise
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
         if settings.vcs.batch_comments:
-            await self.create_draft_inline_comment(file=file, line=line, message=message)
+            await self.create_draft_inline_comment(file=file, line=line, message=message, side=side)
             return
 
         try:
@@ -230,13 +231,12 @@ class GitLabVCSClient(VCSClientProtocol):
 
             request = GitLabCreateMRDiscussionRequestSchema(
                 body=message,
-                position=GitLabPositionSchema(
-                    position_type="text",
-                    base_sha=response.diff_refs.base_sha,
-                    head_sha=response.diff_refs.head_sha,
-                    start_sha=response.diff_refs.start_sha,
-                    new_path=file,
-                    new_line=line,
+                position=build_inline_position(
+                    file=file,
+                    line=line,
+                    side=side,
+                    diff_refs=response.diff_refs,
+                    changes=response.changes,
                 ),
             )
             await self.http_client.mr.create_discussion(
@@ -249,7 +249,13 @@ class GitLabVCSClient(VCSClientProtocol):
             logger.exception(f"Failed to create inline comment in {self.merge_request_ref} at {file}:{line}: {error}")
             raise
 
-    async def create_draft_inline_comment(self, file: str, line: int, message: str) -> None:
+    async def create_draft_inline_comment(
+            self,
+            file: str,
+            line: int,
+            message: str,
+            side: Side | None = None,
+    ) -> None:
         await self.discard_stale_draft_comments()
 
         try:
@@ -262,13 +268,12 @@ class GitLabVCSClient(VCSClientProtocol):
 
             request = GitLabCreateMRDraftNoteRequestSchema(
                 note=message,
-                position=GitLabPositionSchema(
-                    position_type="text",
-                    base_sha=response.diff_refs.base_sha,
-                    head_sha=response.diff_refs.head_sha,
-                    start_sha=response.diff_refs.start_sha,
-                    new_path=file,
-                    new_line=line,
+                position=build_inline_position(
+                    file=file,
+                    line=line,
+                    side=side,
+                    diff_refs=response.diff_refs,
+                    changes=response.changes,
                 ),
             )
             await self.http_client.mr.create_draft_note(
