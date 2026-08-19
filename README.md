@@ -251,14 +251,17 @@ For GitLab users:
 
 ```yaml
 ai-review:
-  when: manual
   stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
+      when: manual
   script:
     - ai-review run
   variables:
+    # --- Mandatory ---
+    GIT_DEPTH: "0"
+
     # --- LLM configuration ---
     LLM__PROVIDER: "OPENAI"
     LLM__META__MODEL: "gpt-4o-mini"
