@@ -40,6 +40,7 @@
   "agent": {
     "enabled": false,
     "max_iterations": 25,
+    "max_protocol_violations": 2,
     "allow_commands": [
       "^ls(?:\\s+.*)?$",
       "^cat(?:\\s+.*)?$",

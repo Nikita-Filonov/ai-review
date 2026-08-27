@@ -8,6 +8,7 @@ def test_agent_config_defaults() -> None:
     config = AgentConfig()
     assert config.enabled is False
     assert config.max_iterations == 25
+    assert config.max_protocol_violations == 2
     assert config.max_total_context_chars == 40_000
     assert config.command_timeout == 10
     assert config.max_command_output_chars == 40_000
@@ -17,6 +18,12 @@ def test_agent_config_defaults() -> None:
 def test_agent_config_rejects_invalid_limits() -> None:
     with pytest.raises(ValidationError):
         AgentConfig(max_iterations=0)
+
+    with pytest.raises(ValidationError):
+        AgentConfig(max_protocol_violations=-1)
+
+    with pytest.raises(ValidationError):
+        AgentConfig(max_protocol_violations=101)
 
     with pytest.raises(ValidationError):
         AgentConfig(command_timeout=0)

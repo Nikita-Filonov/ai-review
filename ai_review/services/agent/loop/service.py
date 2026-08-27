@@ -1,25 +1,20 @@
-import re
-
 from ai_review.config import settings
 from ai_review.libs.llm.output_json_parser import LLMOutputJSONParser
 from ai_review.libs.logger import get_logger
 from ai_review.services.agent.loop.schema import (
     AgentAction,
+    AgentLoopResultSchema,
     AgentStepSchema,
     AgentTraceSchema,
-    AgentLoopResultSchema
 )
+from ai_review.services.agent.loop.tools import is_attempted_action
 from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
 from ai_review.services.agent.tool.types import AgentToolServiceProtocol
-from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
+from ai_review.services.llm.types import ChatResultSchema, LLMClientProtocol
 from ai_review.services.prompt.types import PromptServiceProtocol
 
 logger = get_logger("AGENT_LOOP_SERVICE")
 
-AGENT_ACTION_ENVELOPE_RE = re.compile(
-    rf"""["']action["']\s*:\s*["']({"|".join(AgentAction)})["']""",
-    re.IGNORECASE,
-)
 PROTOCOL_RETRY_WARNING = (
     "Invalid response discarded: it carried an agent action but was not a single valid JSON object. "
     "Respond with exactly one JSON object and nothing else: "
@@ -27,17 +22,6 @@ PROTOCOL_RETRY_WARNING = (
     'or {"action": "FINAL", "content": "<complete answer as a string>"}. '
     'Every quote inside a JSON string value must be escaped as \\".'
 )
-MAX_PROTOCOL_VIOLATIONS = 2
-
-
-def is_attempted_action(output: str) -> bool:
-    """Whether unparseable model output still carries the agent protocol envelope.
-
-    Such output is a protocol violation — an attempted TOOL_CALL or FINAL — and must never be
-    promoted to the final review. Output without the envelope is a genuine final answer
-    (plain Markdown, or a JSON array of inline comments) and is returned to the caller as is.
-    """
-    return bool(AGENT_ACTION_ENVELOPE_RE.search(output or ""))
 
 
 class AgentLoopService(AgentLoopServiceProtocol):
@@ -58,7 +42,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
         self.signatures: set[str] = set()
         self.context_used = 0
         self.protocol_violations = 0
-        self.max_protocol_violations = MAX_PROTOCOL_VIOLATIONS
+        self.max_protocol_violations = settings.agent.max_protocol_violations
 
     def clear(self):
         self.traces = []

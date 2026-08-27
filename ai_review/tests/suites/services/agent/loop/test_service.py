@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.services.agent.loop.service import AgentLoopService, is_attempted_action
+from ai_review.services.agent.loop.service import AgentLoopService
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.services.agent.tool import FakeAgentToolService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
@@ -334,23 +334,6 @@ async def test_run_persists_llm_tokens_in_traces(
     assert result.prompt_tokens == 15
     assert result.completion_tokens == 30
     assert result.total_tokens == 45
-
-
-@pytest.mark.parametrize(
-    "output, expected",
-    [
-        (MALFORMED_TOOL_CALL, True),
-        (REASONING_PREFIXED_TOOL_CALL, True),
-        (PROSE_WRAPPED_TOOL_CALL, True),
-        ('{"action": "final", "content": "oops', True),
-        (MARKDOWN_SUMMARY, False),
-        (INLINE_COMMENTS_JSON, False),
-        ("", False),
-        ("The action taken by the FINAL migration is unclear", False),
-    ],
-)
-def test_is_attempted_action_detects_the_protocol_envelope(output: str, expected: bool) -> None:
-    assert is_attempted_action(output) is expected
 
 
 @pytest.mark.asyncio

@@ -235,6 +235,10 @@ agent:
   # - 25..50 for larger codebases with complex cross-file logic
   max_iterations: 25
 
+  # Number of malformed agent protocol responses tolerated before forcing
+  # the model to return a final answer. Set to 0 to force FINAL immediately.
+  max_protocol_violations: 2
+
   # Regex allowlist for executable commands in agent mode.
   # A command is allowed only if at least one pattern fully matches:
   #   pattern.fullmatch(command) == True
