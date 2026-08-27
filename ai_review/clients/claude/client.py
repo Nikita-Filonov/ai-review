@@ -1,4 +1,4 @@
-from httpx import AsyncClient, Response, AsyncHTTPTransport
+from httpx2 import AsyncClient, Response, AsyncHTTPTransport
 
 from ai_review.clients.claude.schema import ClaudeChatRequestSchema, ClaudeChatResponseSchema
 from ai_review.clients.claude.types import ClaudeHTTPClientProtocol

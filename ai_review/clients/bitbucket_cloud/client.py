@@ -1,4 +1,4 @@
-from httpx import AsyncClient, AsyncHTTPTransport
+from httpx2 import AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.bitbucket_cloud.pr.client import BitbucketCloudPullRequestsHTTPClient
 from ai_review.config import settings

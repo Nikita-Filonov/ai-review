@@ -1,6 +1,6 @@
 import json
 
-from httpx import Response, Request
+from httpx2 import Response, Request
 
 from ai_review.clients.bitbucket_server.tools import bitbucket_server_has_next_page
 

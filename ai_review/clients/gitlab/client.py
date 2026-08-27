@@ -1,4 +1,4 @@
-from httpx import AsyncClient, AsyncHTTPTransport
+from httpx2 import AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.gitlab.mr.client import GitLabMergeRequestsHTTPClient
 from ai_review.config import settings

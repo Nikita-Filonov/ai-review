@@ -1,4 +1,4 @@
-from httpx import Response, QueryParams
+from httpx2 import Response, QueryParams
 
 from ai_review.clients.azure_devops.pr.schema.files import (
     AzureDevOpsPRChangeSchema,

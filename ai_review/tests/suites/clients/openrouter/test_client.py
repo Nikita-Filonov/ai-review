@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.openrouter.client import get_openrouter_http_client, OpenRouterHTTPClient
 

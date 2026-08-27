@@ -1,7 +1,7 @@
 import base64
 
 import pytest
-from httpx import Response, Request
+from httpx2 import Response, Request
 
 from ai_review import config
 from ai_review.clients.azure_devops.tools import azure_devops_extract_continuation_token, build_azure_devops_headers
@@ -13,7 +13,7 @@ def make_response(
         headers: dict | None = None,
         text_data: str | None = None,
 ) -> Response:
-    """Helper to build httpx.Response with either JSON or raw text body."""
+    """Helper to build httpx2.Response with either JSON or raw text body."""
     request = Request("GET", "http://azure.test")
 
     if json_data is not None:

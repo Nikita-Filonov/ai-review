@@ -1,4 +1,4 @@
-from httpx import Response, QueryParams
+from httpx2 import Response, QueryParams
 
 from ai_review.clients.bitbucket_server.pr.schema.activities import (
     BitbucketServerActivitySchema,

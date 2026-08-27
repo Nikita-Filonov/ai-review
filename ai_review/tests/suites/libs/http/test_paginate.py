@@ -1,5 +1,5 @@
 import pytest
-from httpx import Response, Request
+from httpx2 import Response, Request
 from pydantic import BaseModel
 
 from ai_review.libs.http.paginate import paginate, paginate_with_token

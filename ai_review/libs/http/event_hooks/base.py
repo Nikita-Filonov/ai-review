@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from httpx import Request, Response
+from httpx2 import Request, Response
 
 
 class BaseEventHook(ABC):

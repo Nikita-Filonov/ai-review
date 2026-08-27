@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.gitea.client import get_gitea_http_client, GiteaHTTPClient
 from ai_review.clients.gitea.pr.client import GiteaPullRequestsHTTPClient

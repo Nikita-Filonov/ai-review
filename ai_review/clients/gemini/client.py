@@ -1,4 +1,4 @@
-from httpx import Response, AsyncHTTPTransport, AsyncClient
+from httpx2 import Response, AsyncHTTPTransport, AsyncClient
 
 from ai_review.clients.gemini.schema import GeminiChatRequestSchema, GeminiChatResponseSchema
 from ai_review.clients.gemini.types import GeminiHTTPClientProtocol

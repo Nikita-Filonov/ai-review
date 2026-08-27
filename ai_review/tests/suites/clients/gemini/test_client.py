@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.gemini.client import get_gemini_http_client, GeminiHTTPClient
 

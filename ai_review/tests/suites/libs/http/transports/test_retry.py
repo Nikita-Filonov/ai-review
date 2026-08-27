@@ -1,20 +1,20 @@
-import httpx
+import httpx2
 import pytest
 
 from ai_review.libs.http.transports.retry import NO_RETRY, RetryTransport
 from ai_review.libs.logger import get_logger
 
 
-class CountingTransport(httpx.AsyncBaseTransport):
+class CountingTransport(httpx2.AsyncBaseTransport):
     """Inner transport that always answers with the same status and counts attempts."""
 
     def __init__(self, status_code: int):
         self.status_code = status_code
         self.attempts = 0
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
         self.attempts += 1
-        return httpx.Response(self.status_code, request=request)
+        return httpx2.Response(self.status_code, request=request)
 
 
 def build_retry_transport(inner: CountingTransport) -> RetryTransport:
@@ -32,7 +32,7 @@ async def test_retry_transport_retries_server_errors():
     inner = CountingTransport(status_code=500)
     transport = build_retry_transport(inner)
 
-    response = await transport.handle_async_request(httpx.Request("POST", "https://gitlab.test/api"))
+    response = await transport.handle_async_request(httpx2.Request("POST", "https://gitlab.test/api"))
 
     assert response.status_code == 500
     assert inner.attempts == 3
@@ -43,7 +43,7 @@ async def test_retry_transport_does_not_retry_when_opted_out():
     """Should make a single attempt for a request marked as non-idempotent."""
     inner = CountingTransport(status_code=500)
     transport = build_retry_transport(inner)
-    request = httpx.Request("POST", "https://gitlab.test/api", extensions=NO_RETRY)
+    request = httpx2.Request("POST", "https://gitlab.test/api", extensions=NO_RETRY)
 
     response = await transport.handle_async_request(request)
 
@@ -57,7 +57,7 @@ async def test_retry_transport_returns_success_without_retrying():
     inner = CountingTransport(status_code=200)
     transport = build_retry_transport(inner)
 
-    response = await transport.handle_async_request(httpx.Request("GET", "https://gitlab.test/api"))
+    response = await transport.handle_async_request(httpx2.Request("GET", "https://gitlab.test/api"))
 
     assert response.status_code == 200
     assert inner.attempts == 1

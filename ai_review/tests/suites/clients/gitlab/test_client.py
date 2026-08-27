@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient, MockTransport, Request, Response
+from httpx2 import AsyncClient, MockTransport, Request, Response
 
 from ai_review.clients.gitlab.client import get_gitlab_http_client, GitLabHTTPClient
 from ai_review.clients.gitlab.mr.client import GitLabMergeRequestsHTTPClient

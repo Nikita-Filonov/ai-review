@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.github.client import get_github_http_client, GitHubHTTPClient
 from ai_review.clients.github.pr.client import GitHubPullRequestsHTTPClient

@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Callable, Coroutine, Any
 
-from httpx import Response, HTTPStatusError
+from httpx2 import Response, HTTPStatusError
 
 APIFunc = Callable[..., Coroutine[Any, Any, Response]]
 

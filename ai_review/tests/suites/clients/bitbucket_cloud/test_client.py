@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.bitbucket_cloud.client import get_bitbucket_cloud_http_client, BitbucketCloudHTTPClient
 from ai_review.clients.bitbucket_cloud.pr.client import BitbucketCloudPullRequestsHTTPClient

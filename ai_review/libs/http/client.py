@@ -1,7 +1,7 @@
 from typing import Any
 
-from httpx import AsyncClient, Response, QueryParams
-from httpx._types import HeaderTypes, RequestContent
+from httpx2 import AsyncClient, Response, QueryParams
+from httpx2._types import HeaderTypes, RequestContent
 
 
 class HTTPClient:

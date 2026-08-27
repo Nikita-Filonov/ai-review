@@ -1,5 +1,5 @@
 from ai_review.clients.bitbucket_server.pr.client import BitbucketServerPullRequestsHTTPClient
-from httpx import AsyncClient, AsyncHTTPTransport
+from httpx2 import AsyncClient, AsyncHTTPTransport
 
 from ai_review.config import settings
 from ai_review.libs.http.event_hooks.logger import LoggerEventHook

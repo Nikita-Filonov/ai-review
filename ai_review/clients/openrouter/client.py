@@ -1,4 +1,4 @@
-from httpx import AsyncClient, Response, AsyncHTTPTransport
+from httpx2 import AsyncClient, Response, AsyncHTTPTransport
 
 from ai_review.clients.openrouter.schema import OpenRouterChatRequestSchema, OpenRouterChatResponseSchema
 from ai_review.clients.openrouter.types import OpenRouterHTTPClientProtocol

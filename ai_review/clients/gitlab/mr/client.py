@@ -1,4 +1,4 @@
-from httpx import Response, QueryParams
+from httpx2 import Response, QueryParams
 
 from ai_review.clients.gitlab.mr.schema.changes import GitLabGetMRChangesResponseSchema
 from ai_review.clients.gitlab.mr.schema.discussions import (

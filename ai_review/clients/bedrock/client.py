@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from httpx import Response, AsyncHTTPTransport, AsyncClient
+from httpx2 import Response, AsyncHTTPTransport, AsyncClient
 
 from ai_review.clients.bedrock.schema import BedrockChatRequestSchema, BedrockChatResponseSchema
 from ai_review.clients.bedrock.types import BedrockHTTPClientProtocol

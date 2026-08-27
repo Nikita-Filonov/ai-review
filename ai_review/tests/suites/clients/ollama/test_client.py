@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.ollama.client import get_ollama_http_client, OllamaHTTPClient
 

@@ -1,4 +1,4 @@
-from httpx import Response
+from httpx2 import Response
 
 from ai_review.config import settings
 from ai_review.libs.config.vcs.azure_devops import AzureDevOpsTokenType

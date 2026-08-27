@@ -1,4 +1,4 @@
-from httpx import Response, AsyncClient, AsyncHTTPTransport
+from httpx2 import Response, AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.openai.v2.schema import (
     OpenAIResponsesRequestSchema,

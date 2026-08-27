@@ -1,4 +1,4 @@
-from httpx import Response, AsyncHTTPTransport, AsyncClient, QueryParams
+from httpx2 import Response, AsyncHTTPTransport, AsyncClient, QueryParams
 
 from ai_review.clients.azure_openai.schema import (
     AzureOpenAIChatQuerySchema,

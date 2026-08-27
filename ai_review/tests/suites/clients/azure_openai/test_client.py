@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.azure_openai.client import get_azure_openai_http_client, AzureOpenAIHTTPClient
 

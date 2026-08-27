@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from httpx import Request, Response
+from httpx2 import Request, Response
 
 from ai_review.libs.http.event_hooks.base import BaseEventHook
 

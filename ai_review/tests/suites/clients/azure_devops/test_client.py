@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.azure_devops.client import get_azure_devops_http_client, AzureDevOpsHTTPClient
 from ai_review.clients.azure_devops.pr.client import AzureDevOpsPullRequestsHTTPClient

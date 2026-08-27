@@ -47,7 +47,7 @@ classifiers = [
 description = "AI-powered code review tool for GitHub, GitLab, Bitbucket Cloud, Bitbucket Server, Azure DevOps and Gitea — built with LLMs like OpenAI, Claude, Gemini, Ollama, Bedrock, OpenRouter and Azure OpenAI"
 dependencies = [
     "typer",
-    "httpx",
+    "httpx2>=2.12,<3",
     "pyyaml",
     "loguru",
     "aiofiles",

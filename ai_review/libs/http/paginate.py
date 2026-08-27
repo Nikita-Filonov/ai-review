@@ -1,6 +1,6 @@
 from typing import Awaitable, Callable, TypeVar
 
-from httpx import Response
+from httpx2 import Response
 from pydantic import BaseModel
 
 from ai_review.libs.logger import get_logger

@@ -1,4 +1,4 @@
-from httpx import Response, Request
+from httpx2 import Response, Request
 
 from ai_review.clients.gitlab.tools import gitlab_has_next_page
 

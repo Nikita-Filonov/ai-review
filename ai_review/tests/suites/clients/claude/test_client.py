@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from httpx import AsyncClient, MockTransport, Request, Response
+from httpx2 import AsyncClient, MockTransport, Request, Response
 
 from ai_review.clients.claude.client import get_claude_http_client, ClaudeHTTPClient
 from ai_review.clients.claude.schema import ClaudeChatRequestSchema, ClaudeMessageSchema

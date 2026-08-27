@@ -1,4 +1,4 @@
-from httpx import Response
+from httpx2 import Response
 
 
 def gitlab_has_next_page(response: Response) -> bool:

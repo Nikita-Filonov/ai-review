@@ -1,4 +1,4 @@
-from httpx import AsyncClient, Response, AsyncHTTPTransport
+from httpx2 import AsyncClient, Response, AsyncHTTPTransport
 
 from ai_review.clients.ollama.schema import OllamaChatRequestSchema, OllamaChatResponseSchema
 from ai_review.clients.ollama.types import OllamaHTTPClientProtocol

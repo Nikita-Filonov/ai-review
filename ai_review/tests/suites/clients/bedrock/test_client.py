@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from ai_review.clients.bedrock.client import get_bedrock_http_client, BedrockHTTPClient
 

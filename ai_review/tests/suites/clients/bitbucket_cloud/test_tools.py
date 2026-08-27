@@ -1,4 +1,4 @@
-from httpx import Response, Request
+from httpx2 import Response, Request
 
 from ai_review.clients.bitbucket_cloud.tools import bitbucket_cloud_has_next_page
 

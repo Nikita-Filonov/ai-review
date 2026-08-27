@@ -2,7 +2,7 @@ import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
-from httpx import Request, Response, AsyncBaseTransport
+from httpx2 import Request, Response, AsyncBaseTransport
 
 if TYPE_CHECKING:
     from loguru import Logger

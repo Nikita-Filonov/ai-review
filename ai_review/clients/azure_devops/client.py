@@ -1,4 +1,4 @@
-from httpx import AsyncClient, AsyncHTTPTransport
+from httpx2 import AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.azure_devops.pr.client import AzureDevOpsPullRequestsHTTPClient
 from ai_review.clients.azure_devops.tools import build_azure_devops_headers

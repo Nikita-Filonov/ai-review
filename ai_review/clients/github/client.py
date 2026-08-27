@@ -1,4 +1,4 @@
-from httpx import AsyncClient, AsyncHTTPTransport
+from httpx2 import AsyncClient, AsyncHTTPTransport
 
 from ai_review.clients.github.pr.client import GitHubPullRequestsHTTPClient
 from ai_review.config import settings
