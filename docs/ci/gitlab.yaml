@@ -1,10 +1,10 @@
 .ai-review-base:
   tags: [ build ]
-  when: manual
   stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
+      when: manual
   script:
     - ai-review run
   variables:
