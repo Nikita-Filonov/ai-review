@@ -36,13 +36,13 @@ class AgentLoopService(AgentLoopServiceProtocol):
         self.agent_tool = agent_tool
         self.max_iterations = settings.agent.max_iterations
         self.max_context_chars = settings.agent.max_total_context_chars
+        self.max_protocol_violations = settings.agent.max_protocol_violations
 
         self.parser = LLMOutputJSONParser(AgentStepSchema)
         self.traces: list[AgentTraceSchema] = []
         self.signatures: set[str] = set()
         self.context_used = 0
         self.protocol_violations = 0
-        self.max_protocol_violations = settings.agent.max_protocol_violations
 
     def clear(self):
         self.traces = []
@@ -52,11 +52,15 @@ class AgentLoopService(AgentLoopServiceProtocol):
         logger.debug("Agent loop state cleared")
 
     async def run_step(self, step: AgentStepSchema, chat: ChatResultSchema, iteration: int) -> AgentTraceSchema:
-        if step.command in self.signatures:
-            logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {step.command}")
+        command = step.command
+        if command is None:
+            raise ValueError("A TOOL_CALL step must contain a command")
+
+        if command in self.signatures:
+            logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {command}")
             return AgentTraceSchema(
                 step=step,
-                warning=f"Duplicate tool call blocked: {step.command}",
+                warning=f"Duplicate tool call blocked: {command}",
                 iteration=iteration,
                 raw_output=chat.text,
                 total_tokens=chat.total_tokens,
@@ -64,9 +68,9 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 completion_tokens=chat.completion_tokens,
             )
 
-        self.signatures.add(step.command)
-        logger.debug(f"Executing agent tool command at iteration {iteration}: {step.command}")
-        tool_output = await self.agent_tool.execute(step.command)
+        self.signatures.add(command)
+        logger.debug(f"Executing agent tool command at iteration {iteration}: {command}")
+        tool_output = await self.agent_tool.execute(command)
 
         return AgentTraceSchema(
             step=step,
@@ -115,15 +119,21 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 "returning the raw model output as a last resort"
             )
 
-        final_text = (
-            fallback_step.content
-            if fallback_step and fallback_step.action.is_final
-            else fallback_text
-        )
+        if (
+            fallback_step is not None
+            and fallback_step.action.is_final
+            and fallback_step.content is not None
+        ):
+            final_text = fallback_step.content
+        else:
+            final_text = fallback_text
 
         self.traces.append(
             AgentTraceSchema(
-                step=fallback_step or AgentStepSchema(action=AgentAction.FINAL, content=fallback_text),
+                step=fallback_step or AgentStepSchema(
+                    action=AgentAction.FINAL,
+                    content=fallback_text or "Empty model response",
+                ),
                 warning="Forced final response after max_requests/context_limit.",
                 iteration=len(self.traces) + 1,
                 raw_output=fallback_text,
@@ -218,6 +228,10 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 )
 
             if step.action.is_final:
+                final_text = step.content
+                if final_text is None:
+                    raise ValueError("A FINAL step must contain content")
+
                 logger.info(f"Agent loop iteration {iteration} returned FINAL action")
                 self.traces.append(
                     AgentTraceSchema(
@@ -232,7 +246,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
 
                 return AgentLoopResultSchema(
                     traces=self.traces,
-                    final_text=step.content,
+                    final_text=final_text,
                     stop_reason="final",
                 )
 

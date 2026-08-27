@@ -29,6 +29,13 @@ def test_agent_config_rejects_invalid_limits() -> None:
         AgentConfig(command_timeout=0)
 
 
+@pytest.mark.parametrize("max_protocol_violations", [0, 100])
+def test_agent_config_accepts_protocol_violation_boundaries(max_protocol_violations: int) -> None:
+    config = AgentConfig(max_protocol_violations=max_protocol_violations)
+
+    assert config.max_protocol_violations == max_protocol_violations
+
+
 def test_agent_config_default_allow_commands_patterns_are_stable() -> None:
     config = AgentConfig()
     patterns = [pattern.pattern for pattern in config.allow_commands]
