@@ -238,6 +238,32 @@ async def test_process_inline_comment_happy_path(
 
 
 @pytest.mark.asyncio
+async def test_process_inline_comment_forwards_the_declared_side(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """A side the caller resolved is worthless unless it reaches the provider."""
+    comment = InlineCommentSchema(file="f.py", line=1, message="AI inline comment", side="old")
+    await review_comment_gateway.process_inline_comment(comment)
+
+    call = next(call for call in fake_vcs_client.calls if call[0] == "create_inline_comment")
+    assert call[2] == {"side": "old"}
+
+
+@pytest.mark.asyncio
+async def test_process_inline_comment_forwards_no_side_when_none_was_declared(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """The LLM review path has no side to declare, so the provider must keep guessing."""
+    comment = InlineCommentSchema(file="f.py", line=1, message="AI inline comment")
+    await review_comment_gateway.process_inline_comment(comment)
+
+    call = next(call for call in fake_vcs_client.calls if call[0] == "create_inline_comment")
+    assert call[2] == {"side": None}
+
+
+@pytest.mark.asyncio
 async def test_process_inline_comment_error_fallback(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
@@ -246,7 +272,7 @@ async def test_process_inline_comment_error_fallback(
 ):
     """Should fall back to inline fallback comment when inline comment fails."""
 
-    async def failing_create_inline_comment(file: str, line: int, message: str):
+    async def failing_create_inline_comment(file: str, line: int, message: str, side: str | None = None):
         raise RuntimeError("Failed to post inline")
 
     fake_vcs_client.create_inline_comment = failing_create_inline_comment
@@ -379,7 +405,7 @@ async def test_process_inline_comment_error_no_fallback_when_disabled(
     """Should NOT fall back to summary comment when inline fallback is disabled."""
     monkeypatch.setattr(settings.review, "inline_comment_fallback", False)
 
-    async def failing_create_inline_comment(file: str, line: int, message: str):
+    async def failing_create_inline_comment(file: str, line: int, message: str, side: str | None = None):
         raise RuntimeError("Failed to post inline")
 
     fake_vcs_client.create_inline_comment = failing_create_inline_comment

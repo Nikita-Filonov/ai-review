@@ -38,6 +38,13 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
         self.calls: list[tuple[str, dict]] = []
         self.draft_notes: list[GitLabDraftNoteSchema] = []
         self.get_draft_notes_error: Exception | None = None
+        self.changes: list[GitLabMRChangeSchema] = [
+            GitLabMRChangeSchema(
+                diff="@@ -1,2 +1,2 @@\n- old\n+ new",
+                old_path="main.py",
+                new_path="main.py",
+            )
+        ]
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         self.calls.append(("get_changes", {"project_id": project_id, "merge_request_id": merge_request_id}))
@@ -56,13 +63,7 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             ),
             source_branch="feature/test",
             target_branch="main",
-            changes=[
-                GitLabMRChangeSchema(
-                    diff="@@ -1,2 +1,2 @@\n- old\n+ new",
-                    old_path="main.py",
-                    new_path="main.py",
-                )
-            ],
+            changes=self.changes,
         )
 
     async def get_notes(self, project_id: str, merge_request_id: str) -> GitLabGetMRNotesResponseSchema:
@@ -146,7 +147,12 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
         self.calls.append(
             (
                 "create_discussion",
-                {"project_id": project_id, "merge_request_id": merge_request_id, "body": request.body}
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "body": request.body,
+                    "position": request.position,
+                }
             )
         )
         return GitLabCreateMRDiscussionResponseSchema(

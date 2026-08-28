@@ -106,6 +106,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
                 file=comment.file,
                 line=comment.line,
                 message=comment.body_with_tag,
+                side=comment.side,
             )
             await hook.emit_inline_comment_complete(comment)
 

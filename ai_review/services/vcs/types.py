@@ -3,6 +3,8 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from ai_review.libs.diff.models import Side
+
 
 class ThreadKind(StrEnum):
     INLINE = "INLINE"
@@ -74,8 +76,16 @@ class VCSClientProtocol(Protocol):
     async def create_general_comment(self, message: str) -> None:
         """Post a top-level comment."""
 
-    async def create_inline_comment(self, file: str, line: int, message: str) -> None:
-        """Post a comment attached to a specific line in file."""
+    async def create_inline_comment(self, file: str, line: int, message: str, side: Side | None = None) -> None:
+        """Post a comment attached to a specific line in file.
+
+        `side` says which file of the change `line` is numbered in, for the
+        callers that know: a removed line is numbered in the old file, so its
+        number can also be an unrelated new-file line. `None` claims nothing and
+        leaves the provider to resolve the number as it always has. A provider
+        that cannot address the old side ignores `side` and anchors on the new
+        one, exactly as before.
+        """
 
     async def delete_general_comment(self, comment_id: int | str) -> None:
         """Delete a top-level (general / summary) review comment by its identifier."""
