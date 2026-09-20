@@ -1,6 +1,7 @@
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.cost.types import CostServiceProtocol
+from ai_review.services.diff.tools import normalize_file_path
 from ai_review.services.diff.types import DiffServiceProtocol
 from ai_review.services.git.types import GitServiceProtocol
 from ai_review.services.hook import hook
@@ -56,6 +57,22 @@ class InlineReviewRunner(ReviewRunnerProtocol):
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
 
         comments = self.inline_comment.parse_model_output(prompt_result).dedupe()
+        expected_file = normalize_file_path(file)
+        unexpected_comments = [
+            comment for comment in comments.root
+            if normalize_file_path(comment.file) != expected_file
+        ]
+        if unexpected_comments:
+            unexpected_files = sorted({comment.file for comment in unexpected_comments})
+            logger.warning(
+                f"Discarding {len(unexpected_comments)} inline comments while reviewing {file}; "
+                f"the model returned different files: {unexpected_files}"
+            )
+
+        comments.root = [
+            comment for comment in comments.root
+            if normalize_file_path(comment.file) == expected_file
+        ]
         comments.root = self.policy.apply_for_inline_comments(comments.root)
         if not comments.root:
             logger.info(f"No inline comments for file: {file}")

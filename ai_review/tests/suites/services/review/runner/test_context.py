@@ -1,7 +1,8 @@
 import pytest
 
+from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.runner.context import ContextReviewRunner
-from ai_review.services.vcs.types import ReviewCommentSchema
+from ai_review.services.vcs.types import ReviewCommentSchema, ReviewInfoSchema
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.diff import FakeDiffService
 from ai_review.tests.fixtures.services.prompt import FakePromptService
@@ -98,6 +99,35 @@ async def test_run_skips_when_no_comments_after_llm(
     assert any(call[0] == "apply_for_context_comments" for call in fake_policy_service.calls)
     assert not any(call[0] == "process_inline_comments" for call in fake_review_comment_gateway.calls)
     assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_keeps_comments_for_multiple_files(
+        context_review_runner: ContextReviewRunner,
+        fake_vcs_client: FakeVCSClient,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    """Context review is intentionally allowed to return findings for multiple files."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+    fake_vcs_client.responses["get_review_info"] = ReviewInfoSchema(
+        changed_files=["Cat.java", "Dog.java"],
+        base_sha="A",
+        head_sha="B",
+    )
+    comments = [
+        InlineCommentSchema(file="Cat.java", line=10, message="Cat problem"),
+        InlineCommentSchema(file="Dog.java", line=20, message="Dog problem"),
+    ]
+    fake_inline_comment_service.comments = comments
+
+    await context_review_runner.run()
+
+    call = next(
+        call for call in fake_review_comment_gateway.calls
+        if call[0] == "process_inline_comments"
+    )
+    assert call[1]["comments"].root == comments
 
 
 @pytest.mark.asyncio
