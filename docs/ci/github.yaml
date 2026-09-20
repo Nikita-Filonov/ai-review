@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.78.0
+# Marketplace Action: Nikita-Filonov/ai-review@v1.0.0
 # ===============================
 
 name: AI Review
@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.78.0
+        uses: Nikita-Filonov/ai-review@v1.0.0
         env:
           # ===============================
           # LLM provider & model
@@ -270,7 +270,8 @@ jobs:
           # Default: "false"
           REVIEW__DRY_RUN: "false"
 
-          # Tags used to mark AI-generated comments in PR.
+          # Tags for generated reviews and one-shot reply requests.
+          # Put a reply tag on the latest comment to request an AI response.
           REVIEW__INLINE_TAG: "#ai-review-inline"
           REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
           REVIEW__SUMMARY_TAG: "#ai-review-summary"
