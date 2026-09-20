@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabDraftNoteSchema
+from ai_review.clients.gitlab.mr.schema.changes import GitLabMRChangeSchema
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 from ai_review.services.vcs.types import (
     ReviewInfoSchema,
@@ -585,3 +586,113 @@ async def test_create_inline_comment_does_not_retry_purge_within_run_after_failu
     assert called_methods.count("get_draft_notes") == 1
     assert called_methods.count("create_draft_note") == 2
     assert gitlab_vcs_client.pending_comments == 2
+
+
+# Two hunks where the first inserts one line, so line 131 on the new side is
+# line 129 on the old side. A comment there is the case GitLab rejects with
+# `line_code can't be blank, must be a valid line code`.
+TWO_HUNK_DIFF = """@@ -80,4 +80,5 @@
+ class Store:
+     def __init__(self, session):
++        self.cache = {}
+     def get(self, key):
+         return self.session.get(key)
+@@ -126,4 +127,5 @@
+ def remove(session, key):
+     entry = session.get(key)
+-    session.delete(entry)
++    session.mark_deleted(entry)
++    session.flush()
+     session.commit()
+"""
+
+
+@pytest.fixture
+def gitlab_two_hunk_changes(
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    fake_gitlab_merge_requests_http_client.changes = [
+        GitLabMRChangeSchema(diff=TWO_HUNK_DIFF, old_path="src/db.py", new_path="src/db.py")
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_sends_paired_position_for_context_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should send old_path and old_line for a discussion anchored to a context line."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=131, message="Context finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/db.py"
+    assert position.new_line == 131
+    assert position.old_path == "src/db.py"
+    assert position.old_line == 129
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_draft_inline_comment_sends_paired_position_for_context_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should send old_path and old_line for a draft note anchored to a context line."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=131, message="Context finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/db.py"
+    assert position.new_line == 131
+    assert position.old_path == "src/db.py"
+    assert position.old_line == 129
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_omits_old_line_for_added_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should leave old_line unset for an added line, which GitLab already accepted."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=129, message="Added finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_line == 129
+    assert position.old_line is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_keeps_new_line_only_for_unknown_file(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep the previous payload when the file is absent from the MR changes."""
+    await gitlab_vcs_client.create_inline_comment(file="src/absent.py", line=12, message="Finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/absent.py"
+    assert position.new_line == 12
+    assert position.old_path is None
+    assert position.old_line is None
