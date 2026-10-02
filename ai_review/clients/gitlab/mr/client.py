@@ -1,6 +1,11 @@
 from httpx import Response, QueryParams
 
-from ai_review.clients.gitlab.mr.schema.changes import GitLabGetMRChangesResponseSchema
+from ai_review.clients.gitlab.mr.schema.changes import (
+    GitLabMRChangeSchema,
+    GitLabGetMRDiffsQuerySchema,
+    GitLabGetMRDetailsResponseSchema,
+    GitLabGetMRChangesResponseSchema,
+)
 from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabDiscussionSchema,
     GitLabGetMRDiscussionsQuerySchema,
@@ -38,9 +43,21 @@ class GitLabMergeRequestsHTTPClientError(HTTPClientError):
 
 class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientProtocol):
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
-    async def get_changes_api(self, project_id: str, merge_request_id: str) -> Response:
+    async def get_details_api(self, project_id: str, merge_request_id: str) -> Response:
         return await self.get(
-            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/changes"
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}"
+        )
+
+    @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
+    async def get_diffs_api(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            query: GitLabGetMRDiffsQuerySchema,
+    ) -> Response:
+        return await self.get(
+            f"/api/v4/projects/{project_id}/merge_requests/{merge_request_id}/diffs",
+            query=QueryParams(**query.model_dump())
         )
 
     @handle_http_error(client="GitLabMergeRequestsHTTPClient", exception=GitLabMergeRequestsHTTPClientError)
@@ -156,8 +173,28 @@ class GitLabMergeRequestsHTTPClient(HTTPClient, GitLabMergeRequestsHTTPClientPro
         )
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
-        response = await self.get_changes_api(project_id, merge_request_id)
-        return GitLabGetMRChangesResponseSchema.model_validate_json(response.text)
+        details = await self._get_details(project_id, merge_request_id)
+        changes = await self._get_diffs(project_id, merge_request_id)
+        return GitLabGetMRChangesResponseSchema(**details.model_dump(), changes=changes)
+
+    async def _get_details(self, project_id: str, merge_request_id: str) -> GitLabGetMRDetailsResponseSchema:
+        response = await self.get_details_api(project_id, merge_request_id)
+        return GitLabGetMRDetailsResponseSchema.model_validate_json(response.text)
+
+    async def _get_diffs(self, project_id: str, merge_request_id: str) -> list[GitLabMRChangeSchema]:
+        async def fetch_page(page: int) -> Response:
+            query = GitLabGetMRDiffsQuerySchema(page=page, per_page=settings.vcs.pagination.per_page)
+            return await self.get_diffs_api(project_id, merge_request_id, query)
+
+        def extract_items(response: Response) -> list[GitLabMRChangeSchema]:
+            return [GitLabMRChangeSchema.model_validate(item) for item in response.json()]
+
+        return await paginate(
+            max_pages=settings.vcs.pagination.max_pages,
+            fetch_page=fetch_page,
+            extract_items=extract_items,
+            has_next_page=gitlab_has_next_page
+        )
 
     async def get_notes(
             self,
