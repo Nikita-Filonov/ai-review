@@ -73,8 +73,8 @@ def test_cli_commands_invoke_review_service_successfully(
     [
         (["clear-inline"], "Clearing inline AI review comments...", "clear_inline_comments"),
         (["clear-summary"], "Clearing summary AI review comments...", "clear_summary_comments"),
-        (["clear-inline-reply"], "Clearing inline AI replies...", "clear_inline_replies"),
-        (["clear-summary-reply"], "Clearing summary AI replies...", "clear_summary_replies"),
+        (["clear-inline-reply"], "Clearing inline reply requests...", "clear_inline_replies"),
+        (["clear-summary-reply"], "Clearing summary reply requests...", "clear_summary_replies"),
     ],
 )
 def test_cli_clear_commands_do_not_finalize_review(
@@ -94,14 +94,16 @@ def test_cli_clear_commands_do_not_finalize_review(
     assert all(call[0] != "finalize" for call in fake_review_comment_gateway.calls)
 
 
-def test_cli_clear_runs_both_comment_cleanups_without_finalizing(
+def test_cli_clear_runs_all_cleanups_without_finalizing(
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
     result = runner.invoke(app, ["clear"])
 
     assert result.exit_code == 0
-    assert "Clearing all AI review comments..." in result.output
+    assert "Clearing all tagged review comments..." in result.output
     assert fake_review_comment_gateway.calls == [
+        ("clear_inline_replies", {}),
+        ("clear_summary_replies", {}),
         ("clear_inline_comments", {}),
         ("clear_summary_comments", {}),
     ]

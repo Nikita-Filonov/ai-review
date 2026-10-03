@@ -94,11 +94,11 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
         await hook.emit_clear_summary_comments_complete(comments=comments)
 
     async def clear_inline_replies(self) -> None:
-        for reply in await self.get_inline_replies():
-            logger.info(f"[dry-run] Would delete inline reply {reply.id}")
-        for reply in await self.get_general_inline_replies():
-            logger.info(f"[dry-run] Would delete general inline reply {reply.id}")
+        for request in await self.get_inline_reply_requests():
+            logger.info(f"[dry-run] Would delete inline reply request {request.id}")
+        for request in await self.get_general_inline_reply_requests():
+            logger.info(f"[dry-run] Would delete general inline reply request {request.id}")
 
     async def clear_summary_replies(self) -> None:
-        for reply in await self.get_summary_replies():
-            logger.info(f"[dry-run] Would delete summary reply {reply.id}")
+        for request in await self.get_summary_reply_requests():
+            logger.info(f"[dry-run] Would delete summary reply request {request.id}")

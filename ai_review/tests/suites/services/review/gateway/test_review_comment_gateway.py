@@ -562,6 +562,46 @@ async def test_process_inline_comment_error_no_fallback_when_disabled(
 # === CLEAR ===
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method, expected_inline, expected_general",
+    [
+        ("clear_inline_comments", {"1", "3"}, set()),
+        ("clear_summary_comments", set(), {"4", "6", "7"}),
+        ("clear_inline_replies", {"2"}, set()),
+        ("clear_summary_replies", set(), {"5"}),
+    ],
+)
+async def test_clear_commands_select_only_their_comment_types(
+        method: str,
+        expected_inline: set[str],
+        expected_general: set[str],
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    """Each command starts with the same PR and selects its own comment type."""
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body=f"Finding mentions {settings.review.summary_reply_tag}\n{settings.review.inline_tag}"),
+        ReviewCommentSchema(id="2", body=f"Why? {settings.review.inline_reply_tag}"),
+        ReviewCommentSchema(id="3", body=InlineCommentReplySchema(
+            message=f"Because you asked {settings.review.summary_reply_tag}"
+        ).body_with_tag),
+    ]
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="4", body=f"Overview mentions {settings.review.inline_reply_tag}\n{settings.review.summary_tag}"),
+        ReviewCommentSchema(id="5", body=f"Which tests? {settings.review.summary_reply_tag}"),
+        ReviewCommentSchema(id="6", body=SummaryCommentReplySchema(
+            text=f"Add edge cases for {settings.review.inline_reply_tag}"
+        ).body_for_request("t", "5")),
+        ReviewCommentSchema(id="7", body=f"Fallback {settings.review.inline_fallback_tag}"),
+    ]
+
+    await getattr(review_comment_gateway, method)()
+
+    assert {call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"} == expected_inline
+    assert {call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"} == expected_general
+
+
+@pytest.mark.asyncio
 async def test_clear_inline_comments_deletes_all_ai_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
@@ -634,7 +674,7 @@ async def test_clear_inline_comments_noop_when_no_comments(
 
 
 @pytest.mark.asyncio
-async def test_clear_inline_replies_preserves_questions_and_regular_findings(
+async def test_clear_inline_replies_deletes_requests_but_preserves_ai_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -642,16 +682,16 @@ async def test_clear_inline_replies_preserves_questions_and_regular_findings(
         ReviewCommentSchema(id="question", body=f"Why? {settings.review.inline_reply_tag}"),
         ReviewCommentSchema(id="finding", body=f"Problem {settings.review.inline_tag}"),
         ReviewCommentSchema(id="reply", body=InlineCommentReplySchema(message="Because").body_with_tag),
-        ReviewCommentSchema(id="legacy", body=f"Old answer {settings.review.inline_reply_tag}"),
+        ReviewCommentSchema(id="ordinary", body="A regular comment"),
     ]
 
     await review_comment_gateway.clear_inline_replies()
 
-    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"] == ["reply"]
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"] == ["question"]
 
 
 @pytest.mark.asyncio
-async def test_clear_inline_replies_also_handles_general_comment_fallback(
+async def test_clear_inline_replies_also_handles_general_comment_requests(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -663,7 +703,7 @@ async def test_clear_inline_replies_also_handles_general_comment_fallback(
 
     await review_comment_gateway.clear_inline_replies()
 
-    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == ["reply"]
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == ["question"]
 
 
 @pytest.mark.asyncio
@@ -699,7 +739,7 @@ async def test_inline_reply_marker_survives_tag_configuration_change(
 
 
 @pytest.mark.asyncio
-async def test_clear_inline_replies_handles_no_replies(
+async def test_clear_inline_replies_handles_no_requests(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -763,7 +803,7 @@ async def test_clear_summary_comments_noop_when_no_comments(
 
 
 @pytest.mark.asyncio
-async def test_clear_summary_replies_preserves_questions_and_regular_summaries(
+async def test_clear_summary_replies_deletes_requests_but_preserves_ai_comments(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -772,12 +812,12 @@ async def test_clear_summary_replies_preserves_questions_and_regular_summaries(
         ReviewCommentSchema(id="summary", body=f"Review {settings.review.summary_tag}"),
         ReviewCommentSchema(id="fallback", body=f"Fallback {settings.review.inline_fallback_tag}"),
         ReviewCommentSchema(id="reply", body=SummaryCommentReplySchema(text="Because").body_for_request("t", "q")),
-        ReviewCommentSchema(id="legacy", body=f"Old answer {settings.review.summary_reply_tag}"),
+        ReviewCommentSchema(id="ordinary", body="A regular comment"),
     ]
 
     await review_comment_gateway.clear_summary_replies()
 
-    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == ["reply"]
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == ["question"]
 
 
 @pytest.mark.asyncio
@@ -796,7 +836,7 @@ async def test_summary_reply_marker_survives_tag_configuration_change(
 
 
 @pytest.mark.asyncio
-async def test_clear_summary_replies_handles_no_replies(
+async def test_clear_summary_replies_handles_no_requests(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
@@ -871,7 +911,8 @@ async def test_clear_inline_comments_reports_lookup_failure(
         raise RuntimeError("lookup failed")
 
     monkeypatch.setattr(review_comment_gateway, "get_inline_comments", fail_lookup)
-    await review_comment_gateway.clear_inline_comments()
+    with pytest.raises(RuntimeError, match="lookup failed"):
+        await review_comment_gateway.clear_inline_comments()
     assert fake_hook_service.calls == [
         ("emit_clear_inline_comments_start", {}),
         ("emit_clear_inline_comments_error", {}),
@@ -890,7 +931,8 @@ async def test_clear_summary_comments_reports_lookup_failure(
         raise RuntimeError("lookup failed")
 
     monkeypatch.setattr(review_comment_gateway, "get_clearable_summary_comments", fail_lookup)
-    await review_comment_gateway.clear_summary_comments()
+    with pytest.raises(RuntimeError, match="lookup failed"):
+        await review_comment_gateway.clear_summary_comments()
     assert fake_hook_service.calls == [
         ("emit_clear_summary_comments_start", {}),
         ("emit_clear_summary_comments_error", {}),
@@ -906,11 +948,12 @@ async def test_clear_inline_replies_reports_lookup_failure(
     async def fail_lookup():
         raise RuntimeError("lookup failed")
 
-    monkeypatch.setattr(review_comment_gateway, "get_inline_replies", fail_lookup)
+    monkeypatch.setattr(review_comment_gateway, "get_inline_reply_requests", fail_lookup)
 
-    await review_comment_gateway.clear_inline_replies()
+    with pytest.raises(RuntimeError, match="lookup failed"):
+        await review_comment_gateway.clear_inline_replies()
 
-    assert "Failed to clear inline replies" in capsys.readouterr().out
+    assert "Failed to clear inline reply requests" in capsys.readouterr().out
 
 
 @pytest.mark.asyncio
@@ -922,11 +965,42 @@ async def test_clear_summary_replies_reports_lookup_failure(
     async def fail_lookup():
         raise RuntimeError("lookup failed")
 
-    monkeypatch.setattr(review_comment_gateway, "get_summary_replies", fail_lookup)
+    monkeypatch.setattr(review_comment_gateway, "get_summary_reply_requests", fail_lookup)
 
-    await review_comment_gateway.clear_summary_replies()
+    with pytest.raises(RuntimeError, match="lookup failed"):
+        await review_comment_gateway.clear_summary_replies()
 
-    assert "Failed to clear summary replies" in capsys.readouterr().out
+    assert "Failed to clear summary reply requests" in capsys.readouterr().out
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method, inline_body, general_body, failed_call",
+    [
+        ("clear_inline_comments", "Finding #ai-review-inline", None, "delete_inline_comment"),
+        ("clear_summary_comments", None, "Summary #ai-review-summary", "delete_general_comment"),
+        ("clear_inline_replies", "Question #ai-review-inline-reply", None, "delete_inline_comment"),
+        ("clear_summary_replies", None, "Question #ai-review-summary-reply", "delete_general_comment"),
+    ],
+)
+async def test_clear_commands_propagate_vcs_deletion_failure(
+        method: str,
+        inline_body: str | None,
+        general_body: str | None,
+        failed_call: str,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    if inline_body:
+        fake_vcs_client.responses["get_inline_comments"] = [ReviewCommentSchema(id="inline", body=inline_body)]
+    if general_body:
+        fake_vcs_client.responses["get_general_comments"] = [ReviewCommentSchema(id="general", body=general_body)]
+    fake_vcs_client.responses[f"{failed_call}_error"] = RuntimeError("delete denied")
+
+    with pytest.raises(RuntimeError, match="delete denied"):
+        await getattr(review_comment_gateway, method)()
+
+    assert any(call[0] == failed_call for call in fake_vcs_client.calls)
 
 
 # === FINALIZE ===

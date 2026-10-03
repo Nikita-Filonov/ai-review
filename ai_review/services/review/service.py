@@ -166,6 +166,8 @@ class ReviewService:
         await self.review_comment_gateway.clear_summary_replies()
 
     async def run_clear_review(self) -> None:
+        await self.run_clear_inline_reply_review()
+        await self.run_clear_summary_reply_review()
         await self.run_clear_inline_review()
         await self.run_clear_summary_review()
 

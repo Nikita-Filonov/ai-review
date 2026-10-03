@@ -186,7 +186,7 @@ async def test_run_clear_summary_review_does_not_finalize_gateway(
 
 
 @pytest.mark.asyncio
-async def test_run_clear_inline_reply_review_only_clears_replies(
+async def test_run_clear_inline_reply_review_only_clears_requests(
         review_service: ReviewService,
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
@@ -198,7 +198,7 @@ async def test_run_clear_inline_reply_review_only_clears_replies(
 
 
 @pytest.mark.asyncio
-async def test_run_clear_summary_reply_review_only_clears_replies(
+async def test_run_clear_summary_reply_review_only_clears_requests(
         review_service: ReviewService,
         fake_review_comment_gateway: FakeReviewCommentGateway,
 ):
@@ -219,6 +219,8 @@ async def test_run_clear_review_clears_all_comments_once(
     await review_service.run_clear_review()
 
     assert fake_review_comment_gateway.calls == [
+        ("clear_inline_replies", {}),
+        ("clear_summary_replies", {}),
         ("clear_inline_comments", {}),
         ("clear_summary_comments", {}),
     ]

@@ -20,7 +20,7 @@ It is built with Typer and fully supports async execution of all review modes.
     - [🧽 Clear Everything](#-clear-everything)
     - [🧽 Clear Inline Comments](#-clear-inline-comments)
     - [🧽 Clear Summary Comments](#-clear-summary-comments)
-    - [🧽 Clear Replies](#-clear-replies)
+    - [🧽 Clear Reply Requests](#-clear-reply-requests)
     - [⚙️ Inspect Configuration](#-inspect-configuration)
 - [⚙️ Tips](#-tips)
 
@@ -58,11 +58,11 @@ ai-review --help
 | `ai-review run-summary`         | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`         |
 | `ai-review run-inline-reply`    | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`    |
 | `ai-review run-summary-reply`   | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply`   |
-| `ai-review clear`               | Removes all identifiable AI comments and replies.                         | `ai-review clear`               |
+| `ai-review clear`               | Removes all tagged findings, answers, and reply requests.                 | `ai-review clear`               |
 | `ai-review clear-inline`        | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`        |
 | `ai-review clear-summary`       | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`       |
-| `ai-review clear-inline-reply`  | Removes identifiable **AI inline replies**, preserving questions.         | `ai-review clear-inline-reply`  |
-| `ai-review clear-summary-reply` | Removes identifiable **AI summary replies**, preserving questions.        | `ai-review clear-summary-reply` |
+| `ai-review clear-inline-reply`  | Removes comments tagged as **inline reply requests**.                     | `ai-review clear-inline-reply`  |
+| `ai-review clear-summary-reply` | Removes comments tagged as **summary reply requests**.                    | `ai-review clear-summary-reply` |
 | `ai-review show-config`         | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`         |
 
 ---
@@ -175,9 +175,9 @@ Notes:
 ai-review clear
 ```
 
-Runs both `clear-inline` and `clear-summary`. Together they remove tagged AI findings, fallbacks, summaries, and marked
-replies in the current PR/MR. User questions bearing only `*-reply` tags remain. Deletion is permanent; `review.dry_run`
-previews it without deleting.
+Runs all four clear commands. It removes tagged AI findings, fallbacks, summaries, generated answers, and user comments
+tagged as reply requests in the current PR/MR. Reply requests are cleared first, before their parent review comments.
+Deletion is permanent; `review.dry_run` previews it without deleting.
 
 ### 🧽 Clear Inline Comments
 
@@ -217,18 +217,20 @@ ai-review clear-summary
 >
 > Use with caution, especially in shared or long-running pull requests.
 
-### 🧽 Clear Replies
+### 🧽 Clear Reply Requests
 
-Remove bot answers but keep the questions and ordinary review findings:
+Remove questions tagged as requests for an AI answer, while keeping generated answers and ordinary review findings:
 
 ```bash
 ai-review clear-inline-reply
 ai-review clear-summary-reply
 ```
 
-New inline answers have a hidden `ai-review:inline-reply` footer; summary answers already record the answered question
-ID. The reply-only commands use these markers, not the question tags. Replies created before these markers cannot be
-distinguished safely from user questions, so remove those manually if needed.
+`clear-inline-reply` matches `review.inline_reply_tag` in inline comments and general comments (for VCS adapters that
+post inline requests there). `clear-summary-reply` matches `review.summary_reply_tag` in general comments. Comments with
+an AI tag or generated-answer marker are excluded. Older generated answers carrying only a reply-request
+tag cannot be distinguished from user requests and may also be removed.
+The VCS credentials running the command must be allowed to delete those comments; deletion failures make the command fail.
 
 ### ⚙️ Inspect Configuration
 
