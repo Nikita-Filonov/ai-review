@@ -4,6 +4,13 @@ from ai_review.services.vcs.types import ReviewCommentSchema, ReviewThreadSchema
 
 
 class ReviewFilterServiceProtocol(Protocol):
+    def exclude_duplicate_comments(
+            self,
+            comments: list[ReviewCommentSchema],
+            selected: list[ReviewCommentSchema],
+    ) -> list[ReviewCommentSchema]:
+        ...
+
     def filter_inline_threads(self, threads: list[ReviewThreadSchema]) -> list[ReviewThreadSchema]:
         ...
 

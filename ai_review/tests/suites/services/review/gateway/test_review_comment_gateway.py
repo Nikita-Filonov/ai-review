@@ -569,6 +569,26 @@ async def test_clear_inline_replies_also_handles_general_comment_requests(
 
 
 @pytest.mark.asyncio
+async def test_clear_inline_replies_deletes_shared_note_once(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    request = f"Why? {settings.review.inline_reply_tag}"
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id=42, body=request),
+    ]
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="42", body=request),
+        ReviewCommentSchema(id=43, body=request),
+    ]
+
+    await review_comment_gateway.clear_inline_replies()
+
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"] == [42]
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == [43]
+
+
+@pytest.mark.asyncio
 async def test_clear_inline_includes_general_comment_fallback(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
@@ -581,6 +601,26 @@ async def test_clear_inline_includes_general_comment_fallback(
     await review_comment_gateway.clear_inline_comments()
 
     assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == ["reply"]
+
+
+@pytest.mark.asyncio
+async def test_clear_inline_comments_deletes_shared_generated_reply_once(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    reply = InlineCommentReplySchema(message="Because").body_with_tag
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id=42, body=reply),
+    ]
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="42", body=reply),
+        ReviewCommentSchema(id=43, body=reply),
+    ]
+
+    await review_comment_gateway.clear_inline_comments()
+
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"] == [42]
+    assert [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"] == [43]
 
 
 @pytest.mark.asyncio

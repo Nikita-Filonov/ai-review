@@ -71,6 +71,7 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
 
         comments = await self.get_inline_comments()
         general_replies = await self.get_generated_general_inline_replies()
+        general_replies = self.review_filter.exclude_duplicate_comments(general_replies, comments)
         if not comments and not general_replies:
             logger.info("[dry-run] No AI inline comments to clear")
             await hook.emit_clear_inline_comments_complete(comments=[])
@@ -100,9 +101,13 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
         await hook.emit_clear_summary_comments_complete(comments=comments)
 
     async def clear_inline_replies(self) -> None:
-        for reply in await self.get_inline_replies():
+        replies = await self.get_inline_replies()
+        general_replies = await self.get_general_inline_replies()
+        general_replies = self.review_filter.exclude_duplicate_comments(general_replies, replies)
+
+        for reply in replies:
             logger.info(f"[dry-run] Would delete inline reply {reply.id}")
-        for reply in await self.get_general_inline_replies():
+        for reply in general_replies:
             logger.info(f"[dry-run] Would delete general inline reply {reply.id}")
 
     async def clear_summary_replies(self) -> None:

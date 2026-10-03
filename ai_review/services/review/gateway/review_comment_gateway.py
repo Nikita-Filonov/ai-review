@@ -182,6 +182,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         try:
             comments = await self.get_inline_comments()
             general_replies = await self.get_generated_general_inline_replies()
+            general_replies = self.review_filter.exclude_duplicate_comments(general_replies, comments)
             if not comments and not general_replies:
                 logger.info("No AI inline comments to clear")
                 await hook.emit_clear_inline_comments_complete(comments=[])
@@ -224,6 +225,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         try:
             replies = await self.get_inline_replies()
             general_replies = await self.get_general_inline_replies()
+            general_replies = self.review_filter.exclude_duplicate_comments(general_replies, replies)
             logger.info(f"Clearing {len(replies) + len(general_replies)} inline replies")
             await self.delete_comments(self.vcs.delete_inline_comment(reply.id) for reply in replies)
             await self.delete_comments(self.vcs.delete_general_comment(reply.id) for reply in general_replies)

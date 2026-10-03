@@ -202,3 +202,16 @@ def test_reply_filters_preserve_generated_answers_after_ai_tag_changes(
     monkeypatch.setattr(settings.review, "summary_tag", "#new-summary")
 
     assert getattr(review_filter_service, method)(comments) == [reply]
+
+
+def test_exclude_duplicate_comments_matches_note_identity(
+        review_filter_service: ReviewFilterService,
+):
+    selected = [ReviewCommentSchema(id=42, body="same note")]
+    duplicate = ReviewCommentSchema(id="42", body="same note")
+    different_body = ReviewCommentSchema(id="42", body="different note")
+    different_id = ReviewCommentSchema(id=43, body="same note")
+
+    assert review_filter_service.exclude_duplicate_comments(
+        [duplicate, different_body, different_id], selected,
+    ) == [different_body, different_id]

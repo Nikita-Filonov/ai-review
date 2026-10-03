@@ -13,6 +13,21 @@ class ReviewFilterService(ReviewFilterServiceProtocol):
     def __init__(self):
         self.review = settings.review
 
+    def exclude_duplicate_comments(
+            self,
+            comments: list[ReviewCommentSchema],
+            selected: list[ReviewCommentSchema],
+    ) -> list[ReviewCommentSchema]:
+        # GitLab exposes the same note through both /notes and /discussions.
+        selected_keys = {
+            (str(comment.id), comment.body, str(comment.author.id))
+            for comment in selected
+        }
+        return [
+            comment for comment in comments
+            if (str(comment.id), comment.body, str(comment.author.id)) not in selected_keys
+        ]
+
     def filter_inline_threads(self, threads: list[ReviewThreadSchema]) -> list[ReviewThreadSchema]:
         selected = []
         for thread in threads:

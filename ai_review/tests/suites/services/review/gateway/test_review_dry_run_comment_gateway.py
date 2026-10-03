@@ -194,6 +194,23 @@ async def test_dry_run_inline_reply_request_cleanup_reports_general_comment(
 
 
 @pytest.mark.asyncio
+async def test_dry_run_shared_inline_reply_is_reported_once(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    request = f"Why? {settings.review.inline_reply_tag}"
+    fake_vcs_client.responses["get_inline_comments"] = [ReviewCommentSchema(id=42, body=request)]
+    fake_vcs_client.responses["get_general_comments"] = [ReviewCommentSchema(id="42", body=request)]
+
+    await review_dry_run_comment_gateway.clear_inline_replies()
+
+    output = capsys.readouterr().out
+    assert "Would delete inline reply 42" in output
+    assert "Would delete general inline reply 42" not in output
+
+
+@pytest.mark.asyncio
 async def test_dry_run_clear_inline_reports_general_fallback(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
