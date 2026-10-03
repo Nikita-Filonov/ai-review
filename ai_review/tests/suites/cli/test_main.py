@@ -1,3 +1,7 @@
+import importlib
+import runpy
+import sys
+
 import pytest
 from typer.testing import CliRunner
 
@@ -6,6 +10,14 @@ from ai_review.services.review.service import ReviewService
 from ai_review.tests.fixtures.services.review.gateway.review_comment_gateway import FakeReviewCommentGateway
 
 runner = CliRunner()
+
+
+def test_module_entrypoint_runs_cli_show_config(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture) -> None:
+    monkeypatch.setattr(sys, "argv", ["ai-review", "show-config"])
+    with pytest.raises(SystemExit) as caught:
+        runpy.run_path(importlib.import_module("ai_review.cli.main").__file__, run_name="__main__")
+    assert caught.value.code == 0
+    assert "Loaded AI Review configuration:" in capsys.readouterr().out
 
 
 @pytest.fixture(autouse=True)

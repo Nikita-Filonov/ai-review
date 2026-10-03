@@ -4,6 +4,7 @@ import pytest
 
 from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabDraftNoteSchema
 from ai_review.clients.gitlab.mr.schema.changes import GitLabMRChangeSchema
+from ai_review.clients.gitlab.mr.schema.discussions import GitLabDiscussionSchema, GitLabGetMRDiscussionsResponseSchema
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 from ai_review.services.vcs.types import (
     ReviewInfoSchema,
@@ -612,6 +613,98 @@ async def test_create_inline_comment_does_not_retry_purge_within_run_after_failu
     assert called_methods.count("get_draft_notes") == 1
     assert called_methods.count("create_draft_note") == 2
     assert gitlab_vcs_client.pending_comments == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_stale_draft_deletion_does_not_block_new_draft(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale #ai-review-inline"),
+    ]
+
+    async def fail_delete(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("delete failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "delete_draft_note", fail_delete)
+    await gitlab_vcs_client.create_general_comment("fresh")
+
+    assert gitlab_vcs_client.pending_comments == 1
+    assert [name for name, _ in fake_gitlab_merge_requests_http_client.calls] == [
+        "get_draft_notes", "create_draft_note",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_general_draft_creation_keeps_pending_count_zero(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    async def fail_create(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("draft failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "create_draft_note", fail_create)
+    with pytest.raises(RuntimeError, match="draft failed"):
+        await gitlab_vcs_client.create_draft_general_comment("summary")
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_inline_draft_creation_keeps_pending_count_zero(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    async def fail_create(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("draft failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "create_draft_note", fail_create)
+    with pytest.raises(RuntimeError, match="draft failed"):
+        await gitlab_vcs_client.create_draft_inline_comment("main.py", 2, "inline")
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_bulk_publish_keeps_pending_count_for_retry(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    gitlab_vcs_client.pending_comments = 2
+
+    async def fail_publish(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("publish failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "bulk_publish_draft_notes", fail_publish)
+    with pytest.raises(RuntimeError, match="publish failed"):
+        await gitlab_vcs_client.publish_comments()
+    assert gitlab_vcs_client.pending_comments == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_empty_discussion_is_not_exposed_as_inline_thread(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    original = fake_gitlab_merge_requests_http_client.get_discussions
+
+    async def get_discussions(project_id: str, merge_request_id: str) -> GitLabGetMRDiscussionsResponseSchema:
+        response = await original(project_id, merge_request_id)
+        response.root.append(GitLabDiscussionSchema(id="empty", notes=[]))
+        return response
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "get_discussions", get_discussions)
+    threads = await gitlab_vcs_client.get_inline_threads()
+    assert [thread.id for thread in threads] == ["discussion-1", "discussion-2"]
 
 
 # Two hunks where the first inserts one line, so line 131 on the new side is

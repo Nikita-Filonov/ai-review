@@ -10,7 +10,7 @@ from ai_review.libs.diff.models import (
     DiffLineType,
     FileMode,
 )
-from ai_review.services.diff import renderers, tools
+from ai_review.services.diff import renderers
 
 
 # ---------- fixtures ----------
@@ -78,7 +78,7 @@ def patch_marker(monkeypatch: pytest.MonkeyPatch) -> None:
             return " # removed"
         return ""
 
-    monkeypatch.setattr(tools, "marker_for_line", fake_marker)
+    monkeypatch.setattr(renderers, "marker_for_line", fake_marker)
 
 
 # ---------- tests: FULL FILE ----------
@@ -109,6 +109,27 @@ def test_build_full_file_diff(sample_diff_file: DiffFile) -> None:
         " 2: keep B\n"
         "+3: added me # added"
     )
+
+
+def test_render_plain_numbered_without_marker_for_changed_line() -> None:
+    assert renderers.render_plain_numbered(["line"], {1}, marker_type=None) == "1: line"
+    assert renderers.marker_for_line() == ""
+
+
+def test_unified_with_negative_context_excludes_unchanged_lines(sample_diff_file: DiffFile) -> None:
+    result = renderers.render_unified(
+        sample_diff_file, include_added=True, include_removed=False,
+        include_unchanged=True, context=-1,
+    )
+    assert result == "+3: added me # added"
+
+
+def test_unified_reports_no_matching_lines_for_mode(sample_diff_file: DiffFile) -> None:
+    result = renderers.render_unified(
+        sample_diff_file, include_added=False, include_removed=False,
+        include_unchanged=False, context=0,
+    )
+    assert result == "# No matching lines for mode in x"
 
 
 # ---------- tests: ONLY_* ----------

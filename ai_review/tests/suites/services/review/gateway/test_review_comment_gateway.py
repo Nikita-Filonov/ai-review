@@ -741,6 +741,45 @@ async def test_get_summary_comments_ignores_inline_fallback_comments(
 
 # === FINALIZE ===
 
+
+@pytest.mark.asyncio
+async def test_clear_inline_comments_reports_lookup_failure(
+        monkeypatch: pytest.MonkeyPatch,
+        fake_hook_service: FakeHookService,
+        review_comment_gateway: ReviewCommentGateway,
+) -> None:
+    monkeypatch.setattr("ai_review.services.review.gateway.review_comment_gateway.hook", fake_hook_service)
+
+    async def fail_lookup() -> None:
+        raise RuntimeError("lookup failed")
+
+    monkeypatch.setattr(review_comment_gateway, "get_inline_comments", fail_lookup)
+    await review_comment_gateway.clear_inline_comments()
+    assert fake_hook_service.calls == [
+        ("emit_clear_inline_comments_start", {}),
+        ("emit_clear_inline_comments_error", {}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_clear_summary_comments_reports_lookup_failure(
+        monkeypatch: pytest.MonkeyPatch,
+        fake_hook_service: FakeHookService,
+        review_comment_gateway: ReviewCommentGateway,
+) -> None:
+    monkeypatch.setattr("ai_review.services.review.gateway.review_comment_gateway.hook", fake_hook_service)
+
+    async def fail_lookup() -> None:
+        raise RuntimeError("lookup failed")
+
+    monkeypatch.setattr(review_comment_gateway, "get_clearable_summary_comments", fail_lookup)
+    await review_comment_gateway.clear_summary_comments()
+    assert fake_hook_service.calls == [
+        ("emit_clear_summary_comments_start", {}),
+        ("emit_clear_summary_comments_error", {}),
+    ]
+
+
 @pytest.mark.asyncio
 async def test_finalize_publishes_batched_comments(
         fake_batching_vcs_client: FakeBatchingVCSClient,

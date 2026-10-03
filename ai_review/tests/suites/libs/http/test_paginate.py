@@ -56,11 +56,8 @@ async def test_extract_items_error():
     def extract_items(_: Response):
         raise ValueError("bad json")
 
-    def has_next_page(_: Response) -> bool:
-        return False
-
     with pytest.raises(RuntimeError) as exc:
-        await paginate(fetch_page, extract_items, has_next_page)
+        await paginate(fetch_page, extract_items, bool)
     assert "Failed to extract items" in str(exc.value)
 
 
@@ -144,11 +141,8 @@ async def test_extract_items_raises_error():
     def extract_items(_: Response):
         raise ValueError("invalid json")
 
-    def extract_token(_: Response):
-        return None
-
     with pytest.raises(RuntimeError) as exc:
-        await paginate_with_token(fetch_page, extract_items, extract_token)
+        await paginate_with_token(fetch_page, extract_items, bool)
     assert "Failed to extract items" in str(exc.value)
 
 

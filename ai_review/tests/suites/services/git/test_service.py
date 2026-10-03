@@ -28,6 +28,37 @@ def test_run_git_decodes_utf8_output_without_using_system_encoding(
     assert git_service.run_git("diff") == "+Привет, мир!\n"
 
 
+def test_run_git_accepts_successful_command_with_stderr(
+        monkeypatch: pytest.MonkeyPatch, git_service: GitService,
+) -> None:
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: subprocess.CompletedProcess(
+        args[0], 0, stdout=b"ok", stderr=b"warning",
+    ))
+    assert git_service.run_git("status") == "ok"
+
+
+def test_run_git_preserves_process_failure(
+        monkeypatch: pytest.MonkeyPatch, git_service: GitService,
+) -> None:
+    failure = subprocess.CalledProcessError(128, ["git", "show"], stderr=b"bad ref")
+
+    def raise_failure(*args: object, **kwargs: object) -> None:
+        raise failure
+
+    monkeypatch.setattr(subprocess, "run", raise_failure)
+    with pytest.raises(subprocess.CalledProcessError) as caught:
+        git_service.run_git("show")
+    assert caught.value is failure
+
+
+def test_get_diff_for_file_returns_empty_diff(
+        monkeypatch: pytest.MonkeyPatch, git_service: GitService,
+) -> None:
+    monkeypatch.setattr(settings.review, "ignore_pure_renames", False)
+    monkeypatch.setattr(git_service, "run_git", lambda *args: "")
+    assert git_service.get_diff_for_file("base", "head", "file.py") == ""
+
+
 def test_get_renamed_files_returns_rename_only_paths(
         monkeypatch: pytest.MonkeyPatch,
         git_service: GitService,
@@ -68,9 +99,8 @@ def test_get_diff_for_file_skips_pure_rename(
 
     def fake_run_git(*args: str) -> str:
         calls.append(args)
-        if "--diff-filter=R" in args:
-            return "new.py\0"
-        return "REAL_DIFF"
+        assert "--diff-filter=R" in args
+        return "new.py\0"
 
     monkeypatch.setattr(git_service, "run_git", fake_run_git)
 
@@ -151,10 +181,7 @@ def test_get_diff_for_file_skips_empty_filename(
         monkeypatch: pytest.MonkeyPatch,
         git_service: GitService,
 ) -> None:
-    def fail_run_git(*args: str) -> str:
-        raise AssertionError("git should not be called for empty filename")
-
-    monkeypatch.setattr(git_service, "run_git", fail_run_git)
+    monkeypatch.setattr(git_service, "run_git", pytest.fail)
 
     assert git_service.get_diff_for_file("BASE", "HEAD", "") == ""
 
@@ -198,10 +225,7 @@ def test_get_file_at_commit_skips_empty_path(
         monkeypatch: pytest.MonkeyPatch,
         git_service: GitService,
 ) -> None:
-    def fail_run_git(*args: str) -> str:
-        raise AssertionError("git should not be called for empty file path")
-
-    monkeypatch.setattr(git_service, "run_git", fail_run_git)
+    monkeypatch.setattr(git_service, "run_git", pytest.fail)
 
     assert git_service.get_file_at_commit("", "HEAD") is None
 

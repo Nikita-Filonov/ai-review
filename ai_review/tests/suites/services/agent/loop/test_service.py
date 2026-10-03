@@ -259,6 +259,18 @@ async def test_force_final_returns_raw_when_forced_response_is_not_final_json(
 
 
 @pytest.mark.asyncio
+async def test_force_final_returns_raw_unparseable_action(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([MALFORMED_TOOL_CALL]))
+    result = await agent_loop_service.force_final("PROMPT", "SYSTEM")
+    assert result.final_text == MALFORMED_TOOL_CALL
+    assert result.traces[0].raw_output == MALFORMED_TOOL_CALL
+
+
+@pytest.mark.asyncio
 async def test_force_final_handles_empty_response(
         monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,

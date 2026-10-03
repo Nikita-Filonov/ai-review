@@ -13,6 +13,16 @@ from ai_review.clients.azure_openai.schema import (
 #                      AzureOpenAIUsage Tests
 # ----------------------------------------------------------------------
 
+
+def test_azure_openai_response_handles_content_outside_validated_union() -> None:
+    # model_construct mirrors a provider payload that bypassed normal validation.
+    message = AzureOpenAIMessage.model_construct(role="assistant", content=None)
+    response = AzureOpenAIChatResponseSchema.model_construct(
+        usage=AzureOpenAIUsage(total_tokens=0, prompt_tokens=0, completion_tokens=0),
+        choices=[AzureOpenAIChoice.model_construct(message=message)],
+    )
+    assert response.first_text == ""
+
 def test_usage_fields_correct():
     usage = AzureOpenAIUsage(
         total_tokens=30,

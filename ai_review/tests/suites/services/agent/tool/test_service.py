@@ -9,6 +9,17 @@ from ai_review.tests.fixtures.services.policy import FakePolicyService
 
 
 @pytest.mark.asyncio
+async def test_execute_rejects_command_that_parses_to_no_arguments(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_tool_service: AgentToolService,
+        fake_policy_service: FakePolicyService,
+) -> None:
+    fake_policy_service.responses["should_agent_run_command"] = True
+    monkeypatch.setattr("ai_review.services.agent.tool.service.shlex.split", lambda _: [])
+    assert await agent_tool_service.execute("echo ok") == "Agent command rejected after parsing: echo ok"
+
+
+@pytest.mark.asyncio
 async def test_execute_runs_allowed_command(
         tmp_path: Path,
         agent_tool_service: AgentToolService,
