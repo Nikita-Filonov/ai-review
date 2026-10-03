@@ -1,8 +1,11 @@
+import asyncio
+
 import pytest
 
 from ai_review.config import settings
-from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema
+from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema, AgentTraceSchema
 from ai_review.services.agent.loop.service import AgentLoopService
+from ai_review.services.agent.loop.state import AgentRunState
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.services.agent.tool import FakeAgentToolService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
@@ -88,7 +91,6 @@ async def test_run_rejects_final_step_without_content_from_parser(
     with pytest.raises(ValueError, match="FINAL step must contain content"):
         await agent_loop_service.run("PROMPT", "SYSTEM")
 
-    assert agent_loop_service.traces == []
     assert fake_agent_tool_service.calls == []
 
 
@@ -109,7 +111,7 @@ async def test_run_returns_unstructured_response_when_json_parse_fails(
 
     assert result.stop_reason == "unstructured_response"
     assert result.final_text == "not-json"
-    assert "Failed to parse structured action" in (result.traces[0].warning or "")
+    assert "without an agent envelope" in (result.traces[0].warning or "")
     assert fake_agent_tool_service.calls == []
 
 
@@ -146,11 +148,12 @@ async def test_run_step_rejects_step_without_command(
 ) -> None:
     final_step = AgentStepSchema(action=AgentAction.FINAL, content="done")
     chat = ChatResultSchema(text='{"action":"FINAL","content":"done"}')
+    state = AgentRunState()
 
     with pytest.raises(ValueError, match="TOOL_CALL step must contain a command"):
-        await agent_loop_service.run_step(step=final_step, chat=chat, iteration=1)
+        await agent_loop_service.run_step(step=final_step, chat=chat, state=state, iteration=1)
 
-    assert agent_loop_service.signatures == set()
+    assert state.signatures == set()
     assert fake_agent_tool_service.calls == []
 
 
@@ -265,7 +268,7 @@ async def test_force_final_returns_raw_unparseable_action(
         fake_llm_client: FakeLLMClient,
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([MALFORMED_TOOL_CALL]))
-    result = await agent_loop_service.force_final("PROMPT", "SYSTEM")
+    result = await agent_loop_service.force_final("PROMPT", "SYSTEM", state=AgentRunState())
     assert result.final_text == MALFORMED_TOOL_CALL
     assert result.traces[0].raw_output == MALFORMED_TOOL_CALL
 
@@ -278,7 +281,7 @@ async def test_force_final_handles_empty_response(
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([""]))
 
-    result = await agent_loop_service.force_final("PROMPT", "SYSTEM")
+    result = await agent_loop_service.force_final("PROMPT", "SYSTEM", state=AgentRunState())
 
     assert result.stop_reason == "max_requests_or_context_limit"
     assert result.final_text == ""
@@ -289,7 +292,25 @@ async def test_force_final_handles_empty_response(
 
 
 @pytest.mark.asyncio
-async def test_run_clears_internal_state_between_runs(
+async def test_force_final_accepts_direct_task_output_without_action_parse(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+) -> None:
+    monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([INLINE_COMMENTS_JSON]))
+    monkeypatch.setattr(
+        agent_loop_service.parser,
+        "parse_output",
+        lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
+    )
+
+    result = await agent_loop_service.force_final("PROMPT", "SYSTEM", state=AgentRunState())
+
+    assert result.final_text == INLINE_COMMENTS_JSON
+
+
+@pytest.mark.asyncio
+async def test_run_keeps_state_separate_between_runs(
         monkeypatch: pytest.MonkeyPatch,
         agent_loop_service: AgentLoopService,
         fake_llm_client: FakeLLMClient,
@@ -303,7 +324,7 @@ async def test_run_clears_internal_state_between_runs(
             '{"action":"FINAL","content":"one"}',
         ]),
     )
-    await agent_loop_service.run("PROMPT", "SYSTEM")
+    first = await agent_loop_service.run("PROMPT", "SYSTEM")
 
     monkeypatch.setattr(
         fake_llm_client,
@@ -316,6 +337,8 @@ async def test_run_clears_internal_state_between_runs(
     result = await agent_loop_service.run("PROMPT", "SYSTEM")
 
     assert result.final_text == "two"
+    assert first.final_text == "one"
+    assert len(first.traces) == len(result.traces) == 2
     assert fake_agent_tool_service.calls.count(("execute", {"command": "ls"})) == 2
 
 
@@ -531,7 +554,7 @@ async def test_run_honors_malformed_action_budget(
     assert result.stop_reason == "max_requests_or_context_limit"
     assert result.final_text == "forced-final"
     assert MALFORMED_TOOL_CALL not in result.final_text
-    assert agent_loop_service.protocol_violations == max_protocol_violations + 1
+    assert sum(trace.step is None for trace in result.traces) == max_protocol_violations + 1
     assert len(result.traces) == max_protocol_violations + 2
     assert [
         call[1]["force_final"]
@@ -570,6 +593,11 @@ async def test_run_returns_markdown_summary_as_final_text(
         fake_llm_client: FakeLLMClient,
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([MARKDOWN_SUMMARY]))
+    monkeypatch.setattr(
+        agent_loop_service.parser,
+        "parse_output",
+        lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
+    )
 
     result = await agent_loop_service.run("PROMPT", "SYSTEM")
 
@@ -585,12 +613,94 @@ async def test_run_returns_inline_comment_json_array_as_final_text(
         fake_llm_client: FakeLLMClient,
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([INLINE_COMMENTS_JSON]))
+    monkeypatch.setattr(
+        agent_loop_service.parser,
+        "parse_output",
+        lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
+    )
 
     result = await agent_loop_service.run("PROMPT", "SYSTEM")
 
     assert result.stop_reason == "unstructured_response"
     assert result.final_text == INLINE_COMMENTS_JSON
     assert len(result.traces) == 1
+
+
+@pytest.mark.parametrize("shared_command", [False, True])
+@pytest.mark.parametrize("max_iterations", [1, 2])
+@pytest.mark.asyncio
+async def test_concurrent_runs_keep_agent_histories_separate(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_prompt_service: FakePromptService,
+        fake_agent_tool_service: FakeAgentToolService,
+        shared_command: bool,
+        max_iterations: int,
+) -> None:
+    first_requests = 0
+    both_started = asyncio.Event()
+    histories: list[tuple[str, tuple[str, ...], bool]] = []
+    commands = {
+        task: "cat shared.txt" if shared_command else f"cat {task}"
+        for task in ("first", "second")
+    }
+    agent_loop_service.max_iterations = max_iterations
+
+    def build_agent_request(
+            *,
+            traces: list[AgentTraceSchema],
+            force_final: bool,
+            original_prompt: str,
+            original_prompt_system: str,
+    ) -> str:
+        history = tuple(trace.step.command for trace in traces if trace.step and trace.step.command)
+        histories.append((original_prompt, history, force_final))
+        return f"{original_prompt}:{len(traces)}"
+
+    async def chat(prompt: str, prompt_system: str) -> ChatResultSchema:
+        nonlocal first_requests
+        task, iteration = prompt.split(":")
+        prompt_tokens = 10 if task == "first" else 20
+        if iteration == "0":
+            first_requests += 1
+            if first_requests == 2:
+                both_started.set()
+            await both_started.wait()
+            return ChatResultSchema(
+                text=f'{{"action":"TOOL_CALL","command":"{commands[task]}"}}',
+                prompt_tokens=prompt_tokens,
+                completion_tokens=1,
+            )
+        return ChatResultSchema(
+            text=f'{{"action":"FINAL","content":"done {task}"}}',
+            prompt_tokens=prompt_tokens,
+            completion_tokens=2,
+        )
+
+    monkeypatch.setattr(fake_prompt_service, "build_agent_request", build_agent_request)
+    monkeypatch.setattr(fake_llm_client, "chat", chat)
+
+    first, second = await asyncio.wait_for(
+        asyncio.gather(
+            agent_loop_service.run("first", "SYSTEM"),
+            agent_loop_service.run("second", "SYSTEM"),
+        ),
+        timeout=5,
+    )
+
+    assert first.final_text == "done first"
+    assert second.final_text == "done second"
+    assert first.prompt_tokens == 20
+    assert second.prompt_tokens == 40
+    assert first.completion_tokens == second.completion_tokens == 3
+    assert len(fake_agent_tool_service.calls) == 2
+    for task, result in (("first", first), ("second", second)):
+        assert [
+            (history, forced) for name, history, forced in histories if name == task
+        ] == [((), False), ((commands[task],), max_iterations == 1)]
+        assert [trace.step.command for trace in result.traces if trace.step and trace.step.command] == [commands[task]]
+        assert result.stop_reason == ("max_requests_or_context_limit" if max_iterations == 1 else "final")
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from ai_review.services.agent.loop.schema import (
     AgentStepSchema,
     AgentTraceSchema,
 )
+from ai_review.services.agent.loop.state import AgentRunState
 from ai_review.services.agent.loop.tools import is_attempted_action
 from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
 from ai_review.services.agent.tool.types import AgentToolServiceProtocol
@@ -18,7 +19,7 @@ logger = get_logger("AGENT_LOOP_SERVICE")
 PROTOCOL_RETRY_WARNING = (
     "Invalid response discarded: it carried an agent action but was not a single valid JSON object. "
     "Respond with exactly one JSON object and nothing else: "
-    '{"action": "TOOL_CALL", "command": "<single shell command>"} '
+    '{"action": "TOOL_CALL", "command": "<single command>"} '
     'or {"action": "FINAL", "content": "<complete answer as a string>"}. '
     'Every quote inside a JSON string value must be escaped as \\".'
 )
@@ -38,25 +39,25 @@ class AgentLoopService(AgentLoopServiceProtocol):
         self.max_context_chars = settings.agent.max_total_context_chars
         self.max_protocol_violations = settings.agent.max_protocol_violations
 
-        self.parser = LLMOutputJSONParser(AgentStepSchema)
-        self.traces: list[AgentTraceSchema] = []
-        self.signatures: set[str] = set()
-        self.context_used = 0
-        self.protocol_violations = 0
+        self.parser: LLMOutputJSONParser[AgentStepSchema] = LLMOutputJSONParser[AgentStepSchema](AgentStepSchema)
 
-    def clear(self):
-        self.traces = []
-        self.signatures = set()
-        self.context_used = 0
-        self.protocol_violations = 0
-        logger.debug("Agent loop state cleared")
+    def parse_step(self, output: str) -> AgentStepSchema | None:
+        if not is_attempted_action(output):
+            return None
+        return self.parser.parse_output(output)
 
-    async def run_step(self, step: AgentStepSchema, chat: ChatResultSchema, iteration: int) -> AgentTraceSchema:
+    async def run_step(
+            self,
+            step: AgentStepSchema,
+            chat: ChatResultSchema,
+            state: AgentRunState,
+            iteration: int,
+    ) -> AgentTraceSchema:
         command = step.command
         if command is None:
             raise ValueError("A TOOL_CALL step must contain a command")
 
-        if command in self.signatures:
+        if command in state.signatures:
             logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {command}")
             return AgentTraceSchema(
                 step=step,
@@ -68,7 +69,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 completion_tokens=chat.completion_tokens,
             )
 
-        self.signatures.add(command)
+        state.signatures.add(command)
         logger.debug(f"Executing agent tool command at iteration {iteration}: {command}")
         tool_output = await self.agent_tool.execute(command)
 
@@ -86,11 +87,12 @@ class AgentLoopService(AgentLoopServiceProtocol):
             self,
             prompt: str,
             prompt_system: str,
+            state: AgentRunState,
     ) -> AgentLoopResultSchema:
         logger.info("Forcing FINAL response after loop limits reached")
 
         agent_prompt = self.prompt.build_agent_request(
-            traces=self.traces,
+            traces=state.traces,
             force_final=True,
             original_prompt=prompt,
             original_prompt_system=prompt_system,
@@ -99,7 +101,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
         logger.debug(
             f"Force-final prompt "
             f"(prompt_chars={len(agent_prompt)}, system_chars={len(agent_prompt_system)}, "
-            f"traces={len(self.traces)})"
+            f"traces={len(state.traces)})"
         )
 
         fallback_result = await self.llm.chat(
@@ -107,7 +109,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
             prompt_system=agent_prompt_system,
         )
         fallback_text = fallback_result.text
-        fallback_step: AgentStepSchema | None = self.parser.parse_output(fallback_text)
+        fallback_step = self.parse_step(fallback_text)
         logger.debug(
             f"Forced FINAL raw response received; "
             f"parsed_as_final={bool(fallback_step and fallback_step.action.is_final)}"
@@ -128,14 +130,14 @@ class AgentLoopService(AgentLoopServiceProtocol):
         else:
             final_text = fallback_text
 
-        self.traces.append(
+        state.traces.append(
             AgentTraceSchema(
                 step=fallback_step or AgentStepSchema(
                     action=AgentAction.FINAL,
                     content=fallback_text or "Empty model response",
                 ),
                 warning="Forced final response after max_requests/context_limit.",
-                iteration=len(self.traces) + 1,
+                iteration=len(state.traces) + 1,
                 raw_output=fallback_text,
                 total_tokens=fallback_result.total_tokens,
                 prompt_tokens=fallback_result.prompt_tokens,
@@ -144,13 +146,13 @@ class AgentLoopService(AgentLoopServiceProtocol):
         )
 
         return AgentLoopResultSchema(
-            traces=self.traces,
+            traces=state.traces,
             final_text=final_text,
             stop_reason="max_requests_or_context_limit",
         )
 
     async def run(self, prompt: str, prompt_system: str) -> AgentLoopResultSchema:
-        self.clear()
+        state = AgentRunState()
         logger.info(
             f"Starting agent loop: max_iterations={self.max_iterations}, max_context_chars={self.max_context_chars}"
         )
@@ -159,7 +161,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
             logger.debug(f"Agent loop iteration started: {iteration}")
 
             agent_prompt = self.prompt.build_agent_request(
-                traces=self.traces,
+                traces=state.traces,
                 force_final=False,
                 original_prompt=prompt,
                 original_prompt_system=prompt_system,
@@ -168,27 +170,27 @@ class AgentLoopService(AgentLoopServiceProtocol):
             logger.debug(
                 f"Agent prompt for iteration {iteration} "
                 f"(prompt_chars={len(agent_prompt)}, system_chars={len(agent_prompt_system)}, "
-                f"traces={len(self.traces)})"
+                f"traces={len(state.traces)})"
             )
-            
+
             result = await self.llm.chat(
                 prompt=agent_prompt,
                 prompt_system=agent_prompt_system,
             )
             logger.debug(f"Agent LLM response at iteration {iteration}: {result.text[:500]}")
 
-            step: AgentStepSchema | None = self.parser.parse_output(result.text)
+            step = self.parse_step(result.text)
             if step is None:
                 fallback_text = result.text or ""
 
                 if is_attempted_action(fallback_text):
-                    self.protocol_violations += 1
+                    state.protocol_violations += 1
                     logger.warning(
                         f"Agent loop iteration {iteration} returned an unparseable action "
-                        f"({self.protocol_violations}/{self.max_protocol_violations} tolerated); "
+                        f"({state.protocol_violations}/{self.max_protocol_violations} tolerated); "
                         f"discarding it instead of using it as the final answer"
                     )
-                    self.traces.append(
+                    state.traces.append(
                         AgentTraceSchema(
                             warning=PROTOCOL_RETRY_WARNING,
                             iteration=iteration,
@@ -199,20 +201,20 @@ class AgentLoopService(AgentLoopServiceProtocol):
                         )
                     )
 
-                    if self.protocol_violations <= self.max_protocol_violations:
+                    if state.protocol_violations <= self.max_protocol_violations:
                         continue
 
                     logger.info("Too many unparseable actions; switching to force-final flow")
                     break
 
-                logger.info(f"Agent loop iteration {iteration} returned unstructured response; stopping")
-                self.traces.append(
+                logger.info(f"Agent loop iteration {iteration} returned content without an agent envelope; stopping")
+                state.traces.append(
                     AgentTraceSchema(
                         step=AgentStepSchema(
                             action=AgentAction.FINAL,
                             content=fallback_text or "Empty model response",
                         ),
-                        warning="Failed to parse structured action. Returning raw model output.",
+                        warning="Model returned content without an agent envelope.",
                         iteration=iteration,
                         raw_output=fallback_text,
                         total_tokens=result.total_tokens,
@@ -222,7 +224,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 )
 
                 return AgentLoopResultSchema(
-                    traces=self.traces,
+                    traces=state.traces,
                     final_text=fallback_text,
                     stop_reason="unstructured_response",
                 )
@@ -233,7 +235,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
                     raise ValueError("A FINAL step must contain content")
 
                 logger.info(f"Agent loop iteration {iteration} returned FINAL action")
-                self.traces.append(
+                state.traces.append(
                     AgentTraceSchema(
                         step=step,
                         iteration=iteration,
@@ -245,22 +247,22 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 )
 
                 return AgentLoopResultSchema(
-                    traces=self.traces,
+                    traces=state.traces,
                     final_text=final_text,
                     stop_reason="final",
                 )
 
-            trace = await self.run_step(step=step, chat=result, iteration=iteration)
-            self.traces.append(trace)
+            trace = await self.run_step(step=step, chat=result, state=state, iteration=iteration)
+            state.traces.append(trace)
 
-            self.context_used += len(trace.tool_output or "")
+            state.context_used += len(trace.tool_output or "")
             logger.debug(
                 f"Agent loop context usage after iteration {iteration}: "
-                f"{self.context_used}/{self.max_context_chars}"
+                f"{state.context_used}/{self.max_context_chars}"
             )
-            if self.context_used >= self.max_context_chars:
+            if state.context_used >= self.max_context_chars:
                 logger.info("Agent context limit reached, forcing final response")
                 break
 
         logger.info("Agent loop finished regular iterations without FINAL action; switching to force-final flow")
-        return await self.force_final(prompt=prompt, prompt_system=prompt_system)
+        return await self.force_final(prompt=prompt, prompt_system=prompt_system, state=state)

@@ -11,6 +11,7 @@ On each turn you MUST return exactly one JSON object — either a tool request o
 
 - `content` in FINAL is ALWAYS a plain string. If the task requires JSON output (e.g. a JSON array), serialize it into
   the string value.
+- Task-specific output instructions apply inside `FINAL.content`. Never return that output without the agent envelope.
 - Gather missing context via TOOL_CALL first, then finalize. Never invent command results.
 - Keep commands precise, targeted, and non-destructive.
 - Commands run without a shell. Do not use pipes, redirects, `&&`, or command substitution.
