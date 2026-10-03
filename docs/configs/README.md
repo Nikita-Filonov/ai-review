@@ -4,6 +4,21 @@ AI Review supports multiple configuration formats and sources. All of them are a
 
 ---
 
+## 📑 Table of Contents
+
+- [📂 Supported formats](#-supported-formats)
+- [📑 Load priority](#-load-priority)
+- [⚙️ Override file paths](#-override-file-paths)
+- [📘 Examples](#-examples)
+- [🧠 OpenAI reasoning](#-openai-reasoning)
+    - [YAML](#yaml)
+    - [JSON](#json)
+    - [Environment variables](#environment-variables)
+    - [Options](#options)
+- [🔍 Tips](#-tips)
+
+---
+
 ## 📂 Supported formats
 
 - **YAML** (recommended): `.ai-review.yaml`

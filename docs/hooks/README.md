@@ -13,6 +13,26 @@ review.
 
 ---
 
+## 📑 Table of Contents
+
+- [🧠 Lifecycle](#-lifecycle)
+- [🔧 Registration](#-registration)
+- [📘 Hook Reference](#-hook-reference)
+    - [💬 Chat](#-chat)
+    - [🧩 Inline Review](#-inline-review)
+    - [🧠 Context Review](#-context-review)
+    - [📄 Summary Review](#-summary-review)
+    - [🧩 Inline Reply Review](#-inline-reply-review)
+    - [🧠 Summary Reply Review](#-summary-reply-review)
+    - [💬 Inline Comments](#-inline-comments)
+    - [🗒️ Summary Comments](#-summary-comments)
+    - [💬 Inline Comment Replies](#-inline-comment-replies)
+    - [🗒️ Summary Comment Replies](#-summary-comment-replies)
+- [📊 Example: metrics collection](#-example-metrics-collection)
+- [⚠️ Error Handling](#-error-handling)
+
+---
+
 ## 🧠 Lifecycle
 
 AI Review triggers hooks at key points in the review pipeline:

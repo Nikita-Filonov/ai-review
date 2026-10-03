@@ -7,6 +7,23 @@ It is built with Typer and fully supports async execution of all review modes.
 
 ---
 
+## 📑 Table of Contents
+
+- [🚀 Quick Start](#-quick-start)
+- [🧩 Available Commands](#-available-commands)
+- [💡 Examples](#-examples)
+    - [🧠 Full Review](#-full-review)
+    - [🧩 Inline Review Only](#-inline-review-only)
+    - [🧠 Context Review](#-context-review)
+    - [🗒️ Summary Review](#-summary-review)
+    - [💬 Reply Modes](#-reply-modes)
+    - [🧽 Clear Inline Comments](#-clear-inline-comments)
+    - [🧽 Clear Summary Comments](#-clear-summary-comments)
+    - [⚙️ Inspect Configuration](#-inspect-configuration)
+- [⚙️ Tips](#-tips)
+
+---
+
 ## 🚀 Quick Start
 
 After installing AI Review:
