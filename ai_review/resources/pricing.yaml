@@ -1,104 +1,155 @@
-# ===============================
-# 📊 Pricing per 1 token (USD)
-# ===============================
-# NOTE:
-# - Prices are per 1 token and can change over time.
-# - For the latest OpenAI and Anthropic pricing, see:
-#   - https://openai.com/api/pricing
-#   - https://www.anthropic.com/pricing
-# - For OpenRouter models, prices vary by provider: https://openrouter.ai
+# Standard paid API text-token prices in USD per ONE token (not per million).
+# Estimates exclude caching, batch discounts, long-context/region surcharges,
+# non-text modalities, and provider-specific routing. Checked 2026-10-03.
+# https://developers.openai.com/api/docs/pricing
+# https://ai.google.dev/gemini-api/docs/pricing
+# https://platform.claude.com/docs/en/about-claude/pricing
 
 # --- OpenAI ---
 gpt-4o-mini:
-  input: 0.12e-6
-  output: 0.48e-6
+  input: 0.15e-6
+  output: 0.60e-6
 
 gpt-4o:
-  input: 4.00e-6
-  output: 12.00e-6
+  input: 2.50e-6
+  output: 10.00e-6
 
 gpt-4.1-mini:
-  input: 0.12e-6
-  output: 0.48e-6
+  input: 0.40e-6
+  output: 1.60e-6
+
+gpt-4.1-nano:
+  input: 0.10e-6
+  output: 0.40e-6
 
 gpt-4.1:
-  input: 4.00e-6
-  output: 12.00e-6
+  input: 2.00e-6
+  output: 8.00e-6
 
 gpt-5:
-  input: 8.00e-6
-  output: 24.00e-6
+  input: 1.25e-6
+  output: 10.00e-6
+
+gpt-5-mini:
+  input: 0.25e-6
+  output: 2.00e-6
+
+gpt-5-nano:
+  input: 0.05e-6
+  output: 0.40e-6
 
 gpt-5.1:
-  input: 1.20e-6
-  output: 9.60e-6
+  input: 1.25e-6
+  output: 10.00e-6
 
 gpt-5.2:
-  input: 1.70e-6
-  output: 13.60e-6
+  input: 1.75e-6
+  output: 14.00e-6
+
+gpt-5.4:
+  input: 2.50e-6
+  output: 15.00e-6
+
+gpt-5.4-mini:
+  input: 0.75e-6
+  output: 4.50e-6
+
+gpt-5.5:
+  input: 5.00e-6
+  output: 30.00e-6
+
+# Promotional rate published through at least 2026-11-21.
+gpt-5.6-sol:
+  input: 4.00e-6
+  output: 20.00e-6
 
 gpt-3.5-turbo:
-  input: 0.40e-6
-  output: 1.20e-6
+  input: 0.50e-6
+  output: 1.50e-6
 
-# --- Google Gemini ---
-gemini-2.0-flash-lite:
-  input: 0.025e-6
-  output: 0.125e-6
+o3-mini:
+  input: 1.10e-6
+  output: 4.40e-6
 
-gemini-2.0-flash:
-  input: 0.12e-6
-  output: 0.50e-6
-
-gemini-2.0-pro:
-  input: 0.15e-6
-  output: 0.45e-6
-
+# --- Google Gemini (text input, standard paid tier) ---
 gemini-2.5-flash-lite:
   input: 0.10e-6
   output: 0.40e-6
 
-gemini-2.5-pro:
-  input: 1.05e-6
-  output: 8.00e-6
+gemini-2.5-flash:
+  input: 0.30e-6
+  output: 2.50e-6
 
-gemini-2.5-pro-long-context:
+gemini-2.5-pro:
+  input: 1.25e-6
+  output: 10.00e-6
+
+gemini-3-flash-preview:
+  input: 0.50e-6
+  output: 3.00e-6
+
+gemini-3.1-flash-lite:
+  input: 0.25e-6
+  output: 1.50e-6
+
+gemini-3.1-pro-preview:
   input: 2.00e-6
   output: 12.00e-6
 
+gemini-3.5-flash:
+  input: 1.50e-6
+  output: 9.00e-6
+
 # --- Anthropic Claude ---
 claude-3-haiku:
-  input: 0.22e-6
-  output: 1.10e-6
+  input: 0.25e-6
+  output: 1.25e-6
 
 claude-haiku-4-5:
-  input: 0.90e-6
-  output: 4.50e-6
+  input: 1.00e-6
+  output: 5.00e-6
 
 claude-3-sonnet:
-  input: 2.80e-6
-  output: 14.00e-6
+  input: 3.00e-6
+  output: 15.00e-6
 
 claude-3.5-sonnet:
-  input: 2.80e-6
-  output: 14.00e-6
+  input: 3.00e-6
+  output: 15.00e-6
+
+claude-sonnet-4-5:
+  input: 3.00e-6
+  output: 15.00e-6
+
+claude-sonnet-4-6:
+  input: 3.00e-6
+  output: 15.00e-6
+
+claude-sonnet-5:
+  input: 2.00e-6
+  output: 10.00e-6
 
 claude-opus-4-5:
-  input: 4.50e-6
-  output: 22.50e-6
+  input: 5.00e-6
+  output: 25.00e-6
 
 claude-opus-4-6:
-  input: 4.50e-6
-  output: 22.50e-6
+  input: 5.00e-6
+  output: 25.00e-6
+
+claude-opus-4-7:
+  input: 5.00e-6
+  output: 25.00e-6
+
+claude-opus-4-8:
+  input: 5.00e-6
+  output: 25.00e-6
 
 claude-3-opus:
-  input: 14.00e-6
-  output: 70.00e-6
+  input: 15.00e-6
+  output: 75.00e-6
 
-# --- OpenRouter ---
-o3-mini:
-  input: 1.00e-6
-  output: 4.00e-6
+# --- OpenRouter (historical estimates; check the selected route's live price) ---
 
 openai/chatgpt-4o-latest:
   input: 4.00e-6

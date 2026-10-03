@@ -19,6 +19,8 @@ It is built with Typer and fully supports async execution of all review modes.
     - [💬 Reply Modes](#-reply-modes)
     - [🧽 Clear Inline Comments](#-clear-inline-comments)
     - [🧽 Clear Summary Comments](#-clear-summary-comments)
+    - [🧽 Clear Replies](#-clear-replies)
+    - [🧽 Clear Everything](#-clear-everything)
     - [⚙️ Inspect Configuration](#-inspect-configuration)
 - [⚙️ Tips](#-tips)
 
@@ -48,17 +50,20 @@ ai-review --help
 
 ## 🧩 Available Commands
 
-| Command                       | Description                                                               | Typical Usage                 |
-|-------------------------------|---------------------------------------------------------------------------|-------------------------------|
-| `ai-review run`               | Runs the full review pipeline (inline + summary).                         | `ai-review run`               |
-| `ai-review run-inline`        | Runs only **inline review** (line-by-line comments).                      | `ai-review run-inline`        |
-| `ai-review run-context`       | Runs **context review** across multiple files for architectural feedback. | `ai-review run-context`       |
-| `ai-review run-summary`       | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`       |
-| `ai-review run-inline-reply`  | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`  |
-| `ai-review run-summary-reply` | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply` |
-| `ai-review clear-inline`      | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`      |
-| `ai-review clear-summary`     | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`     |
-| `ai-review show-config`       | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`       |
+| Command                         | Description                                                               | Typical Usage                   |
+|---------------------------------|---------------------------------------------------------------------------|---------------------------------|
+| `ai-review run`                 | Runs the full review pipeline (inline + summary).                         | `ai-review run`                 |
+| `ai-review run-inline`          | Runs only **inline review** (line-by-line comments).                      | `ai-review run-inline`          |
+| `ai-review run-context`         | Runs **context review** across multiple files for architectural feedback. | `ai-review run-context`         |
+| `ai-review run-summary`         | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`         |
+| `ai-review run-inline-reply`    | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`    |
+| `ai-review run-summary-reply`   | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply`   |
+| `ai-review clear-inline`        | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`        |
+| `ai-review clear-summary`       | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`       |
+| `ai-review clear-inline-reply`  | Removes identifiable **AI inline replies**, preserving questions.         | `ai-review clear-inline-reply`  |
+| `ai-review clear-summary-reply` | Removes identifiable **AI summary replies**, preserving questions.        | `ai-review clear-summary-reply` |
+| `ai-review clear`               | Removes all identifiable AI comments and replies.                         | `ai-review clear`               |
+| `ai-review show-config`         | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`         |
 
 ---
 
@@ -147,22 +152,22 @@ AI:   Cover null input and the empty list. #ai-review-summary
 (skipped: this question already has an answer)
 ```
 
-Summary replies record the question ID, so this also works when the VCS posts replies as separate comments.
-Start a new tagged comment for each follow-up. Conversation history includes the comments grouped by the VCS adapter.
+Summary replies record the question ID, so this also works when the VCS posts replies as separate comments. Start a new
+tagged comment for each follow-up. Conversation history includes the comments grouped by the VCS adapter.
 
 Notes:
 
 - Configure question/AI tags via `review.inline_reply_tag` / `review.inline_tag` and
-  `review.summary_reply_tag` / `review.summary_tag`. Keep each pair distinct. An empty request tag disables that reply mode.
-  Comments carrying the AI tag are skipped even if they quote the request tag.
-- **Upgrading:** if the latest AI reply still has `#ai-review-inline-reply`, replace it with `#ai-review-inline`.
-  This prevents reprocessing and lets `clear-inline` recognize it. Earlier user tags can stay.
-- **Older summary conversations:** remove `#ai-review-summary-reply` from already answered questions and legacy AI replies.
-  They have no recorded question IDs, so the new logic cannot identify previously handled requests.
+  `review.summary_reply_tag` / `review.summary_tag`. Keep each pair distinct. An empty request tag disables that reply
+  mode. Comments carrying the AI tag are skipped even if they quote the request tag.
+- **Upgrading:** if the latest AI reply still has `#ai-review-inline-reply`, replace it with `#ai-review-inline`. This
+  prevents reprocessing and lets `clear-inline` recognize it. Earlier user tags can stay.
+- **Older summary conversations:** remove `#ai-review-summary-reply` from already answered questions and legacy AI
+  replies. They have no recorded question IDs, so the new logic cannot identify previously handled requests.
 - **Gitea:** replies are posted as separate general comments, so the original inline thread remains eligible.
 - **Retries:** empty replies and `No reply` / `No reply.` are not posted (inline suggestions are still published).
-  Unanswered requests remain eligible; deleting a summary answer also removes its acknowledgement.
-  Serialize reply jobs per PR/MR in CI to avoid concurrent duplicate answers.
+  Unanswered requests remain eligible; deleting a summary answer also removes its acknowledgement. Serialize reply jobs
+  per PR/MR in CI to avoid concurrent duplicate answers.
 
 ### 🧽 Clear Inline Comments
 
@@ -201,6 +206,29 @@ ai-review clear-summary
 > - No new comments are created as part of this command
 >
 > Use with caution, especially in shared or long-running pull requests.
+
+### 🧽 Clear Replies
+
+Remove bot answers but keep the questions and ordinary review findings:
+
+```bash
+ai-review clear-inline-reply
+ai-review clear-summary-reply
+```
+
+New inline answers have a hidden `ai-review:inline-reply` footer; summary answers already record the answered question
+ID. The reply-only commands use these markers, not the question tags. Replies created before these markers cannot be
+distinguished safely from user questions, so remove those manually if needed.
+
+### 🧽 Clear Everything
+
+```bash
+ai-review clear
+```
+
+Runs both `clear-inline` and `clear-summary`. Together they remove tagged AI findings, fallbacks, summaries, and marked
+replies in the current PR/MR. User questions bearing only `*-reply` tags remain. Deletion is permanent; `review.dry_run`
+previews it without deleting.
 
 ### ⚙️ Inspect Configuration
 

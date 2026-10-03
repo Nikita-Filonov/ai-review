@@ -3,7 +3,10 @@ import asyncio
 import typer
 
 from ai_review.cli.commands.run_clear_inline_review import run_clear_inline_review
+from ai_review.cli.commands.run_clear_inline_reply_review import run_clear_inline_reply_review
+from ai_review.cli.commands.run_clear_review import run_clear_review
 from ai_review.cli.commands.run_clear_summary_review import run_clear_summary_review
+from ai_review.cli.commands.run_clear_summary_reply_review import run_clear_summary_reply_review
 from ai_review.cli.commands.run_context_review import run_context_review_command
 from ai_review.cli.commands.run_inline_reply_review import run_inline_reply_review_command
 from ai_review.cli.commands.run_inline_review import run_inline_review_command
@@ -76,6 +79,30 @@ def clear_summary():
     typer.secho("Clearing summary AI review comments...", fg=typer.colors.YELLOW)
     asyncio.run(run_clear_summary_review())
     typer.secho("Summary AI comments cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-inline-reply")
+def clear_inline_reply():
+    """Remove AI-generated inline replies, preserving questions"""
+    typer.secho("Clearing inline AI replies...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_inline_reply_review())
+    typer.secho("Inline AI replies cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-summary-reply")
+def clear_summary_reply():
+    """Remove AI-generated summary replies, preserving questions"""
+    typer.secho("Clearing summary AI replies...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_summary_reply_review())
+    typer.secho("Summary AI replies cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear")
+def clear():
+    """Remove all identifiable AI-generated review comments and replies"""
+    typer.secho("Clearing all AI review comments...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_review())
+    typer.secho("AI review comments cleared", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command("show-config")

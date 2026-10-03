@@ -64,3 +64,9 @@ class ReviewCommentGatewayProtocol(Protocol):
 
     async def clear_summary_comments(self) -> None:
         ...
+
+    async def clear_inline_replies(self) -> None:
+        ...
+
+    async def clear_summary_replies(self) -> None:
+        ...

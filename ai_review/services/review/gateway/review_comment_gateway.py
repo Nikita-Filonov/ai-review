@@ -7,6 +7,7 @@ from ai_review.services.hook import hook
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentListSchema, InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
+from ai_review.services.review.internal.inline_reply.tools import is_inline_reply
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 from ai_review.services.review.internal.summary_reply.tools import get_summary_reply_reference
@@ -60,6 +61,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         inline_comments = [
             comment for comment in comments
             if contains_tag(comment.body, settings.review.inline_tag)
+            or is_inline_reply(comment.body)
         ]
         logger.info(f"Detected {len(inline_comments)}/{len(comments)} AI inline comments")
         return inline_comments
@@ -86,9 +88,35 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         comments = [
             comment for comment in general_comments
             if any(contains_tag(comment.body, tag) for tag in tags)
+            or get_summary_reply_reference(comment.body) is not None
         ]
         logger.info(f"Detected {len(comments)}/{len(general_comments)} clearable AI general comments")
         return comments
+
+    async def get_inline_replies(self) -> list[ReviewCommentSchema]:
+        comments = await self.get_inline_comments()
+        replies = [comment for comment in comments if is_inline_reply(comment.body)]
+        logger.info(f"Detected {len(replies)}/{len(comments)} AI inline replies")
+        return replies
+
+    async def get_general_inline_replies(self) -> list[ReviewCommentSchema]:
+        """Some VCS adapters post inline replies as general comments."""
+        comments = await self.vcs.get_general_comments()
+        replies = [
+            comment for comment in comments
+            if is_inline_reply(comment.body)
+        ]
+        logger.info(f"Detected {len(replies)}/{len(comments)} general AI inline replies")
+        return replies
+
+    async def get_summary_replies(self) -> list[ReviewCommentSchema]:
+        comments = await self.get_clearable_summary_comments()
+        replies = [
+            comment for comment in comments
+            if get_summary_reply_reference(comment.body) is not None
+        ]
+        logger.info(f"Detected {len(replies)}/{len(comments)} AI summary replies")
+        return replies
 
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         try:
@@ -178,15 +206,17 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
         try:
             comments = await self.get_inline_comments()
-            if not comments:
+            general_replies = await self.get_general_inline_replies()
+            if not comments and not general_replies:
                 logger.info("No AI inline comments to clear")
-                await hook.emit_clear_inline_comments_complete(comments=comments)
+                await hook.emit_clear_inline_comments_complete(comments=[])
                 return
 
-            logger.info(f"Clearing {len(comments)} AI inline comments")
+            logger.info(f"Clearing {len(comments) + len(general_replies)} AI inline comments")
 
             await bounded_gather([self.vcs.delete_inline_comment(comment.id) for comment in comments])
-            await hook.emit_clear_inline_comments_complete(comments=comments)
+            await bounded_gather([self.vcs.delete_general_comment(reply.id) for reply in general_replies])
+            await hook.emit_clear_inline_comments_complete(comments=[*comments, *general_replies])
         except Exception as error:
             logger.exception(f"Failed to clear inline comments: {error}")
             await hook.emit_clear_inline_comments_error()
@@ -208,3 +238,21 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         except Exception as error:
             logger.exception(f"Failed to clear summary comments: {error}")
             await hook.emit_clear_summary_comments_error()
+
+    async def clear_inline_replies(self) -> None:
+        try:
+            replies = await self.get_inline_replies()
+            general_replies = await self.get_general_inline_replies()
+            logger.info(f"Clearing {len(replies) + len(general_replies)} AI inline replies")
+            await bounded_gather([self.vcs.delete_inline_comment(reply.id) for reply in replies])
+            await bounded_gather([self.vcs.delete_general_comment(reply.id) for reply in general_replies])
+        except Exception as error:
+            logger.exception(f"Failed to clear inline replies: {error}")
+
+    async def clear_summary_replies(self) -> None:
+        try:
+            replies = await self.get_summary_replies()
+            logger.info(f"Clearing {len(replies)} AI summary replies")
+            await bounded_gather([self.vcs.delete_general_comment(reply.id) for reply in replies])
+        except Exception as error:
+            logger.exception(f"Failed to clear summary replies: {error}")

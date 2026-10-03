@@ -3,6 +3,7 @@ import pytest
 from ai_review.config import settings
 from ai_review.services.prompt.service import PromptService
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.inline_reply.service import InlineCommentReplyService
 from ai_review.services.review.runner.inline_reply import InlineReplyReviewRunner
 from ai_review.services.vcs.types import ReviewInfoSchema, ReviewThreadSchema, ReviewCommentSchema, ThreadKind
@@ -158,7 +159,7 @@ async def test_reply_runs_preserve_history_without_reanswering_handled_threads(
     monkeypatch.setattr(fake_vcs_client, "create_inline_reply", store_reply)
 
     await inline_reply_review_runner.run()
-    assert thread.comments[-1].body == f"The value can be null.\n\n{settings.review.inline_tag}"
+    assert thread.comments[-1].body == InlineCommentReplySchema(message="The value can be null.").body_with_tag
     assert len(fake_review_direct_llm_gateway.calls) == 1
 
     await inline_reply_review_runner.run()

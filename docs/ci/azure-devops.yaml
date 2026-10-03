@@ -13,6 +13,9 @@
 #   - run-summary-reply
 #   - clear-inline
 #   - clear-summary
+#   - clear-inline-reply
+#   - clear-summary-reply
+#   - clear
 #
 # Requirements:
 #   • Variable group "ai-review-secrets" with:
@@ -68,6 +71,9 @@ parameters:
       - run-summary-reply
       - clear-inline
       - clear-summary
+      - clear-inline-reply
+      - clear-summary-reply
+      - clear
 
 jobs:
   - job: ai_review

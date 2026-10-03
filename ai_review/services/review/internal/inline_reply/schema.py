@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
 from ai_review.config import settings
+from ai_review.services.review.internal.inline_reply.tools import INLINE_REPLY_MARKER
 
 
 class InlineCommentReplySchema(BaseModel):
@@ -20,4 +21,4 @@ class InlineCommentReplySchema(BaseModel):
 
     @property
     def body_with_tag(self) -> str:
-        return f"{self.body}\n\n{settings.review.inline_tag}"
+        return f"{self.body}\n\n{settings.review.inline_tag}\n\n{INLINE_REPLY_MARKER}"

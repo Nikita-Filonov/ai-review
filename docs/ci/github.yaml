@@ -29,6 +29,9 @@ on:
           - run-summary-reply
           - clear-inline
           - clear-summary
+          - clear-inline-reply
+          - clear-summary-reply
+          - clear
         required: true
         description: "Review command (mode)"
 

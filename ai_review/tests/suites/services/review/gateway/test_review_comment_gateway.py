@@ -317,7 +317,7 @@ async def test_process_inline_reply_happy_path(
     await review_comment_gateway.process_inline_reply("t1", reply)
 
     call = next(call for call in fake_vcs_client.calls if call[0] == "create_inline_reply")
-    assert call[1] == ("t1", f"AI reply text\n\n{settings.review.inline_tag}")
+    assert call[1] == ("t1", reply.body_with_tag)
 
     assert ("save_vcs_inline_reply", {"thread_id": "t1", "reply": reply}) in fake_artifacts_service.calls
 

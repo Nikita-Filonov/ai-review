@@ -2,6 +2,7 @@ import pytest
 
 from ai_review.config import settings
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
+from ai_review.services.review.internal.inline_reply.tools import INLINE_REPLY_MARKER
 
 
 def test_message_is_trimmed_by_validator():
@@ -36,7 +37,7 @@ def test_body_with_tag(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings.review, "inline_reply_tag", "#request-reply")
     schema = InlineCommentReplySchema(message="Looks good")
     result = schema.body_with_tag
-    assert result == "Looks good\n\n#ai-result"
+    assert result == f"Looks good\n\n#ai-result\n\n{INLINE_REPLY_MARKER}"
     assert "#request-reply" not in result
     assert "#ai-result" not in schema.body
 
@@ -50,7 +51,7 @@ def test_body_with_tag_and_suggestion(monkeypatch: pytest.MonkeyPatch):
     )
     result = schema.body_with_tag
     assert "```suggestion" in result
-    assert result.endswith("\n\n#ai-result")
+    assert result.endswith(f"\n\n#ai-result\n\n{INLINE_REPLY_MARKER}")
 
 
 def test_message_cannot_be_empty():

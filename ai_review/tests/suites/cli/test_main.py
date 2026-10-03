@@ -36,6 +36,9 @@ def dummy_review_service(
     monkeypatch.setattr("ai_review.cli.commands.run_summary_reply_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_clear_inline_review.ReviewService", lambda: review_service)
     monkeypatch.setattr("ai_review.cli.commands.run_clear_summary_review.ReviewService", lambda: review_service)
+    monkeypatch.setattr("ai_review.cli.commands.run_clear_inline_reply_review.ReviewService", lambda: review_service)
+    monkeypatch.setattr("ai_review.cli.commands.run_clear_summary_reply_review.ReviewService", lambda: review_service)
+    monkeypatch.setattr("ai_review.cli.commands.run_clear_review.ReviewService", lambda: review_service)
 
 
 @pytest.mark.parametrize(
@@ -70,6 +73,8 @@ def test_cli_commands_invoke_review_service_successfully(
     [
         (["clear-inline"], "Clearing inline AI review comments...", "clear_inline_comments"),
         (["clear-summary"], "Clearing summary AI review comments...", "clear_summary_comments"),
+        (["clear-inline-reply"], "Clearing inline AI replies...", "clear_inline_replies"),
+        (["clear-summary-reply"], "Clearing summary AI replies...", "clear_summary_replies"),
     ],
 )
 def test_cli_clear_commands_do_not_finalize_review(
@@ -87,6 +92,19 @@ def test_cli_clear_commands_do_not_finalize_review(
     assert expected_output in result.output
     assert any(call[0] == expected_call for call in fake_review_comment_gateway.calls)
     assert all(call[0] != "finalize" for call in fake_review_comment_gateway.calls)
+
+
+def test_cli_clear_runs_both_comment_cleanups_without_finalizing(
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    result = runner.invoke(app, ["clear"])
+
+    assert result.exit_code == 0
+    assert "Clearing all AI review comments..." in result.output
+    assert fake_review_comment_gateway.calls == [
+        ("clear_inline_comments", {}),
+        ("clear_summary_comments", {}),
+    ]
 
 
 def test_show_config_outputs_json(monkeypatch: pytest.MonkeyPatch):

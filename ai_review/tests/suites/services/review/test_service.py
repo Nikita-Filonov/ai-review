@@ -183,3 +183,42 @@ async def test_run_clear_summary_review_does_not_finalize_gateway(
     await review_service.run_clear_summary_review()
 
     assert fake_review_comment_gateway.calls == [("clear_summary_comments", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_clear_inline_reply_review_only_clears_replies(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
+    await review_service.run_clear_inline_reply_review()
+
+    assert fake_review_comment_gateway.calls == [("clear_inline_replies", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_clear_summary_reply_review_only_clears_replies(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
+    await review_service.run_clear_summary_reply_review()
+
+    assert fake_review_comment_gateway.calls == [("clear_summary_replies", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_clear_review_clears_all_comments_once(
+        review_service: ReviewService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    review_service.review_comment_gateway = fake_review_comment_gateway
+
+    await review_service.run_clear_review()
+
+    assert fake_review_comment_gateway.calls == [
+        ("clear_inline_comments", {}),
+        ("clear_summary_comments", {}),
+    ]
