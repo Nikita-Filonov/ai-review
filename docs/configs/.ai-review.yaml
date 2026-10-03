@@ -175,7 +175,7 @@ vcs:
 
     # --- GitLab ---
     api_url: ${CI_SERVER_URL}       # Base GitLab server URL
-    api_token: ${CI_JOB_TOKEN}      # Job token or personal access token
+    api_token: ${GITLAB_API_TOKEN}  # Project access token with "api" scope and Developer role
 
     # --- GitHub ---
     # api_url: https://api.github.com

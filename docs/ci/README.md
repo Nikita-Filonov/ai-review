@@ -24,4 +24,4 @@ Each example shows how to:
 ---
 
 👉 Choose the template matching your CI system, copy it into your repository, and adjust environment
-variables (`OPENAI_API_KEY`, `GITHUB_TOKEN`, `CI_JOB_TOKEN`, `BITBUCKET_TOKEN`, etc.) as needed.
+variables (`OPENAI_API_KEY`, `GITHUB_TOKEN`, `GITLAB_API_TOKEN`, `BITBUCKET_TOKEN`, etc.) as needed.

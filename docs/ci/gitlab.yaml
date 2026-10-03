@@ -82,20 +82,15 @@
 
     # GitLab API access.
 
-    # Note:
-    # CI_JOB_TOKEN is the default and safest choice for most GitLab pipelines.
-    # However, on some self-hosted instances or with limited API permissions,
-    # it may not allow reading/writing merge request discussions or notes.
-    #
-    # If you see "401 Unauthorized" errors in logs, replace it with
-    # a Personal Access Token or Bot Token that has the "api" scope:
-    #
-    #   VCS__HTTP_CLIENT__API_TOKEN: "$GITLAB_API_TOKEN"
-    #
-    # Reference:
-    #   https://docs.gitlab.com/ci/jobs/ci_job_token/#job-token-access
+    # Create a Project Access Token with the "api" scope and Developer role,
+    # then save it as a masked CI/CD variable named GITLAB_API_TOKEN.
+    # If project tokens are unavailable, use a Personal Access Token with the
+    # "api" scope from a user with Developer access to the project.
+    # CI_JOB_TOKEN cannot create merge request notes or discussions.
+    # https://docs.gitlab.com/ci/jobs/ci_job_token/#job-token-access
+    # https://docs.gitlab.com/user/project/settings/project_access_tokens/
     VCS__HTTP_CLIENT__API_URL: "$CI_SERVER_URL"
-    VCS__HTTP_CLIENT__API_TOKEN: "$CI_JOB_TOKEN"
+    VCS__HTTP_CLIENT__API_TOKEN: "$GITLAB_API_TOKEN"
 
     # ===============================
     # Core (execution settings)
