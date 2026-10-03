@@ -51,7 +51,11 @@ class ReviewThreadSchema(BaseModel):
     kind: ThreadKind
     file: str | None = None
     line: int | None = None
-    comments: list[ReviewCommentSchema]
+    comments: list[ReviewCommentSchema] = Field(description="Comments ordered from oldest to newest")
+
+    @property
+    def latest_comment(self) -> ReviewCommentSchema | None:
+        return self.comments[-1] if self.comments else None
 
 
 class VCSClientProtocol(Protocol):

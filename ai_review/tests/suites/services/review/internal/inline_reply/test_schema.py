@@ -31,24 +31,26 @@ def test_body_with_suggestion():
 
 
 def test_body_with_tag(monkeypatch: pytest.MonkeyPatch):
-    """body_with_tag should append the configured inline reply tag."""
-    monkeypatch.setattr(settings.review, "inline_reply_tag", "#ai-reply")
+    """Replies carry the generated-comment marker, not the request tag."""
+    monkeypatch.setattr(settings.review, "inline_tag", "#ai-result")
+    monkeypatch.setattr(settings.review, "inline_reply_tag", "#request-reply")
     schema = InlineCommentReplySchema(message="Looks good")
     result = schema.body_with_tag
-    assert result.endswith("\n\n#ai-reply")
-    assert "#ai-reply" not in schema.body
+    assert result == "Looks good\n\n#ai-result"
+    assert "#request-reply" not in result
+    assert "#ai-result" not in schema.body
 
 
 def test_body_with_tag_and_suggestion(monkeypatch: pytest.MonkeyPatch):
     """body_with_tag should include both suggestion and tag."""
-    monkeypatch.setattr(settings.review, "inline_reply_tag", "#ai-reply")
+    monkeypatch.setattr(settings.review, "inline_tag", "#ai-result")
     schema = InlineCommentReplySchema(
         message="Simplify condition",
         suggestion="if x:"
     )
     result = schema.body_with_tag
     assert "```suggestion" in result
-    assert result.endswith("\n\n#ai-reply")
+    assert result.endswith("\n\n#ai-result")
 
 
 def test_message_cannot_be_empty():

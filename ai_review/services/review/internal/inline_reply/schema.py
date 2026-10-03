@@ -20,4 +20,4 @@ class InlineCommentReplySchema(BaseModel):
 
     @property
     def body_with_tag(self) -> str:
-        return f"{self.body}\n\n{settings.review.inline_reply_tag}"
+        return f"{self.body}\n\n{settings.review.inline_tag}"

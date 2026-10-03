@@ -25,6 +25,8 @@ async def test_process_inline_reply_dry_run_logs_and_no_vcs_calls(
 
     assert "[dry-run]" in output
     assert "Would create inline reply" in output
+    assert settings.review.inline_tag in output
+    assert settings.review.inline_reply_tag not in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
     assert ("save_vcs_inline_reply", {"thread_id": "t1", "reply": reply}) in fake_artifacts_service.calls

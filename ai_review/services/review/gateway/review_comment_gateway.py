@@ -1,6 +1,7 @@
 from ai_review.config import settings
 from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
+from ai_review.libs.text import contains_tag
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.hook import hook
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
@@ -27,7 +28,9 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         threads = await self.vcs.get_inline_threads()
         inline_threads = [
             thread for thread in threads
-            if any(settings.review.inline_reply_tag in comment.body for comment in thread.comments)
+            if (latest_comment := thread.latest_comment)
+            and contains_tag(latest_comment.body, settings.review.inline_reply_tag)
+            and not contains_tag(latest_comment.body, settings.review.inline_tag)
         ]
         logger.info(f"Detected {len(inline_threads)}/{len(threads)} AI inline threads")
         return inline_threads
@@ -45,7 +48,7 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         comments = await self.vcs.get_inline_comments()
         inline_comments = [
             comment for comment in comments
-            if settings.review.inline_tag in comment.body
+            if contains_tag(comment.body, settings.review.inline_tag)
         ]
         logger.info(f"Detected {len(inline_comments)}/{len(comments)} AI inline comments")
         return inline_comments

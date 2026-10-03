@@ -20,8 +20,14 @@ class ReviewMode(StrEnum):
 class ReviewConfig(BaseModel):
     mode: ReviewMode = ReviewMode.FULL_FILE_DIFF
     dry_run: bool = False
-    inline_tag: str = Field(default="#ai-review-inline")
-    inline_reply_tag: str = Field(default="#ai-review-inline-reply")
+    inline_tag: str = Field(
+        default="#ai-review-inline",
+        description="Marker appended to generated inline comments and replies",
+    )
+    inline_reply_tag: str = Field(
+        default="#ai-review-inline-reply",
+        description="Request tag on the latest inline comment; must differ from inline_tag",
+    )
     inline_fallback_tag: str = Field(default="#ai-review-inline-fallback")
     summary_tag: str = Field(default="#ai-review-summary")
     summary_reply_tag: str = Field(default="#ai-review-summary-reply")

@@ -1,3 +1,7 @@
+import json
+
+import pytest
+
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.inline_reply.service import InlineCommentReplyService
 
@@ -70,3 +74,30 @@ def test_message_is_trimmed(inline_comment_reply_service: InlineCommentReplyServ
 
     assert isinstance(result, InlineCommentReplySchema)
     assert result.message == "spaced out"
+
+
+@pytest.mark.parametrize("message", ["No reply.", "No reply", "  No reply.  ", "NO REPLY."])
+def test_no_reply_sentinel_returns_none(
+        message: str,
+        inline_comment_reply_service: InlineCommentReplyService,
+):
+    output = json.dumps({"message": message, "suggestion": None})
+    assert inline_comment_reply_service.parse_model_output(output) is None
+
+
+@pytest.mark.parametrize(
+    ("message", "suggestion"),
+    [
+        ("No reply.", "if value is not None:"),
+        ("No reply. is the sentinel used by this API.", None),
+    ],
+)
+def test_no_reply_detection_preserves_actionable_content(
+        message: str,
+        suggestion: str | None,
+        inline_comment_reply_service: InlineCommentReplyService,
+):
+    result = inline_comment_reply_service.parse_model_output(
+        json.dumps({"message": message, "suggestion": suggestion})
+    )
+    assert result == InlineCommentReplySchema(message=message, suggestion=suggestion)

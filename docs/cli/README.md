@@ -94,7 +94,42 @@ ai-review run-inline-reply
 ai-review run-summary-reply
 ```
 
-Replies only to comments originally created by AI Review.
+`run-inline-reply` checks the **latest comment**. A tagged question gets an answer using the full thread history:
+
+```text
+AI:   Possible NPE. #ai-review-inline
+User: Why? #ai-review-inline-reply
+
+→ run-inline-reply
+AI:   The value can be null. #ai-review-inline
+
+→ run-inline-reply again
+(skipped: the latest comment is marked as an AI reply)
+```
+
+Each follow-up needs the request tag:
+
+```text
+User: How do I fix it?
+→ run-inline-reply
+(skipped: no request tag)
+
+User: How do I fix it? #ai-review-inline-reply
+→ run-inline-reply
+AI:   Check for null before accessing the value. #ai-review-inline
+```
+
+`run-summary-reply` works differently: it selects threads containing `review.summary_reply_tag` anywhere in their history.
+
+Notes:
+
+- Tags are configurable via `review.inline_reply_tag` (question) and `review.inline_tag` (AI comment). Keep them distinct.
+  An empty request tag disables replies; comments carrying the AI tag are skipped even if they quote the request tag.
+- **Upgrading:** if the latest AI reply still has `#ai-review-inline-reply`, replace it with `#ai-review-inline`.
+  This prevents reprocessing and lets `clear-inline` recognize it. Earlier user tags can stay.
+- **Gitea:** replies are posted as separate general comments, so the original inline thread remains eligible.
+- **Retries:** `No reply.` without a suggestion is not posted. Any request without a posted answer remains eligible.
+  Serialize reply jobs per PR/MR in CI to avoid concurrent duplicate answers.
 
 ### 🧽 Clear Inline Comments
 

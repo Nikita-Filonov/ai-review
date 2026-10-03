@@ -19,7 +19,7 @@ async def test_get_inline_threads_filters_by_tag(
         fake_vcs_client: FakeVCSClient,
         review_comment_gateway: ReviewCommentGateway,
 ):
-    """Should return only threads containing AI inline tags."""
+    """Should return threads whose latest comment requests an inline reply."""
     threads = [
         ReviewThreadSchema(
             id="1",
@@ -41,6 +41,56 @@ async def test_get_inline_threads_filters_by_tag(
     assert len(result) == 1
     assert result[0].id == "1"
     assert any(call[0] == "get_inline_threads" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("bodies", "expected"),
+    [
+        ([], False),
+        (["Review #ai-review-inline"], False),
+        (["Question #ai-review-inline-reply"], True),
+        (["Question #ai-review-inline-reply", "Answer #ai-review-inline"], False),
+        (["Question #ai-review-inline-reply", "Untagged follow-up"], False),
+        (["Answer #ai-review-inline", "Follow-up #ai-review-inline-reply"], True),
+        (["Question #ai-review-inline-reply-extra"], False),
+        (["Bot quotes #ai-review-inline-reply\n\n#ai-review-inline"], False),
+    ],
+)
+async def test_get_inline_threads_uses_only_latest_comment(
+        bodies: list[str],
+        expected: bool,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    thread = ReviewThreadSchema(
+        id="thread-1",
+        kind=ThreadKind.INLINE,
+        file="main.py",
+        comments=[ReviewCommentSchema(id=index, body=body) for index, body in enumerate(bodies)],
+    )
+    fake_vcs_client.responses["get_inline_threads"] = [thread]
+
+    assert await review_comment_gateway.get_inline_threads() == ([thread] if expected else [])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tag", ["", "<request.reply+>"])
+async def test_get_inline_threads_respects_configured_tag(
+        tag: str,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    monkeypatch.setattr(settings.review, "inline_reply_tag", tag)
+    thread = ReviewThreadSchema(
+        id="thread-1",
+        kind=ThreadKind.INLINE,
+        comments=[ReviewCommentSchema(id=1, body="Question <request.reply+>")],
+    )
+    fake_vcs_client.responses["get_inline_threads"] = [thread]
+
+    assert await review_comment_gateway.get_inline_threads() == ([thread] if tag else [])
 
 
 @pytest.mark.asyncio
@@ -155,7 +205,8 @@ async def test_process_inline_reply_happy_path(
 
     await review_comment_gateway.process_inline_reply("t1", reply)
 
-    assert any(call[0] == "create_inline_reply" for call in fake_vcs_client.calls)
+    call = next(call for call in fake_vcs_client.calls if call[0] == "create_inline_reply")
+    assert call[1] == ("t1", f"AI reply text\n\n{settings.review.inline_tag}")
 
     assert ("save_vcs_inline_reply", {"thread_id": "t1", "reply": reply}) in fake_artifacts_service.calls
 
@@ -412,6 +463,24 @@ async def test_clear_inline_comments_deletes_all_ai_comments(
     deleted = [call for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"]
     assert len(deleted) == 2
     assert {call[1][0] for call in deleted} == {"1", "2"}
+
+
+@pytest.mark.asyncio
+async def test_inline_detection_and_clear_preserve_user_reply_requests(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    request = ReviewCommentSchema(id="user", body=f"Why? {settings.review.inline_reply_tag}")
+    generated = ReviewCommentSchema(id="bot", body=f"Explanation\n\n{settings.review.inline_tag}")
+    fake_vcs_client.responses["get_inline_comments"] = [request]
+    assert await review_comment_gateway.get_inline_comments() == []
+
+    fake_vcs_client.responses["get_inline_comments"] = [request, generated]
+    assert await review_comment_gateway.get_inline_comments() == [generated]
+    await review_comment_gateway.clear_inline_comments()
+
+    deleted = [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_inline_comment"]
+    assert deleted == ["bot"]
 
 
 @pytest.mark.asyncio

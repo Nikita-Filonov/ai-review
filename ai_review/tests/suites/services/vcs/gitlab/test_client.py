@@ -225,6 +225,32 @@ async def test_get_inline_threads_returns_valid_schema(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_get_inline_threads_orders_notes_and_keeps_original_position(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    get_discussions = fake_gitlab_merge_requests_http_client.get_discussions
+
+    async def get_unordered_discussions(project_id: str, merge_request_id: str):
+        response = await get_discussions(project_id, merge_request_id)
+        response.root[0].position = None
+        response.root[0].notes.reverse()
+        response.root[0].notes[0].position = None
+        return response
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "get_discussions", get_unordered_discussions)
+
+    threads = await gitlab_vcs_client.get_inline_threads()
+
+    assert [comment.id for comment in threads[0].comments] == [10, 11]
+    assert threads[0].latest_comment.id == 11
+    assert threads[0].file == "src/app.py"
+    assert threads[0].line == 12
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
 async def test_get_general_threads_wraps_comments_in_threads(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,

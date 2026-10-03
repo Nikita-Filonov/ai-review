@@ -534,8 +534,10 @@ review:
   # Default: false
   dry_run: false
 
-  # Tags used to mark AI-generated comments in MR.
+  # Marker for generated inline comments AND replies.
   inline_tag: "#ai-review-inline"
+  # Request an inline reply by tagging the latest comment; keep distinct from inline_tag.
+  # Each new question needs this tag. Full thread history is always included.
   inline_reply_tag: "#ai-review-inline-reply"
   inline_fallback_tag: "#ai-review-inline-fallback"
   summary_tag: "#ai-review-summary"

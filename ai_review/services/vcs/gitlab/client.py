@@ -370,9 +370,8 @@ class GitLabVCSClient(VCSClientProtocol):
                 if not discussion.notes:
                     continue
 
-                position = discussion.position or (
-                    discussion.notes[0].position if discussion.notes else None
-                )
+                notes = sorted(discussion.notes, key=lambda note: note.id)
+                position = discussion.position or notes[0].position
 
                 threads.append(
                     ReviewThreadSchema(
@@ -382,7 +381,7 @@ class GitLabVCSClient(VCSClientProtocol):
                         line=position.new_line if position else None,
                         comments=[
                             get_review_comment_from_gitlab_note(note, discussion)
-                            for note in discussion.notes
+                            for note in notes
                         ],
                     )
                 )
