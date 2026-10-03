@@ -208,11 +208,11 @@ on:
           - run-summary
           - run-inline-reply
           - run-summary-reply
+          - clear
           - clear-inline
           - clear-summary
           - clear-inline-reply
           - clear-summary-reply
-          - clear
       pull-request-number:
         type: string
         required: true

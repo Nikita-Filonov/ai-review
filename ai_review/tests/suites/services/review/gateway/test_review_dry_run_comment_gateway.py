@@ -155,6 +155,54 @@ async def test_clear_inline_comments_dry_run_logs_each_comment(
 
 
 @pytest.mark.asyncio
+async def test_dry_run_inline_reply_cleanup_does_not_delete(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    fake_vcs_client.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="reply", body=InlineCommentReplySchema(message="Answer").body_with_tag),
+    ]
+
+    await review_dry_run_comment_gateway.clear_inline_replies()
+
+    assert "Would delete inline reply reply" in capsys.readouterr().out
+    assert all(call[0] != "delete_inline_comment" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_dry_run_inline_reply_cleanup_reports_general_fallback(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="reply", body=InlineCommentReplySchema(message="Answer").body_with_tag),
+    ]
+
+    await review_dry_run_comment_gateway.clear_inline_replies()
+
+    assert "Would delete general inline reply reply" in capsys.readouterr().out
+    assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_dry_run_clear_inline_reports_general_fallback(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="reply", body=InlineCommentReplySchema(message="Answer").body_with_tag),
+    ]
+
+    await review_dry_run_comment_gateway.clear_inline_comments()
+
+    assert "Would delete general inline reply reply" in capsys.readouterr().out
+    assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
 async def test_clear_summary_comments_dry_run_no_comments(
         capsys: pytest.CaptureFixture,
         fake_vcs_client: FakeVCSClient,
@@ -214,6 +262,22 @@ async def test_clear_summary_comments_dry_run_includes_inline_fallback_comments(
     assert "[dry-run] Would delete summary comment 12" not in output
 
     assert not any(call[0].startswith("delete_") for call in fake_vcs_client.calls)
+
+
+@pytest.mark.asyncio
+async def test_dry_run_summary_reply_cleanup_does_not_delete(
+        capsys: pytest.CaptureFixture,
+        fake_vcs_client: FakeVCSClient,
+        review_dry_run_comment_gateway: ReviewDryRunCommentGateway,
+):
+    fake_vcs_client.responses["get_general_comments"] = [
+        ReviewCommentSchema(id="reply", body=SummaryCommentReplySchema(text="Answer").body_for_request("t", "q")),
+    ]
+
+    await review_dry_run_comment_gateway.clear_summary_replies()
+
+    assert "Would delete summary reply reply" in capsys.readouterr().out
+    assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
 
 
 @pytest.mark.asyncio
