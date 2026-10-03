@@ -31,6 +31,7 @@ jobs:
 
       - name: Run AI Review
         env:
+          AGENT__ENABLED: true
           AI_REVIEW_CONFIG_FILE_YAML: ./ci/review/config.yaml
 
           LLM__HTTP_CLIENT__API_TOKEN: ${{ secrets.OPENAI_API_KEY }}
