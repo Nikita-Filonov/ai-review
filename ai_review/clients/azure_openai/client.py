@@ -40,7 +40,10 @@ def get_azure_openai_http_client() -> AzureOpenAIHTTPClient:
 
     retry_transport = RetryTransport(
         logger=logger,
-        transport=AsyncHTTPTransport(verify=settings.vcs.http_client.verify),
+        transport=AsyncHTTPTransport(
+            proxy=settings.llm.http_client.proxy_url_value,
+            verify=settings.llm.http_client.verify
+        ),
     )
 
     client = AsyncClient(

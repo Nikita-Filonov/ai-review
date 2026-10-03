@@ -14,6 +14,11 @@ from ai_review.clients.gitlab.mr.schema.discussions import (
     GitLabCreateMRDiscussionResponseSchema,
     GitLabCreateMRDiscussionReplyResponseSchema,
 )
+from ai_review.clients.gitlab.mr.schema.draft_notes import (
+    GitLabDraftNoteSchema,
+    GitLabCreateMRDraftNoteRequestSchema,
+    GitLabGetMRDraftNotesResponseSchema,
+)
 from ai_review.clients.gitlab.mr.schema.notes import (
     GitLabNoteSchema,
     GitLabGetMRNotesResponseSchema,
@@ -31,6 +36,15 @@ from ai_review.services.vcs.gitlab.client import GitLabVCSClient
 class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
     def __init__(self):
         self.calls: list[tuple[str, dict]] = []
+        self.draft_notes: list[GitLabDraftNoteSchema] = []
+        self.get_draft_notes_error: Exception | None = None
+        self.changes: list[GitLabMRChangeSchema] = [
+            GitLabMRChangeSchema(
+                diff="@@ -1,2 +1,2 @@\n- old\n+ new",
+                old_path="main.py",
+                new_path="main.py",
+            )
+        ]
 
     async def get_changes(self, project_id: str, merge_request_id: str) -> GitLabGetMRChangesResponseSchema:
         self.calls.append(("get_changes", {"project_id": project_id, "merge_request_id": merge_request_id}))
@@ -49,13 +63,7 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             ),
             source_branch="feature/test",
             target_branch="main",
-            changes=[
-                GitLabMRChangeSchema(
-                    diff="@@ -1,2 +1,2 @@\n- old\n+ new",
-                    old_path="main.py",
-                    new_path="main.py",
-                )
-            ],
+            changes=self.changes,
         )
 
     async def get_notes(self, project_id: str, merge_request_id: str) -> GitLabGetMRNotesResponseSchema:
@@ -139,7 +147,12 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
         self.calls.append(
             (
                 "create_discussion",
-                {"project_id": project_id, "merge_request_id": merge_request_id, "body": request.body}
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "body": request.body,
+                    "position": request.position,
+                }
             )
         )
         return GitLabCreateMRDiscussionResponseSchema(
@@ -172,6 +185,57 @@ class FakeGitLabMergeRequestsHTTPClient(GitLabMergeRequestsHTTPClientProtocol):
             (
                 "delete_note",
                 {"project_id": project_id, "merge_request_id": merge_request_id, "note_id": note_id},
+            )
+        )
+
+    async def create_draft_note(
+            self,
+            project_id: str,
+            merge_request_id: str,
+            request: GitLabCreateMRDraftNoteRequestSchema,
+    ) -> GitLabDraftNoteSchema:
+        self.calls.append(
+            (
+                "create_draft_note",
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "note": request.note,
+                    "position": request.position,
+                },
+            )
+        )
+        return GitLabDraftNoteSchema(id=500, note=request.note, position=request.position)
+
+    async def bulk_publish_draft_notes(self, project_id: str, merge_request_id: str) -> None:
+        self.calls.append(
+            (
+                "bulk_publish_draft_notes",
+                {"project_id": project_id, "merge_request_id": merge_request_id},
+            )
+        )
+
+    async def get_draft_notes(
+            self,
+            project_id: str,
+            merge_request_id: str
+    ) -> GitLabGetMRDraftNotesResponseSchema:
+        self.calls.append(("get_draft_notes", {"project_id": project_id, "merge_request_id": merge_request_id}))
+
+        if self.get_draft_notes_error:
+            raise self.get_draft_notes_error
+
+        return GitLabGetMRDraftNotesResponseSchema(root=list(self.draft_notes))
+
+    async def delete_draft_note(self, project_id: str, merge_request_id: str, draft_note_id: str) -> None:
+        self.calls.append(
+            (
+                "delete_draft_note",
+                {
+                    "project_id": project_id,
+                    "merge_request_id": merge_request_id,
+                    "draft_note_id": draft_note_id,
+                },
             )
         )
 
@@ -219,5 +283,23 @@ def gitlab_http_client_config(monkeypatch: pytest.MonkeyPatch):
             api_url=HttpUrl("https://gitlab.com"),
             api_token=SecretStr("fake-token"),
         )
+    )
+    monkeypatch.setattr(settings, "vcs", fake_config)
+
+
+@pytest.fixture
+def gitlab_batch_http_client_config(monkeypatch: pytest.MonkeyPatch):
+    fake_config = GitLabVCSConfig(
+        provider=VCSProvider.GITLAB,
+        pipeline=GitLabPipelineConfig(
+            project_id="project-id",
+            merge_request_id="merge-request-id"
+        ),
+        http_client=GitLabHTTPClientConfig(
+            timeout=10,
+            api_url=HttpUrl("https://gitlab.com"),
+            api_token=SecretStr("fake-token"),
+        ),
+        batch_comments=True,
     )
     monkeypatch.setattr(settings, "vcs", fake_config)

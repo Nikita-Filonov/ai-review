@@ -65,6 +65,22 @@ def test_load_context_prompts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     assert config.load_context() == ["CTX"]
 
 
+def test_load_inline_and_system_inline_prompts(tmp_path: Path) -> None:
+    inline = tmp_path / "inline.md"
+    system = tmp_path / "system.md"
+    inline.write_text("INLINE", encoding="utf-8")
+    system.write_text("SYSTEM", encoding="utf-8")
+    config = PromptConfig(
+        inline_prompt_files=[inline], system_inline_prompt_files=[system],
+        include_inline_system_prompts=False,
+    )
+
+    assert config.inline_prompt_files_or_default == [inline]
+    assert config.load_inline() == ["INLINE"]
+    assert config.system_inline_prompt_files_or_default == [system]
+    assert config.load_system_inline() == ["SYSTEM"]
+
+
 def test_load_summary_prompts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     dummy_file = tmp_path / "summary.md"
     dummy_file.write_text("SUM")

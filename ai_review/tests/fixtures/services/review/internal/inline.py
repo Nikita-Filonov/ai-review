@@ -9,7 +9,7 @@ class FakeInlineCommentService(InlineCommentServiceProtocol):
     def __init__(self, comments: list[InlineCommentSchema] | None = None):
         self.calls: list[tuple[str, dict]] = []
         self.comments = comments or [
-            InlineCommentSchema(file="main.py", line=1, message="Test comment"),
+            InlineCommentSchema(file="file.py", line=1, message="Test comment"),
         ]
 
     def parse_model_output(self, output: str) -> InlineCommentListSchema:

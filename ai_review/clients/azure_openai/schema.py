@@ -35,6 +35,7 @@ class AzureOpenAIChatRequestSchema(BaseModel):
     messages: list[AzureOpenAIMessage]
     max_tokens: int | None = None
     temperature: float | None = None
+    max_completion_tokens: int | None = None
 
 
 class AzureOpenAIChatResponseSchema(BaseModel):

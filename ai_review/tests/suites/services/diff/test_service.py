@@ -35,6 +35,24 @@ def test_parse_nonempty(monkeypatch: pytest.MonkeyPatch, fake_diff: Diff):
     assert diff.files[0].new_name == "b/x"
 
 
+def test_parse_propagates_parser_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    failure = ValueError("malformed diff")
+
+    def fail_parse(_: str) -> None:
+        raise failure
+
+    monkeypatch.setattr("ai_review.services.diff.service.DiffParser.parse", fail_parse)
+    with pytest.raises(ValueError) as caught:
+        DiffService.parse("not a valid diff")
+    assert caught.value is failure
+
+
+def test_render_files_skips_empty_diff(fake_git_service: FakeGitService) -> None:
+    fake_git_service.responses["get_diff_for_file"] = " "
+    assert DiffService.render_files(fake_git_service, ["unchanged.py"], "base", "head") == []
+    assert fake_git_service.calls[0][1]["file"] == "unchanged.py"
+
+
 @pytest.mark.parametrize("mode,expected_prefix", [
     (ReviewMode.FULL_FILE_CURRENT, "# Failed to read current snapshot"),
     (ReviewMode.FULL_FILE_PREVIOUS, "# Failed to read previous snapshot"),

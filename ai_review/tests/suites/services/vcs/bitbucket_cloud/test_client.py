@@ -7,6 +7,18 @@ from ai_review.tests.fixtures.clients.bitbucket_cloud import FakeBitbucketCloudP
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("bitbucket_cloud_http_client_config")
+async def test_get_inline_threads_skips_comments_without_file(
+        monkeypatch: pytest.MonkeyPatch, bitbucket_cloud_vcs_client: BitbucketCloudVCSClient,
+) -> None:
+    async def comments() -> list[ReviewCommentSchema]:
+        return [ReviewCommentSchema(id="1", body="orphan", thread_id="thread", file=None)]
+
+    monkeypatch.setattr(bitbucket_cloud_vcs_client, "get_inline_comments", comments)
+    assert await bitbucket_cloud_vcs_client.get_inline_threads() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_cloud_http_client_config")
 async def test_get_review_info_returns_valid_schema(
         bitbucket_cloud_vcs_client: BitbucketCloudVCSClient,
         fake_bitbucket_cloud_pull_requests_http_client: FakeBitbucketCloudPullRequestsHTTPClient,

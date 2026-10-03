@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
+from ai_review.services.review.filter.types import ReviewFilterServiceProtocol
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
@@ -95,8 +96,16 @@ class FakeReviewDryRunCommentGateway(ReviewCommentGatewayProtocol):
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         self.calls.append(("process_inline_reply", {"thread_id": thread_id, "reply": reply}))
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
-        self.calls.append(("process_summary_reply", {"thread_id": thread_id, "reply": reply}))
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
+        self.calls.append(("process_summary_reply", {
+            "thread_id": thread_id, "reply": reply, "request_comment_id": request_comment_id,
+        }))
 
     async def process_inline_comment(self, comment: InlineCommentSchema) -> None:
         self.calls.append(("process_inline_comment", {"comment": comment}))
@@ -118,6 +127,9 @@ def fake_review_dry_run_comment_gateway() -> FakeReviewDryRunCommentGateway:
 @pytest.fixture
 def review_dry_run_comment_gateway(
         fake_vcs_client: VCSClientProtocol,
-        fake_artifacts_service: ArtifactsServiceProtocol
+        fake_artifacts_service: ArtifactsServiceProtocol,
+        review_filter_service: ReviewFilterServiceProtocol,
 ) -> ReviewDryRunCommentGateway:
-    return ReviewDryRunCommentGateway(vcs=fake_vcs_client, artifacts=fake_artifacts_service)
+    return ReviewDryRunCommentGateway(
+        vcs=fake_vcs_client, artifacts=fake_artifacts_service, review_filter=review_filter_service,
+    )

@@ -5,6 +5,7 @@ inline and summary review instructions, separated by style (e.g. light, strict).
 
 Prompts extend the built-in system templates:
 
+- [default_system_agent.md](../../ai_review/prompts/default_system_agent.md)
 - [default_system_inline.md](../../ai_review/prompts/default_system_inline.md)
 - [default_system_summary.md](../../ai_review/prompts/default_system_summary.md)
 - [default_system_context.md](../../ai_review/prompts/default_system_context.md)
@@ -75,6 +76,9 @@ prompt:
   **always included** unless disabled with `include_*_system_prompts: false`.
 - System prompts enforce consistent output format (JSON / text).
 - Project-specific prompts define style and tone — not the schema contract.
+- **Agent prompts** (`default_system_agent.md`, `default_agent.md`) control the iterative agent loop protocol.
+  The system agent prompt defines the `TOOL_CALL` / `FINAL` contract, while the agent prompt guides exploration
+  strategy. Override via `agent_prompt_files` / `system_agent_prompt_files` in your config.
 - You can mix **languages or styles** (e.g. `inline_go_strict.md` with `summary_python_light.md`).
 - Add your own organization-specific prompts (e.g., `./prompts/js/inline/corporate.md`).
 

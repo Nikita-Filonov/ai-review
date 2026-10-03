@@ -44,7 +44,7 @@ class AgentStepSchema(BaseModel):
 
 
 class AgentTraceSchema(BaseModel):
-    step: AgentStepSchema
+    step: AgentStepSchema | None = None
     warning: str | None = None
     iteration: int
     raw_output: str

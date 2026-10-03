@@ -6,10 +6,13 @@ from ai_review.clients.bitbucket_server.pr.schema.changes import (
     BitbucketServerChangePathSchema,
     BitbucketServerGetPRChangesResponseSchema,
 )
+from ai_review.clients.bitbucket_server.pr.schema.activities import (
+    BitbucketServerActivitySchema,
+    BitbucketServerGetPRActivitiesResponseSchema,
+)
 from ai_review.clients.bitbucket_server.pr.schema.comments import (
     BitbucketServerCommentSchema,
     BitbucketServerCommentAnchorSchema,
-    BitbucketServerGetPRCommentsResponseSchema,
     BitbucketServerCreatePRCommentRequestSchema,
     BitbucketServerCreatePRCommentResponseSchema,
 )
@@ -134,53 +137,49 @@ class FakeBitbucketServerPullRequestsHTTPClient(BitbucketServerPullRequestsHTTPC
             ],
         )
 
-    async def get_comments(
+    async def get_activities(
             self,
             project_key: str,
             repo_slug: str,
             pull_request_id: int
-    ) -> BitbucketServerGetPRCommentsResponseSchema:
+    ) -> BitbucketServerGetPRActivitiesResponseSchema:
         self.calls.append(
             (
-                "get_comments",
+                "get_activities",
                 {"project_key": project_key, "repo_slug": repo_slug, "pull_request_id": pull_request_id}
             )
         )
-        return BitbucketServerGetPRCommentsResponseSchema(
+        general_comment = BitbucketServerCommentSchema(
+            id=1,
+            text="General comment",
+            author=BitbucketServerUserSchema(
+                id=100, name="user1", slug="user1", display_name="User One",
+            ),
+            anchor=None,
+            comments=[],
+            created_date=1690000000,
+            updated_date=1690000000,
+        )
+        inline_comment = BitbucketServerCommentSchema(
+            id=2,
+            text="Inline comment",
+            author=BitbucketServerUserSchema(
+                id=101, name="user2", slug="user2", display_name="User Two",
+            ),
+            anchor=BitbucketServerCommentAnchorSchema(path="src/main.py", line=5, line_type="ADDED"),
+            comments=[],
+            created_date=1690000001,
+            updated_date=1690000001,
+        )
+        return BitbucketServerGetPRActivitiesResponseSchema(
             size=2,
             start=0,
             limit=100,
             is_last_page=True,
             next_page_start=None,
             values=[
-                BitbucketServerCommentSchema(
-                    id=1,
-                    text="General comment",
-                    author=BitbucketServerUserSchema(
-                        id=100,
-                        name="user1",
-                        slug="user1",
-                        display_name="User One",
-                    ),
-                    anchor=None,
-                    comments=[],
-                    created_date=1690000000,
-                    updated_date=1690000000,
-                ),
-                BitbucketServerCommentSchema(
-                    id=2,
-                    text="Inline comment",
-                    author=BitbucketServerUserSchema(
-                        id=101,
-                        name="user2",
-                        slug="user2",
-                        display_name="User Two",
-                    ),
-                    anchor=BitbucketServerCommentAnchorSchema(path="src/main.py", line=5, line_type="ADDED"),
-                    comments=[],
-                    created_date=1690000001,
-                    updated_date=1690000001,
-                ),
+                BitbucketServerActivitySchema(id=1, action="COMMENTED", comment=general_comment),
+                BitbucketServerActivitySchema(id=2, action="COMMENTED", comment=inline_comment),
             ],
         )
 

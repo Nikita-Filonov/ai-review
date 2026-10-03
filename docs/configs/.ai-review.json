@@ -11,11 +11,13 @@
       "verify": true,
       "timeout": 120,
       "api_url": "https://api.openai.com/v1",
-      "api_token": "${OPENAI_API_KEY}"
+      "api_token": "${OPENAI_API_KEY}",
+      "proxy_url": null
     }
   },
   "vcs": {
     "provider": "GITLAB",
+    "batch_comments": false,
     "pipeline": {
       "project_id": "${CI_PROJECT_ID}",
       "merge_request_id": "${CI_MERGE_REQUEST_IID}"
@@ -24,7 +26,8 @@
       "verify": true,
       "timeout": 120,
       "api_url": "${CI_SERVER_URL}",
-      "api_token": "${CI_JOB_TOKEN}"
+      "api_token": "${CI_JOB_TOKEN}",
+      "proxy_url": null
     },
     "pagination": {
       "per_page": 100,
@@ -37,6 +40,7 @@
   "agent": {
     "enabled": false,
     "max_iterations": 25,
+    "max_protocol_violations": 2,
     "allow_commands": [
       "^ls(?:\\s+.*)?$",
       "^cat(?:\\s+.*)?$",
@@ -104,11 +108,13 @@
     "dry_run": false,
     "inline_tag": "#ai-review-inline",
     "inline_reply_tag": "#ai-review-inline-reply",
+    "inline_fallback_tag": "#ai-review-inline-fallback",
     "summary_tag": "#ai-review-summary",
     "summary_reply_tag": "#ai-review-summary-reply",
     "context_lines": 10,
     "allow_changes": [],
     "ignore_changes": [],
+    "ignore_pure_renames": true,
     "review_added_marker": " # added",
     "review_removed_marker": " # removed",
     "max_inline_comments": null,

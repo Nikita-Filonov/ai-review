@@ -13,8 +13,11 @@ on:
           - run-summary
           - run-inline-reply
           - run-summary-reply
+          - clear
           - clear-inline
           - clear-summary
+          - clear-inline-reply
+          - clear-summary-reply
         required: true
         description: 'Review command'
       pull-request-number:

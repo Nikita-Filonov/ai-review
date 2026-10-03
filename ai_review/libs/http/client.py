@@ -21,8 +21,16 @@ class HTTPClient:
             query: QueryParams | None = None,
             headers: HeaderTypes | None = None,
             content: RequestContent | None = None,
+            extensions: dict[str, Any] | None = None,
     ) -> Response:
-        return await self.client.post(url=url, json=json, params=query, headers=headers, content=content)
+        return await self.client.post(
+            url=url,
+            json=json,
+            params=query,
+            headers=headers,
+            content=content,
+            extensions=extensions,
+        )
 
     async def patch(self, url: str, json: Any | None = None, query: QueryParams | None = None) -> Response:
         return await self.client.patch(url=url, json=json, params=query)

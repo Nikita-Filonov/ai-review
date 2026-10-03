@@ -29,6 +29,45 @@ def test_first_text_returns_text():
     assert resp.first_text == "hello world 1"
 
 
+def test_first_text_skips_thinking_blocks():
+    resp = ClaudeChatResponseSchema.model_validate(
+        {
+            "id": "123",
+            "role": "assistant",
+            "usage": {
+                "input_tokens": 3,
+                "output_tokens": 7,
+            },
+            "content": [
+                {
+                    "type": "thinking",
+                    "thinking": "",
+                    "signature": "fake-signature",
+                },
+                {
+                    "type": "text",
+                    "text": " hello sonnet 5 ",
+                },
+            ],
+        }
+    )
+
+    assert resp.first_text == "hello sonnet 5"
+
+
+def test_first_text_skips_empty_text_blocks():
+    resp = ClaudeChatResponseSchema(
+        id="123",
+        role="assistant",
+        usage=ClaudeUsageSchema(input_tokens=3, output_tokens=7),
+        content=[
+            ClaudeContentSchema(type="text", text="   "),
+            ClaudeContentSchema(type="text", text=" hello world "),
+        ],
+    )
+    assert resp.first_text == "hello world"
+
+
 def test_first_text_empty_if_no_content():
     resp = ClaudeChatResponseSchema(
         id="123",
@@ -36,6 +75,28 @@ def test_first_text_empty_if_no_content():
         usage=ClaudeUsageSchema(input_tokens=1, output_tokens=2),
         content=[],
     )
+    assert resp.first_text == ""
+
+
+def test_first_text_empty_if_no_text_content():
+    resp = ClaudeChatResponseSchema.model_validate(
+        {
+            "id": "123",
+            "role": "assistant",
+            "usage": {
+                "input_tokens": 1,
+                "output_tokens": 2,
+            },
+            "content": [
+                {
+                    "type": "thinking",
+                    "thinking": "",
+                    "signature": "fake-signature",
+                },
+            ],
+        }
+    )
+
     assert resp.first_text == ""
 
 

@@ -3,7 +3,10 @@ import asyncio
 import typer
 
 from ai_review.cli.commands.run_clear_inline_review import run_clear_inline_review
+from ai_review.cli.commands.run_clear_inline_reply_review import run_clear_inline_reply_review
+from ai_review.cli.commands.run_clear_review import run_clear_review
 from ai_review.cli.commands.run_clear_summary_review import run_clear_summary_review
+from ai_review.cli.commands.run_clear_summary_reply_review import run_clear_summary_reply_review
 from ai_review.cli.commands.run_context_review import run_context_review_command
 from ai_review.cli.commands.run_inline_reply_review import run_inline_reply_review_command
 from ai_review.cli.commands.run_inline_review import run_inline_review_command
@@ -62,6 +65,14 @@ def run_summary_reply():
     typer.secho("AI review completed successfully!", fg=typer.colors.GREEN, bold=True)
 
 
+@app.command("clear")
+def clear():
+    """Remove all tagged review comments and replies"""
+    typer.secho("Clearing all tagged review comments...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_review())
+    typer.secho("Tagged review comments cleared", fg=typer.colors.GREEN, bold=True)
+
+
 @app.command("clear-inline")
 def clear_inline():
     """Remove all AI-generated inline review comments"""
@@ -76,6 +87,22 @@ def clear_summary():
     typer.secho("Clearing summary AI review comments...", fg=typer.colors.YELLOW)
     asyncio.run(run_clear_summary_review())
     typer.secho("Summary AI comments cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-inline-reply")
+def clear_inline_reply():
+    """Remove comments tagged with the inline reply tag"""
+    typer.secho("Clearing inline replies...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_inline_reply_review())
+    typer.secho("Inline replies cleared", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command("clear-summary-reply")
+def clear_summary_reply():
+    """Remove comments tagged with the summary reply tag"""
+    typer.secho("Clearing summary replies...", fg=typer.colors.YELLOW)
+    asyncio.run(run_clear_summary_reply_review())
+    typer.secho("Summary replies cleared", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command("show-config")

@@ -7,6 +7,9 @@ from httpx import Request, Response, AsyncBaseTransport
 if TYPE_CHECKING:
     from loguru import Logger
 
+NO_RETRY_EXTENSION: str = "no_retry"
+NO_RETRY: dict[str, bool] = {NO_RETRY_EXTENSION: True}
+
 
 class RetryTransport(AsyncBaseTransport):
     def __init__(
@@ -29,6 +32,9 @@ class RetryTransport(AsyncBaseTransport):
         self.retry_status_codes = retry_status_codes
 
     async def handle_async_request(self, request: Request) -> Response:
+        if request.extensions.get(NO_RETRY_EXTENSION):
+            return await self.transport.handle_async_request(request)
+
         last_response: Response | None = None
         for attempt in range(self.max_retries):
             last_response = await self.transport.handle_async_request(request)

@@ -11,8 +11,24 @@ AI-powered code review tool.
 [![PyPI version](https://img.shields.io/pypi/v/xai-review.svg)](https://pypi.org/project/xai-review/)
 [![License](https://img.shields.io/github/license/Nikita-Filonov/ai-review)](./LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Nikita-Filonov/ai-review?style=social)](https://github.com/Nikita-Filonov/ai-review/stargazers)
+[![Support](https://img.shields.io/badge/Support-Boosty-orange)](https://boosty.to/ai_review)
 
 _Made with ❤️ by [@NikitaFilonov](https://t.me/sound_right)_
+
+---
+
+## ❤️ Support AI Review
+
+If AI Review helps you reduce noise in pull requests and saves time in code reviews, consider supporting its
+development.
+
+Your support helps to:
+
+- improve review accuracy and reduce false positives
+- expand integrations (GitHub, GitLab, Azure DevOps, etc.)
+- develop new features and maintain the project
+
+👉 https://boosty.to/ai_review
 
 ---
 
@@ -41,14 +57,17 @@ improve code quality, enforce consistency, and speed up the review process.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
+- **Agent mode** — iterative ReAct-style loop where the model can **explore the repository** with shell commands
+  (`ls`, `cat`, `rg`, `git`) before producing a final review, giving it deeper context than a single-shot call.
 - **Reply modes** — AI can now **participate in existing review threads**, adding follow-up replies in both inline and
   summary discussions.
 - **Flexible configuration** — supports `YAML`, `JSON`, and `ENV`, with seamless overrides in CI/CD pipelines.
 - **AI Review runs fully client-side** — it never proxies or inspects your requests.
 
 AI Review runs automatically in your CI/CD pipeline and posts both **inline comments**, **summary reviews**, and now
-**AI-generated replies** directly inside your merge requests. This makes reviews faster, more conversational, and still
-fully under human control.
+**AI-generated replies** directly inside your merge requests. With **agent mode** enabled, the model can autonomously
+explore the codebase before reviewing, resulting in more accurate and context-aware feedback. This makes reviews faster,
+more conversational, and still fully under human control.
 
 ---
 
@@ -152,8 +171,9 @@ Key things you can customize:
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**
+- **Agent mode** — enable iterative repository exploration before review
 - **Review policy** — which files to include/exclude, review modes
-- **Prompts** — inline/context/summary prompt templates
+- **Prompts** — inline/context/summary/agent prompt templates
 
 👉 Minimal configuration is enough to get started. Use the full reference configs if you want fine-grained control (
 timeouts, artifacts, logging, etc.).
@@ -188,8 +208,11 @@ on:
           - run-summary
           - run-inline-reply
           - run-summary-reply
+          - clear
           - clear-inline
           - clear-summary
+          - clear-inline-reply
+          - clear-summary-reply
       pull-request-number:
         type: string
         required: true
@@ -201,7 +224,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Nikita-Filonov/ai-review@v0.59.0
+      - uses: Nikita-Filonov/ai-review@v1.2.0
         with:
           review-command: ${{ inputs.review-command }}
         env:
@@ -231,14 +254,17 @@ For GitLab users:
 
 ```yaml
 ai-review:
-  when: manual
   stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
+      when: manual
   script:
     - ai-review run
   variables:
+    # --- Mandatory ---
+    GIT_DEPTH: "0"
+
     # --- LLM configuration ---
     LLM__PROVIDER: "OPENAI"
     LLM__META__MODEL: "gpt-4o-mini"

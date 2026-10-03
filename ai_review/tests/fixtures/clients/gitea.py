@@ -16,8 +16,12 @@ from ai_review.clients.gitea.pr.schema.pull_request import (
     GiteaBranchSchema,
 )
 from ai_review.clients.gitea.pr.schema.reviews import (
+    GiteaReviewSchema,
+    GiteaReviewCommentSchema,
+    GiteaGetReviewsResponseSchema,
     GiteaCreateReviewRequestSchema,
-    GiteaCreateReviewResponseSchema
+    GiteaCreateReviewResponseSchema,
+    GiteaGetReviewCommentsResponseSchema,
 )
 from ai_review.clients.gitea.pr.schema.user import GiteaUserSchema
 from ai_review.clients.gitea.pr.types import GiteaPullRequestsHTTPClientProtocol
@@ -80,6 +84,39 @@ class FakeGiteaPullRequestsHTTPClient(GiteaPullRequestsHTTPClientProtocol):
             ]
         )
 
+    async def get_reviews(self, owner: str, repo: str, pull_number: str) -> GiteaGetReviewsResponseSchema:
+        self.calls.append(("get_reviews", {"owner": owner, "repo": repo, "pull_number": pull_number}))
+        return GiteaGetReviewsResponseSchema(
+            root=[
+                GiteaReviewSchema(
+                    id=500,
+                    body="Inline review",
+                    user=GiteaUserSchema(id=101, login="ai-bot"),
+                ),
+            ]
+        )
+
+    async def get_review_comments(
+            self, owner: str, repo: str, pull_number: str, review_id: int
+    ) -> GiteaGetReviewCommentsResponseSchema:
+        self.calls.append(
+            ("get_review_comments", {
+                "owner": owner, "repo": repo, "pull_number": pull_number, "review_id": review_id,
+            })
+        )
+        return GiteaGetReviewCommentsResponseSchema(
+            root=[
+                GiteaReviewCommentSchema(
+                    id=601,
+                    body="Inline review comment",
+                    path="src/main.py",
+                    position=10,
+                    user=GiteaUserSchema(id=101, login="ai-bot"),
+                    pull_request_review_id=review_id,
+                ),
+            ]
+        )
+
     async def create_comment(
             self,
             owner: str,
@@ -110,6 +147,15 @@ class FakeGiteaPullRequestsHTTPClient(GiteaPullRequestsHTTPClientProtocol):
         )
 
         return GiteaCreateReviewResponseSchema(id=100)
+
+    async def delete_review(
+            self, owner: str, repo: str, pull_number: str, review_id: int | str
+    ) -> None:
+        self.calls.append(
+            ("delete_review", {
+                "owner": owner, "repo": repo, "pull_number": pull_number, "review_id": review_id,
+            })
+        )
 
     async def delete_issue_comment(self, owner: str, repo: str, comment_id: int | str) -> None:
         self.calls.append(

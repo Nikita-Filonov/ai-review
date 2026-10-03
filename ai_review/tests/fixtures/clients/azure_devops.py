@@ -101,14 +101,16 @@ class FakeAzureDevOpsPullRequestsHTTPClient(AzureDevOpsPullRequestsHTTPClientPro
                         path="src/app.py",
                         object_id="1",
                     ),
-                    change_type="edit"
+                    change_type="edit",
+                    change_tracking_id=1
                 ),
                 AzureDevOpsPRChangeSchema(
                     item=AzureDevOpsPRItemSchema(
                         path="src/utils/helper.py",
                         object_id="2",
                     ),
-                    change_type="add"
+                    change_type="add",
+                    change_tracking_id=2
                 ),
             ]
         )

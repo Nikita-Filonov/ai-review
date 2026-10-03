@@ -1,5 +1,10 @@
 import pytest
 
+from ai_review.config import settings
+from ai_review.services.prompt.service import PromptService
+from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
+from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
+from ai_review.services.review.internal.inline_reply.service import InlineCommentReplyService
 from ai_review.services.review.runner.inline_reply import InlineReplyReviewRunner
 from ai_review.services.vcs.types import ReviewInfoSchema, ReviewThreadSchema, ReviewCommentSchema, ThreadKind
 from ai_review.tests.fixtures.services.cost import FakeCostService
@@ -107,3 +112,102 @@ async def test_process_thread_reply_skips_when_no_reply(
 
     assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert not any(call[0] == "process_inline_reply" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("fake_prompts")
+async def test_reply_runs_preserve_history_without_reanswering_handled_threads(
+        monkeypatch: pytest.MonkeyPatch,
+        inline_reply_review_runner: InlineReplyReviewRunner,
+        review_comment_gateway: ReviewCommentGateway,
+        fake_vcs_client: FakeVCSClient,
+        fake_git_service: FakeGitService,
+        fake_review_direct_llm_gateway: FakeReviewDirectLLMGateway,
+):
+    """A later run answers only new requests and includes the complete conversation."""
+    inline_reply_review_runner.review_comment_gateway = review_comment_gateway
+    inline_reply_review_runner.inline_comment_reply = InlineCommentReplyService()
+    inline_reply_review_runner.prompt = PromptService()
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    fake_review_direct_llm_gateway.responses["ask"] = '{"message": "The value can be null."}'
+    thread = ReviewThreadSchema(
+        id="thread-1",
+        kind=ThreadKind.INLINE,
+        file="main.py",
+        comments=[
+            ReviewCommentSchema(id=1, body=f"Possible NPE.\n\n{settings.review.inline_tag}"),
+            ReviewCommentSchema(id=2, body=f"Why? {settings.review.inline_reply_tag}"),
+        ],
+    )
+    handled_thread = ReviewThreadSchema(
+        id="thread-2",
+        kind=ThreadKind.INLINE,
+        file="other.py",
+        comments=[
+            ReviewCommentSchema(id=3, body=f"Old question {settings.review.inline_reply_tag}"),
+            ReviewCommentSchema(id=4, body=f"Old answer\n\n{settings.review.inline_tag}"),
+        ],
+    )
+    fake_vcs_client.responses["get_inline_threads"] = [thread, handled_thread]
+    create_inline_reply = fake_vcs_client.create_inline_reply
+
+    async def store_reply(thread_id: str | int, message: str):
+        await create_inline_reply(thread_id, message)
+        target = next(t for t in fake_vcs_client.responses["get_inline_threads"] if t.id == thread_id)
+        target.comments.append(ReviewCommentSchema(id=len(target.comments) + 10, body=message))
+
+    monkeypatch.setattr(fake_vcs_client, "create_inline_reply", store_reply)
+
+    await inline_reply_review_runner.run()
+    assert thread.comments[-1].body == InlineCommentReplySchema(message="The value can be null.").body_with_tag
+    assert len(fake_review_direct_llm_gateway.calls) == 1
+
+    await inline_reply_review_runner.run()
+    assert len(fake_review_direct_llm_gateway.calls) == 1
+
+    thread.comments.append(ReviewCommentSchema(id=20, body="What about a guard?"))
+    await inline_reply_review_runner.run()
+    assert len(fake_review_direct_llm_gateway.calls) == 1
+
+    thread.comments.append(ReviewCommentSchema(
+        id=21, body=f"Would a null check help? {settings.review.inline_reply_tag}",
+    ))
+    await inline_reply_review_runner.run()
+    assert len(fake_review_direct_llm_gateway.calls) == 2
+    prompt = fake_review_direct_llm_gateway.calls[-1][1]["prompt"]
+    history = [
+        "Possible NPE.", "Why?", "The value can be null.",
+        "What about a guard?", "Would a null check help?",
+    ]
+    positions = [prompt.index(message) for message in history]
+    assert positions == sorted(positions)
+    assert "Old question" not in prompt
+    replies = [call for call in fake_vcs_client.calls if call[0] == "create_inline_reply"]
+    assert [call[1][0] for call in replies] == ["thread-1", "thread-1"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("output", ['{"message": "No reply.", "suggestion": null}', "No reply."])
+async def test_no_reply_output_never_reaches_vcs(
+        output: str,
+        inline_reply_review_runner: InlineReplyReviewRunner,
+        review_comment_gateway: ReviewCommentGateway,
+        fake_vcs_client: FakeVCSClient,
+        fake_git_service: FakeGitService,
+        fake_review_direct_llm_gateway: FakeReviewDirectLLMGateway,
+):
+    inline_reply_review_runner.review_comment_gateway = review_comment_gateway
+    inline_reply_review_runner.inline_comment_reply = InlineCommentReplyService()
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    fake_review_direct_llm_gateway.responses["ask"] = output
+    fake_vcs_client.responses["get_inline_threads"] = [ReviewThreadSchema(
+        id="thread-1",
+        kind=ThreadKind.INLINE,
+        file="main.py",
+        comments=[ReviewCommentSchema(id=1, body=f"Question {settings.review.inline_reply_tag}")],
+    )]
+
+    await inline_reply_review_runner.run()
+
+    assert len(fake_review_direct_llm_gateway.calls) == 1
+    assert not any(call[0] == "create_inline_reply" for call in fake_vcs_client.calls)

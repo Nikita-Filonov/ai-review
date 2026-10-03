@@ -9,6 +9,7 @@ from ai_review.services.git.service import GitService
 from ai_review.services.llm.factory import get_llm_client
 from ai_review.services.policy.service import PolicyService
 from ai_review.services.prompt.service import PromptService
+from ai_review.services.review.filter.service import ReviewFilterService
 from ai_review.services.review.gateway.review_agent_llm_gateway import ReviewAgentLLMGateway
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
@@ -37,6 +38,7 @@ class ReviewService:
         self.policy = PolicyService()
         self.prompt = PromptService()
         self.artifacts = ArtifactsService()
+        self.review_filter = ReviewFilterService()
         self.inline_comment = InlineCommentService()
         self.summary_comment = SummaryCommentService()
         self.inline_comment_reply = InlineCommentReplyService()
@@ -68,9 +70,9 @@ class ReviewService:
         )
 
         self.review_comment_gateway = (
-            ReviewDryRunCommentGateway(vcs=self.vcs, artifacts=self.artifacts)
+            ReviewDryRunCommentGateway(vcs=self.vcs, artifacts=self.artifacts, review_filter=self.review_filter)
             if settings.review.dry_run
-            else ReviewCommentGateway(vcs=self.vcs, artifacts=self.artifacts)
+            else ReviewCommentGateway(vcs=self.vcs, artifacts=self.artifacts, review_filter=self.review_filter)
         )
 
         self.inline_review_runner = InlineReviewRunner(
@@ -129,6 +131,15 @@ class ReviewService:
             review_comment_gateway=self.review_comment_gateway
         )
 
+    async def __aenter__(self) -> "ReviewService":
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        # Finalize even when the pipeline failed, so comments already
+        # accumulated in a pending batch (e.g. GitLab draft notes) are
+        # published instead of lingering invisibly as drafts.
+        await self.review_comment_gateway.finalize()
+
     async def run_inline_review(self) -> None:
         await self.inline_review_runner.run()
 
@@ -149,6 +160,18 @@ class ReviewService:
 
     async def run_clear_summary_review(self) -> None:
         await self.review_comment_gateway.clear_summary_comments()
+
+    async def run_clear_inline_reply_review(self) -> None:
+        await self.review_comment_gateway.clear_inline_replies()
+
+    async def run_clear_summary_reply_review(self) -> None:
+        await self.review_comment_gateway.clear_summary_replies()
+
+    async def run_clear_review(self) -> None:
+        await self.run_clear_inline_review()
+        await self.run_clear_summary_review()
+        await self.run_clear_inline_reply_review()
+        await self.run_clear_summary_reply_review()
 
     def report_total_cost(self):
         total_report = self.cost.aggregate()

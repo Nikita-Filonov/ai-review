@@ -113,3 +113,130 @@ deleted file mode 100644
     assert file.mode == FileMode.DELETED
     assert file.orig_name == "x"
     assert [line.content for line in file.hunks[0].orig_range.lines] == ["old line"]
+
+
+def test_parse_preserves_standalone_carriage_return_inside_diff_record() -> None:
+    """A bare CR belongs to file content and must not create an extra diff line."""
+    raw_diff = (
+        "diff --git a/x b/x\n"
+        "index 0000000..1111111 100644\n"
+        "--- a/x\n"
+        "+++ b/x\n"
+        "@@ -1,1 +1,1 @@\n"
+        "-old\r\tКонецЕсли;\n"
+        "+new\r\tКонецЕсли;\n"
+    )
+
+    hunk = parse_and_get_file(raw_diff).hunks[0]
+
+    assert [line.type for line in hunk.lines] == [
+        DiffLineType.REMOVED,
+        DiffLineType.ADDED,
+    ]
+    assert [line.content for line in hunk.lines] == [
+        "old\r\tКонецЕсли;",
+        "new\r\tКонецЕсли;",
+    ]
+    assert len(hunk.orig_range.lines) == hunk.orig_range.length == 1
+    assert len(hunk.new_range.lines) == hunk.new_range.length == 1
+
+
+def test_parse_diff_without_file_header() -> None:
+    """Should parse a bare unified diff body, as returned by the GitLab changes API."""
+    raw_diff = """@@ -1,2 +1,2 @@
+-old line
++new line
+ kept line
+"""
+    file = parse_and_get_file(raw_diff)
+
+    assert file.mode == FileMode.MODIFIED
+    assert file.orig_name == ""
+    assert file.new_name == ""
+    assert len(file.hunks) == 1
+
+    hunk = file.hunks[0]
+    assert [line.content for line in hunk.lines] == ["old line", "new line", "kept line"]
+    assert [line.type for line in hunk.lines] == [
+        DiffLineType.REMOVED,
+        DiffLineType.ADDED,
+        DiffLineType.UNCHANGED,
+    ]
+
+
+def test_parse_multiple_hunks_tracks_independent_line_numbers() -> None:
+    """Should number each hunk from its own header, so a shift in one hunk does not leak."""
+    raw_diff = """diff --git a/x b/x
+index 6666666..7777777 100644
+--- a/x
++++ b/x
+@@ -80,4 +80,5 @@
+ class Store:
+     def __init__(self, session):
++        self.cache = {}
+     def get(self, key):
+         return self.session.get(key)
+@@ -126,4 +127,5 @@
+ def remove(session, key):
+     entry = session.get(key)
+-    session.delete(entry)
++    session.mark_deleted(entry)
++    session.flush()
+     session.commit()
+"""
+    file = parse_and_get_file(raw_diff)
+
+    assert len(file.hunks) == 2
+
+    first, second = file.hunks
+    assert (first.orig_range.start, first.new_range.start) == (80, 80)
+    assert (second.orig_range.start, second.new_range.start) == (126, 127)
+
+    assert file.added_line_numbers() == {82, 129, 130}
+    assert file.removed_line_numbers() == {128}
+
+    assert [line.number for line in second.new_range.lines] == [127, 128, 129, 130, 131]
+    assert [line.number for line in second.orig_range.lines] == [126, 127, 128, 129]
+
+
+def test_parse_bare_diff_with_file_headers_does_not_create_duplicate_files() -> None:
+    """A GitLab diff body may include ---/+++ headers but no `diff --git` header."""
+    raw_diff = """--- a/src/old.py
++++ b/src/new.py
+@@ -20,2 +20,2 @@
+-old
++new
+ context
+"""
+
+    diff = DiffParser.parse(raw_diff)
+
+    assert len(diff.files) == 1
+    file = diff.files[0]
+    assert file.orig_name == "src/old.py"
+    assert file.new_name == "src/new.py"
+    assert len(file.hunks) == 1
+    assert [(line.type, line.number) for line in file.hunks[0].lines] == [
+        (DiffLineType.REMOVED, 20),
+        (DiffLineType.ADDED, 20),
+        (DiffLineType.UNCHANGED, 21),
+    ]
+
+
+def test_parse_bare_diff_ignores_no_newline_markers() -> None:
+    """Git metadata lines must not consume old or new source line numbers."""
+    raw_diff = r"""@@ -4,2 +4,2 @@
+-before
+\ No newline at end of file
++after
+\ No newline at end of file
+ context
+"""
+
+    hunk = parse_and_get_file(raw_diff).hunks[0]
+
+    assert [(line.type, line.number, line.content) for line in hunk.lines] == [
+        (DiffLineType.REMOVED, 4, "before"),
+        (DiffLineType.ADDED, 4, "after"),
+        (DiffLineType.UNCHANGED, 5, "context"),
+    ]

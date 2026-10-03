@@ -81,6 +81,31 @@ def test_read_snapshot_prefers_git(monkeypatch: pytest.MonkeyPatch, fake_git_ser
     assert tools.read_snapshot("foo.py", head_sha="HEAD") == "from git"
 
 
+def test_read_snapshot_tries_base_after_missing_head(
+        monkeypatch: pytest.MonkeyPatch, fake_git_service: FakeGitService,
+) -> None:
+    def at_commit(file_path: str, sha: str) -> str | None:
+        return "previous" if sha == "BASE" else None
+
+    monkeypatch.setattr(fake_git_service, "get_file_at_commit", at_commit)
+    monkeypatch.setattr(tools, "GitService", lambda: fake_git_service)
+    assert tools.read_snapshot("foo.py", head_sha="HEAD", base_sha="BASE") == "previous"
+
+
+def test_read_snapshot_uses_workspace_after_git_failure(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    file = tmp_path / "file.py"
+    file.write_text("workspace", encoding="utf-8")
+
+    class FailingGit:
+        def get_file_at_commit(self, file_path: str, sha: str) -> None:
+            raise RuntimeError("repository unavailable")
+
+    monkeypatch.setattr(tools, "GitService", FailingGit)
+    assert tools.read_snapshot(str(file), head_sha="HEAD") == "workspace"
+
+
 def test_read_snapshot_fallback_to_filesystem(
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,

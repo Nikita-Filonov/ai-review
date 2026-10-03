@@ -8,7 +8,7 @@
 # automatically for PR events (opened, updated, reopened).
 #
 # Docs: https://github.com/Nikita-Filonov/ai-review
-# Marketplace Action: Nikita-Filonov/ai-review@v0.59.0
+# Marketplace Action: Nikita-Filonov/ai-review@v1.2.0
 # ===============================
 
 name: AI Review
@@ -27,8 +27,11 @@ on:
           - run-summary
           - run-inline-reply
           - run-summary-reply
+          - clear
           - clear-inline
           - clear-summary
+          - clear-inline-reply
+          - clear-summary-reply
         required: true
         description: "Review command (mode)"
 
@@ -54,7 +57,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run AI Review
-        uses: Nikita-Filonov/ai-review@v0.59.0
+        uses: Nikita-Filonov/ai-review@v1.2.0
         env:
           # ===============================
           # LLM provider & model
@@ -75,6 +78,10 @@ jobs:
 
           # (optional) Max tokens for completion.
           LLM__META__MAX_TOKENS: "15000"
+
+          # (optional) For Azure OpenAI with newer models (gpt-5, o1, o3, etc.),
+          # use MAX_COMPLETION_TOKENS instead of MAX_TOKENS (they are mutually exclusive).
+          # LLM__META__MAX_COMPLETION_TOKENS: "15000"
 
           # (optional) Creativity of responses (0 = deterministic, >0 = more creative).
           LLM__META__TEMPERATURE: "0.3"
@@ -140,6 +147,19 @@ jobs:
           #
           # Recommended range: 5–10 depending on model/API limits.
           CORE__CONCURRENCY: 7
+
+          # ===============================
+          # Agent mode (optional)
+          # ===============================
+          # Enables iterative agent loop: the model can run shell commands
+          # (ls, cat, rg, git) to explore the repo before producing the review.
+          # Works best with stronger models (gpt-4.1, claude-3-opus, etc.).
+          #
+          # AGENT__ENABLED: "true"
+          # AGENT__MAX_ITERATIONS: "25"
+          # AGENT__COMMAND_TIMEOUT: "10"
+          # AGENT__MAX_TOTAL_CONTEXT_CHARS: "40000"
+          # AGENT__MAX_COMMAND_OUTPUT_CHARS: "40000"
 
           # ===============================
           # Prompts (optional overrides)
@@ -253,7 +273,8 @@ jobs:
           # Default: "false"
           REVIEW__DRY_RUN: "false"
 
-          # Tags used to mark AI-generated comments in PR.
+          # Tags for generated reviews and one-shot reply requests.
+          # Put a reply tag on the latest comment to request an AI response.
           REVIEW__INLINE_TAG: "#ai-review-inline"
           REVIEW__INLINE_REPLY_TAG: "#ai-review-inline-reply"
           REVIEW__SUMMARY_TAG: "#ai-review-summary"

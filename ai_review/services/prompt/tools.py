@@ -49,13 +49,13 @@ def normalize_prompt(text: str) -> str:
 def format_trace(trace: AgentTraceSchema) -> str:
     lines = [f"Iteration: {trace.iteration}"]
 
-    if trace.step.command:
+    if trace.step and trace.step.command:
         lines.append(f"Command: {trace.step.command}")
 
     if trace.tool_output:
         lines.append(f"Tool output: {trace.tool_output}")
 
-    if trace.step.content:
+    if trace.step and trace.step.content:
         lines.append(f"Content: {trace.step.content}")
 
     if trace.warning:

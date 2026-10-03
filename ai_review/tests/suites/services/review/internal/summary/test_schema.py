@@ -19,3 +19,12 @@ def test_body_with_tag_appends_tag(monkeypatch):
     assert body.startswith("Review passed")
     assert body.endswith("\n\n#ai-summary")
     assert "\n\n#ai-summary" in body
+
+
+def test_body_with_fallback_tag_appends_fallback_tag(monkeypatch):
+    monkeypatch.setattr(settings.review, "inline_fallback_tag", "#ai-inline-fallback")
+    comment = SummaryCommentSchema(text="Fallback comment")
+    body = comment.body_with_fallback_tag
+    assert body.startswith("Fallback comment")
+    assert body.endswith("\n\n#ai-inline-fallback")
+    assert "\n\n#ai-inline-fallback" in body

@@ -9,13 +9,15 @@ class AzureOpenAILLMClient(LLMClientProtocol):
         self.http_client = get_azure_openai_http_client()
 
     async def chat(self, prompt: str, prompt_system: str) -> ChatResultSchema:
+        meta = settings.llm.meta
         request = AzureOpenAIChatRequestSchema(
             messages=[
                 AzureOpenAIMessage(role="system", content=prompt_system),
                 AzureOpenAIMessage(role="user", content=prompt),
             ],
-            temperature=settings.llm.meta.temperature,
-            max_tokens=settings.llm.meta.max_tokens,
+            temperature=meta.temperature,
+            max_tokens=meta.max_tokens,
+            max_completion_tokens=meta.max_completion_tokens,
         )
         response = await self.http_client.chat(request)
         return ChatResultSchema(

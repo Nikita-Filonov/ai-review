@@ -1,6 +1,7 @@
 import pytest
 
 from ai_review.config import settings
+from ai_review.services.review.internal.inline.schema import InlineCommentSchema
 from ai_review.services.review.runner.inline import InlineReviewRunner
 from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema
 from ai_review.tests.fixtures.services.cost import FakeCostService
@@ -102,3 +103,199 @@ async def test_process_file_skips_when_no_comments_after_llm(
     assert any(call[0] == "ask" for call in fake_review_direct_llm_gateway.calls)
     assert any(call[0] == "apply_for_inline_comments" for call in fake_policy_service.calls)
     assert not any(call[0] == "process_inline_comments" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_process_file_discards_comments_for_other_files(
+        capsys: pytest.CaptureFixture,
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_policy_service: FakePolicyService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    """A per-file prompt must not publish findings that the model assigned to another file."""
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    matching_comment = InlineCommentSchema(file="a/src/main.py", line=10, message="Matching")
+    fake_inline_comment_service.comments = [
+        matching_comment,
+        InlineCommentSchema(file="src/other.py", line=20, message="Wrong file"),
+    ]
+
+    review_info = ReviewInfoSchema(base_sha="A", head_sha="B")
+    await inline_review_runner.process_file("src/main.py", review_info)
+    output = capsys.readouterr().out
+
+    policy_call = next(
+        call for call in fake_policy_service.calls
+        if call[0] == "apply_for_inline_comments"
+    )
+    assert policy_call[1]["comments"] == [matching_comment]
+
+    call = next(
+        call for call in fake_review_comment_gateway.calls
+        if call[0] == "process_inline_comments"
+    )
+    assert call[1]["comments"].root == [matching_comment]
+    assert "Discarding 1 inline comments" in output
+    assert "src/other.py" in output
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("current_file", "comment_file"),
+    [
+        ("src/main.py", "src/main.py"),
+        ("src/main.py", "./src/main.py"),
+        ("src/main.py", "a/src/main.py"),
+        ("src/main.py", "b\\src\\main.py"),
+        ("a/src/main.py", "b/src/main.py"),
+    ],
+)
+async def test_process_file_accepts_equivalent_normalized_paths(
+        capsys: pytest.CaptureFixture,
+        current_file: str,
+        comment_file: str,
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    comment = InlineCommentSchema(file=comment_file, line=10, message="Matching")
+    fake_inline_comment_service.comments = [comment]
+
+    await inline_review_runner.process_file(
+        current_file,
+        ReviewInfoSchema(base_sha="A", head_sha="B"),
+    )
+    output = capsys.readouterr().out
+
+    call = next(
+        call for call in fake_review_comment_gateway.calls
+        if call[0] == "process_inline_comments"
+    )
+    assert call[1]["comments"].root == [comment]
+    assert "Discarding" not in output
+
+
+@pytest.mark.asyncio
+async def test_process_file_skips_when_all_comments_belong_to_other_files(
+        capsys: pytest.CaptureFixture,
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_policy_service: FakePolicyService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    fake_inline_comment_service.comments = [
+        InlineCommentSchema(file="src/first.py", line=10, message="First"),
+        InlineCommentSchema(file="src/second.py", line=20, message="Second"),
+    ]
+
+    await inline_review_runner.process_file(
+        "src/main.py",
+        ReviewInfoSchema(base_sha="A", head_sha="B"),
+    )
+    output = capsys.readouterr().out
+
+    policy_call = next(
+        call for call in fake_policy_service.calls
+        if call[0] == "apply_for_inline_comments"
+    )
+    assert policy_call[1]["comments"] == []
+    assert not any(
+        call[0] == "process_inline_comments"
+        for call in fake_review_comment_gateway.calls
+    )
+    assert "Discarding 2 inline comments" in output
+    assert "No inline comments for file: src/main.py" in output
+
+
+@pytest.mark.asyncio
+async def test_process_file_does_not_post_when_policy_removes_matching_comments(
+        capsys: pytest.CaptureFixture,
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_policy_service: FakePolicyService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    fake_inline_comment_service.comments = [
+        InlineCommentSchema(file="src/main.py", line=10, message="Matching"),
+    ]
+    fake_policy_service.responses["apply_for_inline_comments"] = []
+
+    await inline_review_runner.process_file(
+        "src/main.py",
+        ReviewInfoSchema(base_sha="A", head_sha="B"),
+    )
+    output = capsys.readouterr().out
+
+    assert not any(
+        call[0] == "process_inline_comments"
+        for call in fake_review_comment_gateway.calls
+    )
+    assert "Discarding" not in output
+    assert "No inline comments for file: src/main.py" in output
+
+
+@pytest.mark.asyncio
+async def test_run_posts_a_cross_file_finding_only_for_its_matching_file(
+        inline_review_runner: InlineReviewRunner,
+        fake_vcs_client: FakeVCSClient,
+        fake_git_service: FakeGitService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+        fake_inline_comment_service: FakeInlineCommentService,
+):
+    """Parallel per-file passes must not publish the same finding twice."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+    fake_vcs_client.responses["get_review_info"] = ReviewInfoSchema(
+        changed_files=["Cat.java", "Dog.java"],
+        base_sha="A",
+        head_sha="B",
+    )
+    fake_git_service.responses["get_diff_for_file"] = "SOME_DIFF"
+    dog_comment = InlineCommentSchema(file="Dog.java", line=10, message="Problem")
+    fake_inline_comment_service.comments = [dog_comment]
+
+    await inline_review_runner.run()
+
+    process_calls = [
+        call for call in fake_review_comment_gateway.calls
+        if call[0] == "process_inline_comments"
+    ]
+    assert len(process_calls) == 1
+    assert process_calls[0][1]["comments"].root == [dog_comment]
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_finalize(
+        inline_review_runner: InlineReviewRunner,
+        fake_git_service: FakeGitService,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Finalization (batch publishing) happens at pipeline level, not inside the runner."""
+    fake_git_service.responses["get_diff_for_file"] = "FAKE_DIFF"
+    fake_review_comment_gateway.responses["get_inline_comments"] = []
+
+    await inline_review_runner.run()
+
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_finalize_when_skipping(
+        inline_review_runner: InlineReviewRunner,
+        fake_review_comment_gateway: FakeReviewCommentGateway,
+):
+    """Should not finalize when the review is skipped due to existing comments."""
+    fake_review_comment_gateway.responses["get_inline_comments"] = [
+        ReviewCommentSchema(id="1", body=f"{settings.review.inline_tag} existing")
+    ]
+
+    await inline_review_runner.run()
+
+    assert not any(call[0] == "finalize" for call in fake_review_comment_gateway.calls)

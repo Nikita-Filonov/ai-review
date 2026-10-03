@@ -17,6 +17,12 @@ llm:
     model: gpt-4o-mini  # e.g., gpt-4o, gpt-4o-mini, gpt-3.5-turbo, gpt-4.1, gpt-4.1-mini, gpt-5
     max_tokens: 1200    # (optional) Maximum tokens for completion
     temperature: 0.3    # (optional) Creativity of responses (0 = deterministic)
+    # reasoning:                  # (optional) OpenAI Responses API options for reasoning models
+    #   effort: medium            # none | minimal | low | medium | high | xhigh | max
+    #   summary: concise          # auto | concise | detailed
+    #   context: all_turns        # auto | current_turn | all_turns
+    #   mode: standard            # standard | pro
+    #   generate_summary: concise # deprecated; use summary instead
 
     # --- Gemini ---
     # model: gemini-2.0-pro
@@ -52,8 +58,10 @@ llm:
 
     # --- Azure OpenAI ---
     # model: gpt-4o-mini  # IMPORTANT: In Azure, the `model` field specifies the *deployment name*, not an OpenAI model ID.
-    # max_tokens: 1200
+    # max_tokens: 1200              # (optional) Token limit for older models (gpt-4o, gpt-4o-mini, etc.)
+    # max_completion_tokens: 1200   # (optional) Token limit for newer models (gpt-5, o1, o3, etc.)
     # temperature: 0.3
+    # NOTE: max_tokens and max_completion_tokens are mutually exclusive — set only one.
 
   # HTTP client configuration for LLM.
   http_client:
@@ -65,6 +73,14 @@ llm:
     timeout: 120                        # Request timeout in seconds
     api_url: https://api.openai.com/v1  # Base URL of the provider API
     api_token: ${OPENAI_API_KEY}        # API token (set in env/CI variables)
+
+    # --- Proxy ---
+    # Optional HTTP/HTTPS proxy URL for connecting to the LLM provider.
+    # Useful when your server cannot reach the provider directly (e.g. behind a firewall).
+    # Examples:
+    #   proxy_url: http://proxy.example.com:8080
+    #   proxy_url: https://proxy.example.com:8443
+    # proxy_url: http://proxy.example.com:8080
 
     # --- Gemini ---
     # api_url: https://generativelanguage.googleapis.com
@@ -99,6 +115,14 @@ vcs:
   # Version control system provider.
   # Options: GITLAB | GITHUB | BITBUCKET_CLOUD | BITBUCKET_SERVER | AZURE_DEVOPS | GITEA
   provider: GITLAB
+
+  # --- GitLab only (requires GitLab 15.10+) ---
+  # Part of the GitLab provider config; other providers ignore this option.
+  # Post inline comments and the summary comment as draft notes and publish them in one batch
+  # ("Start a review" -> "Submit review"), so reviewers get a single
+  # email notification for the entire review.
+  # Default: false
+  batch_comments: false
 
   # Pipeline/MR/PR context.
   pipeline:
@@ -143,6 +167,11 @@ vcs:
     verify: true
 
     timeout: 120  # Request timeout in seconds
+
+    # --- Proxy ---
+    # Optional HTTP/HTTPS proxy URL for connecting to the VCS provider.
+    # Useful when the server cannot reach the VCS API directly (e.g. behind a firewall).
+    # proxy_url: http://proxy.example.com:8080
 
     # --- GitLab ---
     api_url: ${CI_SERVER_URL}       # Base GitLab server URL
@@ -206,6 +235,10 @@ agent:
   # - 25..50 for larger codebases with complex cross-file logic
   max_iterations: 25
 
+  # Number of malformed agent protocol responses tolerated before forcing
+  # the model to return a final answer. Set to 0 to force FINAL immediately.
+  max_protocol_violations: 2
+
   # Regex allowlist for executable commands in agent mode.
   # A command is allowed only if at least one pattern fully matches:
   #   pattern.fullmatch(command) == True
@@ -216,12 +249,11 @@ agent:
   # - Keep patterns as narrow as possible to avoid accidental broad access.
   #
   # Default profile is read-oriented:
-  # - ls / cat / rg / grep
+  # - ls / cat / grep
   # - selected read-only git commands
   allow_commands:
     - "^ls(?:\\s+.*)?$"
     - "^cat(?:\\s+.*)?$"
-    - "^rg(?:\\s+.*)?$"
     - "^grep(?:\\s+.*)?$"
     - "^git\\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\\s+.*)?$"
 
@@ -501,10 +533,16 @@ review:
   # Default: false
   dry_run: false
 
-  # Tags used to mark AI-generated comments in MR.
+  # Marker for generated inline comments AND replies.
   inline_tag: "#ai-review-inline"
+  # Request an inline reply by tagging the latest comment; keep distinct from inline_tag.
+  # Each new question needs this tag. Full thread history is always included.
   inline_reply_tag: "#ai-review-inline-reply"
+  inline_fallback_tag: "#ai-review-inline-fallback"
+  # Marker for generated summary comments AND replies.
   summary_tag: "#ai-review-summary"
+  # Tag each new summary question; keep distinct from summary_tag.
+  # Published replies record the question ID so later runs skip answered requests.
   summary_reply_tag: "#ai-review-summary-reply"
 
   # Number of context lines around changes (only used in *_WITH_CONTEXT modes).
@@ -513,6 +551,10 @@ review:
   # File filters.
   allow_changes: [ ]   # List of glob patterns to explicitly allow review (empty = all allowed)
   ignore_changes: [ ]  # List of glob patterns to ignore, e.g. ["docs/*", "README.md"]
+
+  # Skip files that were only renamed/moved without content changes.
+  # Rename + content changes are still reviewed.
+  ignore_pure_renames: true
 
   # Marker used to annotate changed lines in output.
   review_added_marker: " # added"

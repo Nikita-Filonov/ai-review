@@ -13,6 +13,10 @@ class InlineCommentReplyService(InlineCommentReplyServiceProtocol):
     def parse_model_output(self, output: str) -> InlineCommentReplySchema | None:
         logger.debug("Parsing LLM output for inline reply...")
         parsed = self.parser.parse_output(output)
+        if parsed and parsed.message.casefold() in {"no reply", "no reply."} and not parsed.suggestion:
+            logger.info("LLM indicated that no inline reply is needed")
+            return None
+
         if parsed:
             logger.debug("Inline reply parsed successfully")
         else:

@@ -63,6 +63,9 @@ class ContextReviewRunner(ReviewRunnerProtocol):
         prompt = self.prompt.build_context_request(rendered_files, prompt_context)
         prompt_system = self.prompt.build_system_context_request(prompt_context)
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
+        if prompt_result is None:
+            logger.warning("No LLM response for context review, skipping")
+            return
 
         comments = self.inline_comment.parse_model_output(prompt_result).dedupe()
         comments.root = self.policy.apply_for_context_comments(comments.root)

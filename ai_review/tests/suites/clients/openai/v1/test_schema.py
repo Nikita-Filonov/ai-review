@@ -51,3 +51,16 @@ def test_chat_request_schema_builds_ok():
     assert req.messages[0].content == "hello"
     assert req.max_tokens == 100
     assert req.temperature == 0.3
+
+
+def test_chat_request_schema_stream_defaults_to_false():
+    msg = OpenAIMessageSchema(role="user", content="hi")
+    req = OpenAIChatRequestSchema(model="gpt-4o-mini", messages=[msg])
+    assert req.stream is False
+
+
+def test_chat_request_schema_stream_included_in_payload():
+    msg = OpenAIMessageSchema(role="user", content="hi")
+    req = OpenAIChatRequestSchema(model="gpt-4o-mini", messages=[msg])
+    payload = req.model_dump(exclude_none=True)
+    assert payload["stream"] is False

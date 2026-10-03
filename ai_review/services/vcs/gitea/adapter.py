@@ -1,5 +1,6 @@
 from ai_review.clients.gitea.pr.schema.comments import GiteaPRCommentSchema
 from ai_review.clients.gitea.pr.schema.pull_request import GiteaUserSchema
+from ai_review.clients.gitea.pr.schema.reviews import GiteaReviewCommentSchema
 from ai_review.services.vcs.types import ReviewCommentSchema, UserSchema
 
 
@@ -19,4 +20,18 @@ def get_review_comment_from_gitea_comment(comment: GiteaPRCommentSchema) -> Revi
         line=comment.line,
         author=get_user_from_gitea_user(comment.user),
         thread_id=comment.id
+    )
+
+
+def get_review_comment_from_gitea_review_comment(
+        comment: GiteaReviewCommentSchema, review_id: int
+) -> ReviewCommentSchema:
+    return ReviewCommentSchema(
+        id=review_id,
+        body=comment.body or "",
+        file=comment.path,
+        line=comment.position,
+        author=get_user_from_gitea_user(comment.user),
+        parent_id=review_id,
+        thread_id=comment.id,
     )

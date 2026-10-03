@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List
 
 
 class FileMode(Enum):
@@ -24,10 +23,24 @@ class DiffLine:
 
 
 @dataclass
+class DiffLinePosition:
+    """
+    A diff line addressed on both sides of the change.
+
+    An added line exists only in the new file, a removed line only in the old
+    one, and an unchanged line in both. VCS providers that validate a diff
+    position need the pair, not just one side.
+    """
+    type: DiffLineType
+    old_line: int | None
+    new_line: int | None
+
+
+@dataclass
 class DiffRange:
     start: int
     length: int
-    lines: List[DiffLine]
+    lines: list[DiffLine]
 
 
 @dataclass
@@ -35,7 +48,7 @@ class DiffHunk:
     header: str
     orig_range: DiffRange
     new_range: DiffRange
-    lines: List[DiffLine]
+    lines: list[DiffLine]
 
 
 @dataclass
@@ -44,7 +57,7 @@ class DiffFile:
     mode: FileMode
     orig_name: str
     new_name: str
-    hunks: List[DiffHunk]
+    hunks: list[DiffHunk]
 
     def added_new_lines(self) -> list[DiffLine]:
         return [
@@ -68,10 +81,52 @@ class DiffFile:
     def removed_line_numbers(self) -> set[int]:
         return {line.number for line in self.removed_old_lines() if line.number is not None}
 
+    def line_positions(self) -> list[DiffLinePosition]:
+        """
+        Pair old and new line numbers for every line of every hunk.
+
+        Each hunk is numbered from its own `@@ -a,b +c,d @@` header, so an
+        earlier hunk that inserts or deletes lines cannot shift a later one.
+        """
+        positions: list[DiffLinePosition] = []
+
+        for hunk in self.hunks:
+            old_line = hunk.orig_range.start
+            new_line = hunk.new_range.start
+
+            for line in hunk.lines:
+                if line.type is DiffLineType.ADDED:
+                    positions.append(DiffLinePosition(line.type, None, new_line))
+                    new_line += 1
+                elif line.type is DiffLineType.REMOVED:
+                    positions.append(DiffLinePosition(line.type, old_line, None))
+                    old_line += 1
+                else:
+                    positions.append(DiffLinePosition(line.type, old_line, new_line))
+                    old_line += 1
+                    new_line += 1
+
+        return positions
+
+    def find_line_position(self, line: int) -> DiffLinePosition | None:
+        """
+        Resolve a new-file line number to the diff line it addresses.
+
+        Inline comments contain no old/new side discriminator, while the prompt
+        contract defines the number as belonging to the new file. Resolving an
+        unmatched number against removed old-file lines would therefore be
+        ambiguous and could attach the comment to the wrong code.
+        """
+        for position in self.line_positions():
+            if position.new_line == line:
+                return position
+
+        return None
+
 
 @dataclass
 class Diff:
-    files: List[DiffFile]
+    files: list[DiffFile]
     raw: str
 
     def summary(self) -> str:

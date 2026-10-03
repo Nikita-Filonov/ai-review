@@ -33,6 +33,7 @@ class GitLabVCSConfig(VCSConfigBase):
     provider: Literal[VCSProvider.GITLAB]
     pipeline: GitLabPipelineConfig
     http_client: GitLabHTTPClientConfig
+    batch_comments: bool = False
 
 
 class GitHubVCSConfig(VCSConfigBase):

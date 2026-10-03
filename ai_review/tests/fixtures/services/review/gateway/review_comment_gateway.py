@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
+from ai_review.services.review.filter.types import ReviewFilterServiceProtocol
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
@@ -92,8 +93,16 @@ class FakeReviewCommentGateway(ReviewCommentGatewayProtocol):
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         self.calls.append(("process_inline_reply", {"thread_id": thread_id, "reply": reply}))
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
-        self.calls.append(("process_summary_reply", {"thread_id": thread_id, "reply": reply}))
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
+        self.calls.append(("process_summary_reply", {
+            "thread_id": thread_id, "reply": reply, "request_comment_id": request_comment_id,
+        }))
 
     async def process_inline_comment(self, comment: InlineCommentSchema) -> None:
         self.calls.append(("process_inline_comment", {"comment": comment}))
@@ -104,6 +113,21 @@ class FakeReviewCommentGateway(ReviewCommentGatewayProtocol):
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         self.calls.append(("process_inline_comments", {"comments": comments}))
 
+    async def finalize(self) -> None:
+        self.calls.append(("finalize", {}))
+
+    async def clear_inline_comments(self) -> None:
+        self.calls.append(("clear_inline_comments", {}))
+
+    async def clear_summary_comments(self) -> None:
+        self.calls.append(("clear_summary_comments", {}))
+
+    async def clear_inline_replies(self) -> None:
+        self.calls.append(("clear_inline_replies", {}))
+
+    async def clear_summary_replies(self) -> None:
+        self.calls.append(("clear_summary_replies", {}))
+
 
 @pytest.fixture
 def fake_review_comment_gateway() -> FakeReviewCommentGateway:
@@ -113,6 +137,9 @@ def fake_review_comment_gateway() -> FakeReviewCommentGateway:
 @pytest.fixture
 def review_comment_gateway(
         fake_vcs_client: VCSClientProtocol,
-        fake_artifacts_service: ArtifactsServiceProtocol
+        fake_artifacts_service: ArtifactsServiceProtocol,
+        review_filter_service: ReviewFilterServiceProtocol,
 ) -> ReviewCommentGateway:
-    return ReviewCommentGateway(vcs=fake_vcs_client, artifacts=fake_artifacts_service)
+    return ReviewCommentGateway(
+        vcs=fake_vcs_client, artifacts=fake_artifacts_service, review_filter=review_filter_service,
+    )

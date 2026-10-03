@@ -1,7 +1,18 @@
+import asyncio
+
 import pytest
 
+from ai_review.clients.gitlab.mr.schema.draft_notes import GitLabDraftNoteSchema
+from ai_review.clients.gitlab.mr.schema.changes import GitLabMRChangeSchema
+from ai_review.clients.gitlab.mr.schema.discussions import GitLabDiscussionSchema, GitLabGetMRDiscussionsResponseSchema
 from ai_review.services.vcs.gitlab.client import GitLabVCSClient
-from ai_review.services.vcs.types import ReviewInfoSchema, ReviewCommentSchema, ReviewThreadSchema, ThreadKind
+from ai_review.services.vcs.types import (
+    ReviewInfoSchema,
+    ReviewCommentSchema,
+    ReviewThreadSchema,
+    ThreadKind,
+    SupportsBatchedComments,
+)
 from ai_review.tests.fixtures.clients.gitlab import FakeGitLabMergeRequestsHTTPClient
 
 
@@ -215,6 +226,32 @@ async def test_get_inline_threads_returns_valid_schema(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_get_inline_threads_orders_notes_and_keeps_original_position(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    get_discussions = fake_gitlab_merge_requests_http_client.get_discussions
+
+    async def get_unordered_discussions(project_id: str, merge_request_id: str):
+        response = await get_discussions(project_id, merge_request_id)
+        response.root[0].position = None
+        response.root[0].notes.reverse()
+        response.root[0].notes[0].position = None
+        return response
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "get_discussions", get_unordered_discussions)
+
+    threads = await gitlab_vcs_client.get_inline_threads()
+
+    assert [comment.id for comment in threads[0].comments] == [10, 11]
+    assert threads[0].latest_comment.id == 11
+    assert threads[0].file == "src/app.py"
+    assert threads[0].line == 12
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
 async def test_get_general_threads_wraps_comments_in_threads(
         gitlab_vcs_client: GitLabVCSClient,
         fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
@@ -277,3 +314,504 @@ async def test_delete_inline_comment_calls_delete_discussion(
     assert call_args["note_id"] == str(note_id)
     assert call_args["project_id"] == "project-id"
     assert call_args["merge_request_id"] == "merge-request-id"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_creates_draft_note_when_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should create a draft note instead of a discussion when batch_comments is enabled."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Batched comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert "create_discussion" not in called_methods
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    ]
+    assert len(calls) == 1
+    call_args = calls[0]
+
+    assert call_args["note"] == "Batched comment"
+    assert call_args["project_id"] == "project-id"
+    assert call_args["merge_request_id"] == "merge-request-id"
+    assert call_args["position"].new_path == "src/app.py"
+    assert call_args["position"].new_line == 12
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_creates_discussion_by_default(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep posting discussions when batch_comments is disabled (default)."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Immediate comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_discussion" in called_methods
+    assert "create_draft_note" not in called_methods
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_bulk_publishes_pending_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should bulk publish once pending draft notes exist and reset the counter."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Comment A")
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=14, message="Comment B")
+
+    await gitlab_vcs_client.publish_comments()
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "bulk_publish_draft_notes"
+    ]
+    assert len(calls) == 1
+    assert calls[0]["project_id"] == "project-id"
+    assert calls[0]["merge_request_id"] == "merge-request-id"
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_noop_without_pending_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not call the API when no draft notes were created."""
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_publish_comments_noop_when_batching_disabled(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not call the API when batch_comments is disabled."""
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_general_comment_creates_draft_note_when_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should create a positionless draft note instead of a note when batch_comments is enabled."""
+    await gitlab_vcs_client.create_general_comment("Batched summary")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert "create_note" not in called_methods
+
+    calls = [
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    ]
+    assert len(calls) == 1
+    assert calls[0]["note"] == "Batched summary"
+    assert calls[0]["position"] is None
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_publish_comments_covers_inline_and_general_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should count inline and general drafts together and bulk publish once."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Inline")
+    await gitlab_vcs_client.create_general_comment("Summary")
+    assert gitlab_vcs_client.pending_comments == 2
+
+    await gitlab_vcs_client.publish_comments()
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("bulk_publish_draft_notes") == 1
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.usefixtures("gitlab_http_client_config")
+def test_gitlab_client_has_batching_capability(gitlab_vcs_client: GitLabVCSClient):
+    """GitLabVCSClient should expose the optional SupportsBatchedComments capability."""
+    assert isinstance(gitlab_vcs_client, SupportsBatchedComments)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_discards_stale_drafts_before_staging(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete leftover draft notes before creating the first new one."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+        GitLabDraftNoteSchema(id=902, note="stale summary #ai-review-summary"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.index("get_draft_notes") < called_methods.index("create_draft_note")
+
+    deleted = sorted(
+        args["draft_note_id"] for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_draft_note"
+    )
+    assert deleted == ["901", "902"]
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_preserves_unrelated_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not delete drafts that do not contain a configured ai-review tag."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="Human review draft"),
+        GitLabDraftNoteSchema(id=902, note="Draft from another integration #other-tool"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" in called_methods
+    assert "delete_draft_note" not in called_methods
+    assert "create_draft_note" in called_methods
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_only_discards_tagged_drafts_from_mixed_list(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should delete ai-review drafts while preserving unrelated drafts from the same user."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="Stale inline #ai-review-inline"),
+        GitLabDraftNoteSchema(id=902, note="Human review draft"),
+        GitLabDraftNoteSchema(id=903, note="Stale fallback #ai-review-inline-fallback"),
+        GitLabDraftNoteSchema(id=904, note="Draft from another integration #other-tool"),
+        GitLabDraftNoteSchema(id=905, note="Stale summary reply #ai-review-summary-reply"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    deleted = sorted(
+        args["draft_note_id"] for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "delete_draft_note"
+    )
+    assert deleted == ["901", "903", "905"]
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_concurrent_draft_comments_discard_stale_drafts_once(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should discard stale drafts exactly once even when comments are staged concurrently."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+    ]
+
+    await asyncio.gather(
+        gitlab_vcs_client.create_inline_comment(file="a.py", line=1, message="A"),
+        gitlab_vcs_client.create_inline_comment(file="b.py", line=2, message="B"),
+        gitlab_vcs_client.create_general_comment("C"),
+    )
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("get_draft_notes") == 1
+    assert called_methods.count("delete_draft_note") == 1
+    assert called_methods.count("create_draft_note") == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_does_not_discard_drafts_without_batching(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should never touch draft notes when batch_comments is disabled."""
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale inline #ai-review-inline"),
+    ]
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Immediate comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" not in called_methods
+    assert "delete_draft_note" not in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_deletes_nothing_when_no_stale_drafts(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should look for stale drafts but delete nothing when the list is empty."""
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "get_draft_notes" in called_methods
+    assert "delete_draft_note" not in called_methods
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_stages_note_when_discard_fails(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep staging comments when the stale-draft lookup fails."""
+    fake_gitlab_merge_requests_http_client.get_draft_notes_error = RuntimeError("gitlab is down")
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="Fresh comment")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert "create_draft_note" in called_methods
+    assert gitlab_vcs_client.pending_comments == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_create_inline_comment_does_not_retry_purge_within_run_after_failure(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should not retry the stale-draft lookup within a run once it has failed, even
+    though staging keeps succeeding for every comment after that."""
+    fake_gitlab_merge_requests_http_client.get_draft_notes_error = RuntimeError("gitlab is down")
+
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=12, message="First")
+    await gitlab_vcs_client.create_inline_comment(file="src/app.py", line=14, message="Second")
+
+    called_methods = [name for name, _ in fake_gitlab_merge_requests_http_client.calls]
+    assert called_methods.count("get_draft_notes") == 1
+    assert called_methods.count("create_draft_note") == 2
+    assert gitlab_vcs_client.pending_comments == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_stale_draft_deletion_does_not_block_new_draft(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    fake_gitlab_merge_requests_http_client.draft_notes = [
+        GitLabDraftNoteSchema(id=901, note="stale #ai-review-inline"),
+    ]
+
+    async def fail_delete(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("delete failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "delete_draft_note", fail_delete)
+    await gitlab_vcs_client.create_general_comment("fresh")
+
+    assert gitlab_vcs_client.pending_comments == 1
+    assert [name for name, _ in fake_gitlab_merge_requests_http_client.calls] == [
+        "get_draft_notes", "create_draft_note",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_general_draft_creation_keeps_pending_count_zero(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    async def fail_create(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("draft failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "create_draft_note", fail_create)
+    with pytest.raises(RuntimeError, match="draft failed"):
+        await gitlab_vcs_client.create_draft_general_comment("summary")
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_inline_draft_creation_keeps_pending_count_zero(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    async def fail_create(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("draft failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "create_draft_note", fail_create)
+    with pytest.raises(RuntimeError, match="draft failed"):
+        await gitlab_vcs_client.create_draft_inline_comment("main.py", 2, "inline")
+    assert gitlab_vcs_client.pending_comments == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config")
+async def test_failed_bulk_publish_keeps_pending_count_for_retry(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    gitlab_vcs_client.pending_comments = 2
+
+    async def fail_publish(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("publish failed")
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "bulk_publish_draft_notes", fail_publish)
+    with pytest.raises(RuntimeError, match="publish failed"):
+        await gitlab_vcs_client.publish_comments()
+    assert gitlab_vcs_client.pending_comments == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_empty_discussion_is_not_exposed_as_inline_thread(
+        monkeypatch: pytest.MonkeyPatch,
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    original = fake_gitlab_merge_requests_http_client.get_discussions
+
+    async def get_discussions(project_id: str, merge_request_id: str) -> GitLabGetMRDiscussionsResponseSchema:
+        response = await original(project_id, merge_request_id)
+        response.root.append(GitLabDiscussionSchema(id="empty", notes=[]))
+        return response
+
+    monkeypatch.setattr(fake_gitlab_merge_requests_http_client, "get_discussions", get_discussions)
+    threads = await gitlab_vcs_client.get_inline_threads()
+    assert [thread.id for thread in threads] == ["discussion-1", "discussion-2"]
+
+
+# Two hunks where the first inserts one line, so line 131 on the new side is
+# line 129 on the old side. A comment there is the case GitLab rejects with
+# `line_code can't be blank, must be a valid line code`.
+TWO_HUNK_DIFF = """@@ -80,4 +80,5 @@
+ class Store:
+     def __init__(self, session):
++        self.cache = {}
+     def get(self, key):
+         return self.session.get(key)
+@@ -126,4 +127,5 @@
+ def remove(session, key):
+     entry = session.get(key)
+-    session.delete(entry)
++    session.mark_deleted(entry)
++    session.flush()
+     session.commit()
+"""
+
+
+@pytest.fixture
+def gitlab_two_hunk_changes(
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+) -> None:
+    fake_gitlab_merge_requests_http_client.changes = [
+        GitLabMRChangeSchema(diff=TWO_HUNK_DIFF, old_path="src/db.py", new_path="src/db.py")
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_sends_paired_position_for_context_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should send old_path and old_line for a discussion anchored to a context line."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=131, message="Context finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/db.py"
+    assert position.new_line == 131
+    assert position.old_path == "src/db.py"
+    assert position.old_line == 129
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_batch_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_draft_inline_comment_sends_paired_position_for_context_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should send old_path and old_line for a draft note anchored to a context line."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=131, message="Context finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_draft_note"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/db.py"
+    assert position.new_line == 131
+    assert position.old_path == "src/db.py"
+    assert position.old_line == 129
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config", "gitlab_two_hunk_changes")
+async def test_create_inline_comment_omits_old_line_for_added_line(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should leave old_line unset for an added line, which GitLab already accepted."""
+    await gitlab_vcs_client.create_inline_comment(file="src/db.py", line=129, message="Added finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_line == 129
+    assert position.old_line is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("gitlab_http_client_config")
+async def test_create_inline_comment_keeps_new_line_only_for_unknown_file(
+        gitlab_vcs_client: GitLabVCSClient,
+        fake_gitlab_merge_requests_http_client: FakeGitLabMergeRequestsHTTPClient,
+):
+    """Should keep the previous payload when the file is absent from the MR changes."""
+    await gitlab_vcs_client.create_inline_comment(file="src/absent.py", line=12, message="Finding")
+
+    call = next(
+        args for name, args in fake_gitlab_merge_requests_http_client.calls
+        if name == "create_discussion"
+    )
+    position = call["position"]
+
+    assert position.new_path == "src/absent.py"
+    assert position.new_line == 12
+    assert position.old_path is None
+    assert position.old_line is None

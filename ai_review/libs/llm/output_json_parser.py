@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Type
 
 from pydantic import BaseModel, ValidationError
 
-from ai_review.libs.json import sanitize_json_string
+from ai_review.libs.json import extract_json_objects, sanitize_json_string
 from ai_review.libs.logger import get_logger
 
 logger = get_logger("LLM_JSON_PARSER")
@@ -55,6 +55,21 @@ class LLMOutputJSONParser(Generic[T]):
         if parsed := self.try_parse(output):
             logger.info(f"[{self.model_name}] Successfully parsed")
             return parsed
+
+        parsed_objects: list[T] = []
+        for raw in extract_json_objects(output):
+            if raw == output:
+                continue
+            if parsed := self.try_parse(raw):
+                parsed_objects.append(parsed)
+
+        if len(parsed_objects) == 1:
+            logger.info(f"[{self.model_name}] Successfully parsed embedded JSON object")
+            return parsed_objects[0]
+
+        if len(parsed_objects) > 1:
+            logger.error(f"[{self.model_name}] Multiple valid JSON objects found in output")
+            return None
 
         logger.error(f"[{self.model_name}] No valid JSON found in output")
         return None

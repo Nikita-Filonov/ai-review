@@ -251,8 +251,6 @@ class BitbucketCloudVCSClient(VCSClientProtocol):
             for thread_id, thread in threads_by_id.items():
                 file = thread[0].file
                 line = thread[0].line
-                if not file:
-                    continue
 
                 threads.append(
                     ReviewThreadSchema(

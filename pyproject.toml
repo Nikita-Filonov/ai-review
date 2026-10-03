@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xai-review"
 readme = { file = "README.md", content-type = "text/markdown" }
-version = "0.59.0"
+version = "1.2.0"
 license = { file = "LICENSE" }
 authors = [
     { name = "Nikita Filonov", email = "nikita.filonov@gmail.com" }
@@ -77,3 +77,6 @@ include = ["ai_review*"]
 [tool.setuptools.package-data]
 "ai_review.prompts" = ["*.md"]
 "ai_review.resources" = ["*.yaml"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

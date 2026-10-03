@@ -31,6 +31,7 @@ class AzureDevOpsPRChangeSchema(BaseModel):
 
     item: AzureDevOpsPRItemSchema
     change_type: str = Field(alias="changeType")
+    change_tracking_id: int | None = Field(alias="changeTrackingId", default=None)
 
 
 class AzureDevOpsGetPRFilesQuerySchema(BaseModel):

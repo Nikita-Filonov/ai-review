@@ -2,6 +2,7 @@ from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.review.filter.types import ReviewFilterServiceProtocol
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.internal.inline.schema import InlineCommentListSchema, InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
@@ -13,8 +14,13 @@ logger = get_logger("REVIEW_DRY_RUN_COMMENT_GATEWAY")
 
 
 class ReviewDryRunCommentGateway(ReviewCommentGateway):
-    def __init__(self, vcs: VCSClientProtocol, artifacts: ArtifactsServiceProtocol):
-        super().__init__(vcs=vcs, artifacts=artifacts)
+    def __init__(
+            self,
+            vcs: VCSClientProtocol,
+            artifacts: ArtifactsServiceProtocol,
+            review_filter: ReviewFilterServiceProtocol,
+    ):
+        super().__init__(vcs=vcs, artifacts=artifacts, review_filter=review_filter)
         logger.warning("Running in DRY RUN mode — no comments will be posted to VCS")
 
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
@@ -24,9 +30,16 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
 
         await self.artifacts.save_vcs_inline_reply(thread_id, reply)
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
         await hook.emit_summary_comment_reply_start(reply)
-        logger.info(f"[dry-run] Would create summary reply for thread {thread_id}:\n{reply.body_with_tag}")
+        body = reply.body_for_request(thread_id, request_comment_id)
+        logger.info(f"[dry-run] Would create summary reply for thread {thread_id}:\n{body}")
         await hook.emit_summary_comment_reply_complete(reply)
 
         await self.artifacts.save_vcs_summary_reply(thread_id, reply)
@@ -50,25 +63,31 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         await bounded_gather([self.process_inline_comment(comment) for comment in comments.root])
 
+    async def finalize(self) -> None:
+        logger.info("[dry-run] Would publish batched comments")
+
     async def clear_inline_comments(self) -> None:
         await hook.emit_clear_inline_comments_start()
 
         comments = await self.get_inline_comments()
-        if not comments:
+        general_replies = await self.get_generated_general_inline_replies()
+        if not comments and not general_replies:
             logger.info("[dry-run] No AI inline comments to clear")
-            await hook.emit_clear_inline_comments_complete(comments=comments)
+            await hook.emit_clear_inline_comments_complete(comments=[])
             return
 
-        logger.info(f"[dry-run] Would clear {len(comments)} AI inline comments")
+        logger.info(f"[dry-run] Would clear {len(comments) + len(general_replies)} AI inline comments")
         for comment in comments:
             logger.info(f"[dry-run] Would delete inline comment {comment.id}")
+        for reply in general_replies:
+            logger.info(f"[dry-run] Would delete general inline reply {reply.id}")
 
-        await hook.emit_clear_inline_comments_complete(comments=comments)
+        await hook.emit_clear_inline_comments_complete(comments=[*comments, *general_replies])
 
     async def clear_summary_comments(self) -> None:
         await hook.emit_clear_summary_comments_start()
 
-        comments = await self.get_summary_comments()
+        comments = await self.get_clearable_summary_comments()
         if not comments:
             logger.info("[dry-run] No AI summary comments to clear")
             await hook.emit_clear_summary_comments_complete(comments=comments)
@@ -79,3 +98,13 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
             logger.info(f"[dry-run] Would delete summary comment {comment.id}")
 
         await hook.emit_clear_summary_comments_complete(comments=comments)
+
+    async def clear_inline_replies(self) -> None:
+        for reply in await self.get_inline_replies():
+            logger.info(f"[dry-run] Would delete inline reply {reply.id}")
+        for reply in await self.get_general_inline_replies():
+            logger.info(f"[dry-run] Would delete general inline reply {reply.id}")
+
+    async def clear_summary_replies(self) -> None:
+        for reply in await self.get_summary_replies():
+            logger.info(f"[dry-run] Would delete summary reply {reply.id}")

@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -51,7 +51,11 @@ class ReviewThreadSchema(BaseModel):
     kind: ThreadKind
     file: str | None = None
     line: int | None = None
-    comments: list[ReviewCommentSchema]
+    comments: list[ReviewCommentSchema] = Field(description="Comments ordered from oldest to newest")
+
+    @property
+    def latest_comment(self) -> ReviewCommentSchema | None:
+        return self.comments[-1] if self.comments else None
 
 
 class VCSClientProtocol(Protocol):
@@ -102,3 +106,16 @@ class VCSClientProtocol(Protocol):
         Fetch grouped general (summary-level) comment threads.
         If VCS is flat (e.g. GitHub issues), each comment is a separate thread.
         """
+
+
+@runtime_checkable
+class SupportsBatchedComments(Protocol):
+    """
+    Optional capability for VCS clients that accumulate comments in a pending
+    batch (e.g. GitLab draft notes, GitHub pending reviews) instead of posting
+    them immediately. Clients that post comments directly simply don't
+    implement it.
+    """
+
+    async def publish_comments(self) -> None:
+        """Publish all comments accumulated in the pending batch."""

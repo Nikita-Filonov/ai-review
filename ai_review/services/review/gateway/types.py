@@ -15,7 +15,7 @@ class ReviewLLMGatewayProtocol(Protocol):
     cost: CostServiceProtocol
     artifacts: ArtifactsServiceProtocol
 
-    async def ask(self, prompt: str, prompt_system: str) -> str:
+    async def ask(self, prompt: str, prompt_system: str) -> str | None:
         ...
 
 
@@ -38,7 +38,13 @@ class ReviewCommentGatewayProtocol(Protocol):
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         ...
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
         ...
 
     async def process_inline_comment(self, comment: InlineCommentSchema) -> None:
@@ -50,8 +56,17 @@ class ReviewCommentGatewayProtocol(Protocol):
     async def process_inline_comments(self, comments: InlineCommentListSchema) -> None:
         ...
 
+    async def finalize(self) -> None:
+        ...
+
     async def clear_inline_comments(self) -> None:
         ...
 
     async def clear_summary_comments(self) -> None:
+        ...
+
+    async def clear_inline_replies(self) -> None:
+        ...
+
+    async def clear_summary_replies(self) -> None:
         ...

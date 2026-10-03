@@ -7,6 +7,18 @@ from ai_review.tests.fixtures.clients.bitbucket_server import FakeBitbucketServe
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("bitbucket_server_http_client_config")
+async def test_get_inline_threads_skips_comments_without_file(
+        monkeypatch: pytest.MonkeyPatch, bitbucket_server_vcs_client: BitbucketServerVCSClient,
+) -> None:
+    async def comments() -> list[ReviewCommentSchema]:
+        return [ReviewCommentSchema(id="1", body="orphan", thread_id="thread", file=None)]
+
+    monkeypatch.setattr(bitbucket_server_vcs_client, "get_inline_comments", comments)
+    assert await bitbucket_server_vcs_client.get_inline_threads() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_server_http_client_config")
 async def test_get_review_info_returns_valid_schema(
         bitbucket_server_vcs_client: BitbucketServerVCSClient,
         fake_bitbucket_server_pull_requests_http_client: FakeBitbucketServerPullRequestsHTTPClient,
@@ -52,7 +64,7 @@ async def test_get_general_comments_filters_inline(
     assert first.line is None
 
     called_methods = [name for name, _ in fake_bitbucket_server_pull_requests_http_client.calls]
-    assert called_methods == ["get_comments"]
+    assert called_methods == ["get_activities"]
 
 
 @pytest.mark.asyncio
@@ -73,7 +85,7 @@ async def test_get_inline_comments_filters_general(
     assert first.line == 5
 
     called_methods = [name for name, _ in fake_bitbucket_server_pull_requests_http_client.calls]
-    assert called_methods == ["get_comments"]
+    assert called_methods == ["get_activities"]
 
 
 @pytest.mark.asyncio
@@ -178,7 +190,7 @@ async def test_get_inline_threads_groups_by_thread_id(
     assert isinstance(thread.comments[0], ReviewCommentSchema)
 
     called_methods = [name for name, _ in fake_bitbucket_server_pull_requests_http_client.calls]
-    assert "get_comments" in called_methods
+    assert "get_activities" in called_methods
 
 
 @pytest.mark.asyncio
@@ -198,7 +210,7 @@ async def test_get_general_threads_groups_by_thread_id(
     assert isinstance(thread.comments[0], ReviewCommentSchema)
 
     called_methods = [name for name, _ in fake_bitbucket_server_pull_requests_http_client.calls]
-    assert "get_comments" in called_methods
+    assert "get_activities" in called_methods
 
 
 @pytest.mark.asyncio

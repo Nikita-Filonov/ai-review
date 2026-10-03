@@ -25,7 +25,7 @@ class ReviewAgentLLMGateway(ReviewLLMGatewayProtocol):
         self.agent_loop = agent_loop
         self.fallback_gateway = fallback_gateway
 
-    async def ask(self, prompt: str, prompt_system: str) -> str:
+    async def ask(self, prompt: str, prompt_system: str) -> str | None:
         try:
             await hook.emit_chat_start(prompt, prompt_system)
             loop_result = await self.agent_loop.run(

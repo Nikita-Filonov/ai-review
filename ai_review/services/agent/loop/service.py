@@ -3,16 +3,25 @@ from ai_review.libs.llm.output_json_parser import LLMOutputJSONParser
 from ai_review.libs.logger import get_logger
 from ai_review.services.agent.loop.schema import (
     AgentAction,
+    AgentLoopResultSchema,
     AgentStepSchema,
     AgentTraceSchema,
-    AgentLoopResultSchema
 )
+from ai_review.services.agent.loop.tools import is_attempted_action
 from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
 from ai_review.services.agent.tool.types import AgentToolServiceProtocol
-from ai_review.services.llm.types import LLMClientProtocol, ChatResultSchema
+from ai_review.services.llm.types import ChatResultSchema, LLMClientProtocol
 from ai_review.services.prompt.types import PromptServiceProtocol
 
 logger = get_logger("AGENT_LOOP_SERVICE")
+
+PROTOCOL_RETRY_WARNING = (
+    "Invalid response discarded: it carried an agent action but was not a single valid JSON object. "
+    "Respond with exactly one JSON object and nothing else: "
+    '{"action": "TOOL_CALL", "command": "<single shell command>"} '
+    'or {"action": "FINAL", "content": "<complete answer as a string>"}. '
+    'Every quote inside a JSON string value must be escaped as \\".'
+)
 
 
 class AgentLoopService(AgentLoopServiceProtocol):
@@ -27,24 +36,31 @@ class AgentLoopService(AgentLoopServiceProtocol):
         self.agent_tool = agent_tool
         self.max_iterations = settings.agent.max_iterations
         self.max_context_chars = settings.agent.max_total_context_chars
+        self.max_protocol_violations = settings.agent.max_protocol_violations
 
         self.parser = LLMOutputJSONParser(AgentStepSchema)
         self.traces: list[AgentTraceSchema] = []
         self.signatures: set[str] = set()
         self.context_used = 0
+        self.protocol_violations = 0
 
     def clear(self):
         self.traces = []
         self.signatures = set()
         self.context_used = 0
+        self.protocol_violations = 0
         logger.debug("Agent loop state cleared")
 
     async def run_step(self, step: AgentStepSchema, chat: ChatResultSchema, iteration: int) -> AgentTraceSchema:
-        if step.command in self.signatures:
-            logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {step.command}")
+        command = step.command
+        if command is None:
+            raise ValueError("A TOOL_CALL step must contain a command")
+
+        if command in self.signatures:
+            logger.debug(f"Duplicate tool call blocked at iteration {iteration}: {command}")
             return AgentTraceSchema(
                 step=step,
-                warning=f"Duplicate tool call blocked: {step.command}",
+                warning=f"Duplicate tool call blocked: {command}",
                 iteration=iteration,
                 raw_output=chat.text,
                 total_tokens=chat.total_tokens,
@@ -52,9 +68,9 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 completion_tokens=chat.completion_tokens,
             )
 
-        self.signatures.add(step.command)
-        logger.debug(f"Executing agent tool command at iteration {iteration}: {step.command}")
-        tool_output = await self.agent_tool.execute(step.command)
+        self.signatures.add(command)
+        logger.debug(f"Executing agent tool command at iteration {iteration}: {command}")
+        tool_output = await self.agent_tool.execute(command)
 
         return AgentTraceSchema(
             step=step,
@@ -97,15 +113,27 @@ class AgentLoopService(AgentLoopServiceProtocol):
             f"parsed_as_final={bool(fallback_step and fallback_step.action.is_final)}"
         )
 
-        final_text = (
-            fallback_step.content
-            if fallback_step and fallback_step.action.is_final
-            else fallback_text
-        )
+        if fallback_step is None and is_attempted_action(fallback_text):
+            logger.warning(
+                "Forced FINAL response is an unparseable action too; "
+                "returning the raw model output as a last resort"
+            )
+
+        if (
+            fallback_step is not None
+            and fallback_step.action.is_final
+            and fallback_step.content is not None
+        ):
+            final_text = fallback_step.content
+        else:
+            final_text = fallback_text
 
         self.traces.append(
             AgentTraceSchema(
-                step=fallback_step or AgentStepSchema(action=AgentAction.FINAL, content=fallback_text),
+                step=fallback_step or AgentStepSchema(
+                    action=AgentAction.FINAL,
+                    content=fallback_text or "Empty model response",
+                ),
                 warning="Forced final response after max_requests/context_limit.",
                 iteration=len(self.traces) + 1,
                 raw_output=fallback_text,
@@ -152,6 +180,31 @@ class AgentLoopService(AgentLoopServiceProtocol):
             step: AgentStepSchema | None = self.parser.parse_output(result.text)
             if step is None:
                 fallback_text = result.text or ""
+
+                if is_attempted_action(fallback_text):
+                    self.protocol_violations += 1
+                    logger.warning(
+                        f"Agent loop iteration {iteration} returned an unparseable action "
+                        f"({self.protocol_violations}/{self.max_protocol_violations} tolerated); "
+                        f"discarding it instead of using it as the final answer"
+                    )
+                    self.traces.append(
+                        AgentTraceSchema(
+                            warning=PROTOCOL_RETRY_WARNING,
+                            iteration=iteration,
+                            raw_output=fallback_text,
+                            total_tokens=result.total_tokens,
+                            prompt_tokens=result.prompt_tokens,
+                            completion_tokens=result.completion_tokens,
+                        )
+                    )
+
+                    if self.protocol_violations <= self.max_protocol_violations:
+                        continue
+
+                    logger.info("Too many unparseable actions; switching to force-final flow")
+                    break
+
                 logger.info(f"Agent loop iteration {iteration} returned unstructured response; stopping")
                 self.traces.append(
                     AgentTraceSchema(
@@ -175,6 +228,10 @@ class AgentLoopService(AgentLoopServiceProtocol):
                 )
 
             if step.action.is_final:
+                final_text = step.content
+                if final_text is None:
+                    raise ValueError("A FINAL step must contain content")
+
                 logger.info(f"Agent loop iteration {iteration} returned FINAL action")
                 self.traces.append(
                     AgentTraceSchema(
@@ -189,7 +246,7 @@ class AgentLoopService(AgentLoopServiceProtocol):
 
                 return AgentLoopResultSchema(
                     traces=self.traces,
-                    final_text=step.content,
+                    final_text=final_text,
                     stop_reason="final",
                 )
 

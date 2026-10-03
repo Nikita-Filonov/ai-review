@@ -1,10 +1,10 @@
 .ai-review-base:
   tags: [ build ]
-  when: manual
   stage: review
   image: nikitafilonov/ai-review:latest
   rules:
     - if: '$CI_MERGE_REQUEST_IID'
+      when: manual
   script:
     - ai-review run
   variables:
@@ -30,6 +30,10 @@
 
     # (optional) Max tokens for completion.
     LLM__META__MAX_TOKENS: "15000"
+
+    # (optional) For Azure OpenAI with newer models (gpt-5, o1, o3, etc.),
+    # use MAX_COMPLETION_TOKENS instead of MAX_TOKENS (they are mutually exclusive).
+    # LLM__META__MAX_COMPLETION_TOKENS: "15000"
 
     # (optional) Creativity of responses (0 = deterministic, >0 = more creative).
     LLM__META__TEMPERATURE: "0.3"
@@ -107,6 +111,19 @@
     #
     # Recommended range: 5–10 depending on model/API limits.
     CORE__CONCURRENCY: 7
+
+    # ===============================
+    # Agent mode (optional)
+    # ===============================
+    # Enables iterative agent loop: the model can run shell commands
+    # (ls, cat, rg, git) to explore the repo before producing the review.
+    # Works best with stronger models (gpt-4.1, claude-3-opus, etc.).
+    #
+    # AGENT__ENABLED: "true"
+    # AGENT__MAX_ITERATIONS: "25"
+    # AGENT__COMMAND_TIMEOUT: "10"
+    # AGENT__MAX_TOTAL_CONTEXT_CHARS: "40000"
+    # AGENT__MAX_COMMAND_OUTPUT_CHARS: "40000"
 
     # ===============================
     # Prompts (optional overrides)

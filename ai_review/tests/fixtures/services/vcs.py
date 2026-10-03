@@ -81,6 +81,22 @@ class FakeVCSClient(VCSClientProtocol):
         return self.responses.get("get_general_threads", [])
 
 
+class FakeBatchingVCSClient(FakeVCSClient):
+    """FakeVCSClient with the optional SupportsBatchedComments capability."""
+
+    async def publish_comments(self) -> None:
+        self.calls.append(("publish_comments", (), {}))
+        if error := self.responses.get("publish_comments_error"):
+            raise error
+
+        return self.responses.get("publish_comments_result", None)
+
+
 @pytest.fixture
 def fake_vcs_client() -> FakeVCSClient:
     return FakeVCSClient()
+
+
+@pytest.fixture
+def fake_batching_vcs_client() -> FakeBatchingVCSClient:
+    return FakeBatchingVCSClient()

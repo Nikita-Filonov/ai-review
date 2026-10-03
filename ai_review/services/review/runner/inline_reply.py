@@ -57,6 +57,9 @@ class InlineReplyReviewRunner(ReviewRunnerProtocol):
         prompt = self.prompt.build_inline_reply_request(rendered_file, thread, prompt_context)
         prompt_system = self.prompt.build_system_inline_reply_request(prompt_context)
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
+        if prompt_result is None:
+            logger.warning(f"No LLM response for inline thread {thread.id}, skipping")
+            return
 
         reply = self.inline_comment_reply.parse_model_output(prompt_result)
         if not reply:
