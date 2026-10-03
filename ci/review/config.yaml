@@ -2,9 +2,10 @@ llm:
   provider: OPENAI
 
   meta:
-    model: gpt-4o-mini
+    model: gpt-6-luna
+    reasoning:
+      effort: medium
     max_tokens: 15000
-    temperature: 0.3
 
   http_client:
     timeout: 120
