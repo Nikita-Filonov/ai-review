@@ -60,6 +60,9 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
         prompt = self.prompt.build_summary_reply_request(rendered_files, thread, prompt_context)
         prompt_system = self.prompt.build_system_summary_reply_request(prompt_context)
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
+        if prompt_result is None:
+            logger.warning(f"No LLM response for summary thread {thread.id}, skipping")
+            return
 
         reply = self.summary_comment_reply.parse_model_output(prompt_result)
         if not reply:

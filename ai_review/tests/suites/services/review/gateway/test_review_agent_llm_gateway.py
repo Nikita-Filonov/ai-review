@@ -54,16 +54,18 @@ async def test_agent_gateway_returns_agent_result(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("fallback_response", ["ONE_SHOT_RESPONSE", None])
 async def test_agent_gateway_falls_back_to_default_gateway_on_error(
+        fallback_response: str | None,
         review_agent_llm_gateway: ReviewAgentLLMGateway,
         fake_agent_loop_service: FakeAgentLoopService,
         fake_fallback_review_llm_gateway: FakeFallbackReviewLLMGateway,
 ):
     fake_agent_loop_service.responses["raise"] = True
-    fake_fallback_review_llm_gateway.responses["ask"] = "ONE_SHOT_RESPONSE"
+    fake_fallback_review_llm_gateway.responses["ask"] = fallback_response
 
     result = await review_agent_llm_gateway.ask("PROMPT", "SYSTEM_PROMPT")
-    assert result == "ONE_SHOT_RESPONSE"
+    assert result == fallback_response
     assert any(call[0] == "ask" for call in fake_fallback_review_llm_gateway.calls)
 
 

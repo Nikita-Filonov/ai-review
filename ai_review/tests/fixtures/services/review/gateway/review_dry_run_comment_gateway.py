@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
+from ai_review.services.review.filter.types import ReviewFilterServiceProtocol
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.gateway.types import ReviewCommentGatewayProtocol
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
@@ -126,6 +127,9 @@ def fake_review_dry_run_comment_gateway() -> FakeReviewDryRunCommentGateway:
 @pytest.fixture
 def review_dry_run_comment_gateway(
         fake_vcs_client: VCSClientProtocol,
-        fake_artifacts_service: ArtifactsServiceProtocol
+        fake_artifacts_service: ArtifactsServiceProtocol,
+        review_filter_service: ReviewFilterServiceProtocol,
 ) -> ReviewDryRunCommentGateway:
-    return ReviewDryRunCommentGateway(vcs=fake_vcs_client, artifacts=fake_artifacts_service)
+    return ReviewDryRunCommentGateway(
+        vcs=fake_vcs_client, artifacts=fake_artifacts_service, review_filter=review_filter_service,
+    )

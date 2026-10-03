@@ -102,6 +102,7 @@ def test_review_service_uses_dry_run_comment_gateway(monkeypatch: pytest.MonkeyP
 
     service = ReviewService()
     assert type(service.review_comment_gateway) is ReviewDryRunCommentGateway  # noqa
+    assert service.review_comment_gateway.review_filter is service.review_filter
 
 
 def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatch):
@@ -110,6 +111,7 @@ def test_review_service_uses_real_comment_gateway(monkeypatch: pytest.MonkeyPatc
 
     service = ReviewService()
     assert type(service.review_comment_gateway) is ReviewCommentGateway  # noqa
+    assert service.review_comment_gateway.review_filter is service.review_filter
 
 
 def test_review_service_initializes_agent_components():
@@ -219,8 +221,8 @@ async def test_run_clear_review_clears_all_comments_once(
     await review_service.run_clear_review()
 
     assert fake_review_comment_gateway.calls == [
-        ("clear_inline_replies", {}),
-        ("clear_summary_replies", {}),
         ("clear_inline_comments", {}),
         ("clear_summary_comments", {}),
+        ("clear_inline_replies", {}),
+        ("clear_summary_replies", {}),
     ]

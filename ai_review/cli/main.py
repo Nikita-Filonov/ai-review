@@ -67,7 +67,7 @@ def run_summary_reply():
 
 @app.command("clear")
 def clear():
-    """Remove tagged review comments, AI answers, and reply requests"""
+    """Remove all tagged review comments and replies"""
     typer.secho("Clearing all tagged review comments...", fg=typer.colors.YELLOW)
     asyncio.run(run_clear_review())
     typer.secho("Tagged review comments cleared", fg=typer.colors.GREEN, bold=True)
@@ -91,18 +91,18 @@ def clear_summary():
 
 @app.command("clear-inline-reply")
 def clear_inline_reply():
-    """Remove inline comments requesting an AI reply"""
-    typer.secho("Clearing inline reply requests...", fg=typer.colors.YELLOW)
+    """Remove comments tagged with the inline reply tag"""
+    typer.secho("Clearing inline replies...", fg=typer.colors.YELLOW)
     asyncio.run(run_clear_inline_reply_review())
-    typer.secho("Inline reply requests cleared", fg=typer.colors.GREEN, bold=True)
+    typer.secho("Inline replies cleared", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command("clear-summary-reply")
 def clear_summary_reply():
-    """Remove general comments requesting an AI summary reply"""
-    typer.secho("Clearing summary reply requests...", fg=typer.colors.YELLOW)
+    """Remove comments tagged with the summary reply tag"""
+    typer.secho("Clearing summary replies...", fg=typer.colors.YELLOW)
     asyncio.run(run_clear_summary_reply_review())
-    typer.secho("Summary reply requests cleared", fg=typer.colors.GREEN, bold=True)
+    typer.secho("Summary replies cleared", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command("show-config")

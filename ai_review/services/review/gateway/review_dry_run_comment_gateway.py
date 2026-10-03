@@ -2,6 +2,7 @@ from ai_review.libs.asynchronous.gather import bounded_gather
 from ai_review.libs.logger import get_logger
 from ai_review.services.artifacts.types import ArtifactsServiceProtocol
 from ai_review.services.hook import hook
+from ai_review.services.review.filter.types import ReviewFilterServiceProtocol
 from ai_review.services.review.gateway.review_comment_gateway import ReviewCommentGateway
 from ai_review.services.review.internal.inline.schema import InlineCommentListSchema, InlineCommentSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
@@ -13,8 +14,13 @@ logger = get_logger("REVIEW_DRY_RUN_COMMENT_GATEWAY")
 
 
 class ReviewDryRunCommentGateway(ReviewCommentGateway):
-    def __init__(self, vcs: VCSClientProtocol, artifacts: ArtifactsServiceProtocol):
-        super().__init__(vcs=vcs, artifacts=artifacts)
+    def __init__(
+            self,
+            vcs: VCSClientProtocol,
+            artifacts: ArtifactsServiceProtocol,
+            review_filter: ReviewFilterServiceProtocol,
+    ):
+        super().__init__(vcs=vcs, artifacts=artifacts, review_filter=review_filter)
         logger.warning("Running in DRY RUN mode — no comments will be posted to VCS")
 
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
@@ -64,7 +70,7 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
         await hook.emit_clear_inline_comments_start()
 
         comments = await self.get_inline_comments()
-        general_replies = await self.get_general_inline_replies()
+        general_replies = await self.get_generated_general_inline_replies()
         if not comments and not general_replies:
             logger.info("[dry-run] No AI inline comments to clear")
             await hook.emit_clear_inline_comments_complete(comments=[])
@@ -94,11 +100,11 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
         await hook.emit_clear_summary_comments_complete(comments=comments)
 
     async def clear_inline_replies(self) -> None:
-        for request in await self.get_inline_reply_requests():
-            logger.info(f"[dry-run] Would delete inline reply request {request.id}")
-        for request in await self.get_general_inline_reply_requests():
-            logger.info(f"[dry-run] Would delete general inline reply request {request.id}")
+        for reply in await self.get_inline_replies():
+            logger.info(f"[dry-run] Would delete inline reply {reply.id}")
+        for reply in await self.get_general_inline_replies():
+            logger.info(f"[dry-run] Would delete general inline reply {reply.id}")
 
     async def clear_summary_replies(self) -> None:
-        for request in await self.get_summary_reply_requests():
-            logger.info(f"[dry-run] Would delete summary reply request {request.id}")
+        for reply in await self.get_summary_replies():
+            logger.info(f"[dry-run] Would delete summary reply {reply.id}")

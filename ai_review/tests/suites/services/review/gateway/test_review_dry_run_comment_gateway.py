@@ -1,6 +1,7 @@
 import pytest
 
 from ai_review.config import settings
+from ai_review.services.review.filter.service import ReviewFilterService
 from ai_review.services.review.gateway.review_dry_run_comment_gateway import ReviewDryRunCommentGateway
 from ai_review.services.review.internal.inline.schema import InlineCommentSchema, InlineCommentListSchema
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
@@ -168,8 +169,8 @@ async def test_dry_run_inline_reply_request_cleanup_does_not_delete(
     await review_dry_run_comment_gateway.clear_inline_replies()
 
     output = capsys.readouterr().out
-    assert "Would delete inline reply request question" in output
-    assert "Would delete inline reply request reply" not in output
+    assert "Would delete inline reply question" in output
+    assert "Would delete inline reply reply" not in output
     assert all(call[0] != "delete_inline_comment" for call in fake_vcs_client.calls)
 
 
@@ -187,8 +188,8 @@ async def test_dry_run_inline_reply_request_cleanup_reports_general_comment(
     await review_dry_run_comment_gateway.clear_inline_replies()
 
     output = capsys.readouterr().out
-    assert "Would delete general inline reply request question" in output
-    assert "Would delete general inline reply request reply" not in output
+    assert "Would delete general inline reply question" in output
+    assert "Would delete general inline reply reply" not in output
     assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
 
 
@@ -284,8 +285,8 @@ async def test_dry_run_summary_reply_request_cleanup_does_not_delete(
     await review_dry_run_comment_gateway.clear_summary_replies()
 
     output = capsys.readouterr().out
-    assert "Would delete summary reply request question" in output
-    assert "Would delete summary reply request reply" not in output
+    assert "Would delete summary reply question" in output
+    assert "Would delete summary reply reply" not in output
     assert all(call[0] != "delete_general_comment" for call in fake_vcs_client.calls)
 
 
@@ -293,9 +294,12 @@ async def test_dry_run_summary_reply_request_cleanup_does_not_delete(
 async def test_finalize_does_not_touch_vcs(
         fake_batching_vcs_client: FakeBatchingVCSClient,
         fake_artifacts_service: FakeArtifactsService,
+        review_filter_service: ReviewFilterService,
 ):
     """Dry run should not publish anything to the VCS, even with a batching client."""
-    gateway = ReviewDryRunCommentGateway(vcs=fake_batching_vcs_client, artifacts=fake_artifacts_service)
+    gateway = ReviewDryRunCommentGateway(
+        vcs=fake_batching_vcs_client, artifacts=fake_artifacts_service, review_filter=review_filter_service,
+    )
 
     await gateway.finalize()
 

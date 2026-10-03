@@ -108,6 +108,7 @@ async def test_summary_replies_once_per_request_and_allows_follow_up(
     # Recreate the gateway: acknowledgement must survive a new process.
     summary_reply_review_runner.review_comment_gateway = ReviewCommentGateway(
         vcs=fake_vcs_client, artifacts=review_comment_gateway.artifacts,
+        review_filter=review_comment_gateway.review_filter,
     )
     await summary_reply_review_runner.run()
     assert len(fake_review_direct_llm_gateway.calls) == 1

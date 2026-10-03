@@ -20,7 +20,7 @@ It is built with Typer and fully supports async execution of all review modes.
     - [🧽 Clear Everything](#-clear-everything)
     - [🧽 Clear Inline Comments](#-clear-inline-comments)
     - [🧽 Clear Summary Comments](#-clear-summary-comments)
-    - [🧽 Clear Reply Requests](#-clear-reply-requests)
+    - [🧽 Clear Replies](#-clear-replies)
     - [⚙️ Inspect Configuration](#-inspect-configuration)
 - [⚙️ Tips](#-tips)
 
@@ -58,11 +58,11 @@ ai-review --help
 | `ai-review run-summary`         | Runs **summary review** that posts a single summarizing comment.          | `ai-review run-summary`         |
 | `ai-review run-inline-reply`    | Generates **AI replies** to existing inline comment threads.              | `ai-review run-inline-reply`    |
 | `ai-review run-summary-reply`   | Generates **AI replies** to existing summary review threads.              | `ai-review run-summary-reply`   |
-| `ai-review clear`               | Removes all tagged findings, answers, and reply requests.                 | `ai-review clear`               |
+| `ai-review clear`               | Removes all tagged review comments and replies.                          | `ai-review clear`               |
 | `ai-review clear-inline`        | Removes all **AI-generated inline comments** from the review.             | `ai-review clear-inline`        |
 | `ai-review clear-summary`       | Removes all **AI-generated summary comments** from the review.            | `ai-review clear-summary`       |
-| `ai-review clear-inline-reply`  | Removes comments tagged as **inline reply requests**.                     | `ai-review clear-inline-reply`  |
-| `ai-review clear-summary-reply` | Removes comments tagged as **summary reply requests**.                    | `ai-review clear-summary-reply` |
+| `ai-review clear-inline-reply`  | Removes comments marked with `review.inline_reply_tag`.                   | `ai-review clear-inline-reply`  |
+| `ai-review clear-summary-reply` | Removes comments marked with `review.summary_reply_tag`.                  | `ai-review clear-summary-reply` |
 | `ai-review show-config`         | Prints the currently resolved configuration (merged from YAML/JSON/ENV).  | `ai-review show-config`         |
 
 ---
@@ -175,9 +175,9 @@ Notes:
 ai-review clear
 ```
 
-Runs all four clear commands. It removes tagged AI findings, fallbacks, summaries, generated answers, and user comments
-tagged as reply requests in the current PR/MR. Reply requests are cleared first, before their parent review comments.
-Deletion is permanent; `review.dry_run` previews it without deleting.
+Runs `clear-inline`, `clear-summary`, `clear-inline-reply`, and `clear-summary-reply` in this order.
+Together they remove tagged review comments and replies in the current PR/MR. Deletion is permanent;
+`review.dry_run` previews it without deleting.
 
 ### 🧽 Clear Inline Comments
 
@@ -217,20 +217,19 @@ ai-review clear-summary
 >
 > Use with caution, especially in shared or long-running pull requests.
 
-### 🧽 Clear Reply Requests
+### 🧽 Clear Replies
 
-Remove questions tagged as requests for an AI answer, while keeping generated answers and ordinary review findings:
+Remove comments marked with the configured reply tags:
 
 ```bash
 ai-review clear-inline-reply
 ai-review clear-summary-reply
 ```
 
-`clear-inline-reply` matches `review.inline_reply_tag` in inline comments and general comments (for VCS adapters that
-post inline requests there). `clear-summary-reply` matches `review.summary_reply_tag` in general comments. Comments with
-an AI tag or generated-answer marker are excluded. Older generated answers carrying only a reply-request
-tag cannot be distinguished from user requests and may also be removed.
-The VCS credentials running the command must be allowed to delete those comments; deletion failures make the command fail.
+`clear-inline-reply` removes comments with `review.inline_reply_tag` (default: `#ai-review-inline-reply`).
+`clear-summary-reply` removes comments with `review.summary_reply_tag` (default: `#ai-review-summary-reply`).
+Generated AI answers are removed by `clear-inline` and `clear-summary`. Legacy bot answers carrying only a reply tag
+are also removed by the corresponding reply command.
 
 ### ⚙️ Inspect Configuration
 

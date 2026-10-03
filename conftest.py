@@ -11,6 +11,7 @@ pytest_plugins = (
     "ai_review.tests.fixtures.services.agent.tool",
     "ai_review.tests.fixtures.services.agent.loop",
     "ai_review.tests.fixtures.services.review.base",
+    "ai_review.tests.fixtures.services.review.filter",
     "ai_review.tests.fixtures.services.review.runner.inline",
     "ai_review.tests.fixtures.services.review.runner.context",
     "ai_review.tests.fixtures.services.review.runner.summary",

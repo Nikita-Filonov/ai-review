@@ -55,6 +55,9 @@ class InlineReviewRunner(ReviewRunnerProtocol):
         prompt = self.prompt.build_inline_request(rendered_file, prompt_context)
         prompt_system = self.prompt.build_system_inline_request(prompt_context)
         prompt_result = await self.review_llm_gateway.ask(prompt, prompt_system)
+        if prompt_result is None:
+            logger.warning(f"No LLM response for file {file}, skipping")
+            return
 
         comments = self.inline_comment.parse_model_output(prompt_result).dedupe()
         expected_file = normalize_file_path(file)
