@@ -2,15 +2,14 @@ from ai_review.config import settings
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
 
 
-def test_body_with_tag_appends_reply_tag(monkeypatch):
-    """body_with_tag should append the configured summary reply tag."""
-    monkeypatch.setattr(settings.review, "summary_reply_tag", "#ai-summary-reply")
+def test_body_for_request_marks_generated_reply_and_references_question(monkeypatch):
+    monkeypatch.setattr(settings.review, "summary_tag", "#ai-summary")
     comment = SummaryCommentReplySchema(text="This is a summary reply")
 
-    result = comment.body_with_tag
-    assert result.startswith("This is a summary reply")
-    assert result.endswith("\n\n#ai-summary-reply")
-    assert "\n\n#ai-summary-reply" in result
+    assert comment.body_for_request("thread-1", 42) == (
+        "This is a summary reply\n\n#ai-summary\n\n"
+        "<!-- ai-review:summary-reply thread=thread-1 comment=42 -->"
+    )
 
 
 def test_inherits_text_normalization_from_parent():

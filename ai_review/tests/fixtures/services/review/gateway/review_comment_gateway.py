@@ -92,8 +92,16 @@ class FakeReviewCommentGateway(ReviewCommentGatewayProtocol):
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         self.calls.append(("process_inline_reply", {"thread_id": thread_id, "reply": reply}))
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
-        self.calls.append(("process_summary_reply", {"thread_id": thread_id, "reply": reply}))
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
+        self.calls.append(("process_summary_reply", {
+            "thread_id": thread_id, "reply": reply, "request_comment_id": request_comment_id,
+        }))
 
     async def process_inline_comment(self, comment: InlineCommentSchema) -> None:
         self.calls.append(("process_inline_comment", {"comment": comment}))

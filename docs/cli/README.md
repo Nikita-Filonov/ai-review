@@ -136,16 +136,32 @@ User: How do I fix it? #ai-review-inline-reply
 AI:   Check for null before accessing the value. #ai-review-inline
 ```
 
-`run-summary-reply` works differently: it selects threads containing `review.summary_reply_tag` anywhere in their history.
+`run-summary-reply` follows the same tagged-question flow:
+
+```text
+User: Which tests should I add? #ai-review-summary-reply
+→ run-summary-reply
+AI:   Cover null input and the empty list. #ai-review-summary
+
+→ run-summary-reply again
+(skipped: this question already has an answer)
+```
+
+Summary replies record the question ID, so this also works when the VCS posts replies as separate comments.
+Start a new tagged comment for each follow-up. Conversation history includes the comments grouped by the VCS adapter.
 
 Notes:
 
-- Tags are configurable via `review.inline_reply_tag` (question) and `review.inline_tag` (AI comment). Keep them distinct.
-  An empty request tag disables replies; comments carrying the AI tag are skipped even if they quote the request tag.
+- Configure question/AI tags via `review.inline_reply_tag` / `review.inline_tag` and
+  `review.summary_reply_tag` / `review.summary_tag`. Keep each pair distinct. An empty request tag disables that reply mode.
+  Comments carrying the AI tag are skipped even if they quote the request tag.
 - **Upgrading:** if the latest AI reply still has `#ai-review-inline-reply`, replace it with `#ai-review-inline`.
   This prevents reprocessing and lets `clear-inline` recognize it. Earlier user tags can stay.
+- **Older summary conversations:** remove `#ai-review-summary-reply` from already answered questions and legacy AI replies.
+  They have no recorded question IDs, so the new logic cannot identify previously handled requests.
 - **Gitea:** replies are posted as separate general comments, so the original inline thread remains eligible.
-- **Retries:** `No reply.` without a suggestion is not posted. Any request without a posted answer remains eligible.
+- **Retries:** empty replies and `No reply` / `No reply.` are not posted (inline suggestions are still published).
+  Unanswered requests remain eligible; deleting a summary answer also removes its acknowledgement.
   Serialize reply jobs per PR/MR in CI to avoid concurrent duplicate answers.
 
 ### 🧽 Clear Inline Comments

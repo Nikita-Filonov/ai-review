@@ -9,8 +9,8 @@ from ai_review.services.review.internal.summary_reply.service import SummaryComm
     [
         ("Some reply", "Some reply"),
         ("   padded reply   ", "padded reply"),
-        ("", ""),
-        (None, ""),
+        ("No reply is needed for the deleted file, but add a test.",
+         "No reply is needed for the deleted file, but add a test."),
     ],
 )
 def test_parse_model_output_normalizes_and_wraps(raw: str | None, expected: str):
@@ -19,3 +19,8 @@ def test_parse_model_output_normalizes_and_wraps(raw: str | None, expected: str)
 
     assert isinstance(result, SummaryCommentReplySchema)
     assert result.text == expected
+
+
+@pytest.mark.parametrize("raw", [None, "", " \n\t", "No reply", "No reply.", "  NO REPLY.\n"])
+def test_parse_model_output_skips_empty_and_no_reply(raw: str | None):
+    assert SummaryCommentReplyService.parse_model_output(raw) is None

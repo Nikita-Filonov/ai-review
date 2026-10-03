@@ -120,6 +120,95 @@ async def test_get_summary_threads_filters_by_tag(
     assert any(call[0] == "get_general_threads" for call in fake_vcs_client.calls)
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("bodies", "expected"),
+    [
+        ([], False),
+        (["Summary #ai-review-summary"], False),
+        (["Why? #ai-review-summary-reply"], True),
+        (["Why? #ai-review-summary-reply-extra"], False),
+        (["Why? #ai-review-summary-reply", "Untagged follow-up"], False),
+        (["Why? #ai-review-summary-reply", "Answer #ai-review-summary"], False),
+        (["Answer #ai-review-summary", "Follow-up #ai-review-summary-reply"], True),
+        (["Bot quotes #ai-review-summary-reply\n\n#ai-review-summary"], False),
+    ],
+)
+async def test_get_summary_threads_uses_latest_request(
+        bodies: list[str],
+        expected: bool,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    thread = ReviewThreadSchema(
+        id="t1", kind=ThreadKind.SUMMARY,
+        comments=[ReviewCommentSchema(id=index, body=body) for index, body in enumerate(bodies)],
+    )
+    fake_vcs_client.responses["get_general_threads"] = [thread]
+
+    assert await review_comment_gateway.get_summary_threads() == ([thread] if expected else [])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tag", ["", "<request.summary+>"])
+async def test_get_summary_threads_respects_configured_tag(
+        tag: str,
+        monkeypatch: pytest.MonkeyPatch,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    monkeypatch.setattr(settings.review, "summary_reply_tag", tag)
+    thread = ReviewThreadSchema(
+        id="t1", kind=ThreadKind.SUMMARY,
+        comments=[ReviewCommentSchema(id=1, body="Question <request.summary+>")],
+    )
+    fake_vcs_client.responses["get_general_threads"] = [thread]
+
+    assert await review_comment_gateway.get_summary_threads() == ([thread] if tag else [])
+
+
+@pytest.mark.asyncio
+async def test_summary_acknowledgement_is_scoped_to_thread_and_comment(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    requests = [
+        ReviewThreadSchema(
+            id=thread_id, kind=ThreadKind.SUMMARY,
+            comments=[ReviewCommentSchema(id=1, body="Why? #ai-review-summary-reply")],
+        )
+        for thread_id in [10, 20]
+    ]
+    # A separate reply acknowledges string IDs, as persisted by an earlier process.
+    answer = ReviewThreadSchema(
+        id=30, kind=ThreadKind.SUMMARY,
+        comments=[ReviewCommentSchema(
+            id=1, body=SummaryCommentReplySchema(text="Answer").body_for_request("10", "1"),
+        )],
+    )
+    fake_vcs_client.responses["get_general_threads"] = [answer, *requests]
+
+    assert await review_comment_gateway.get_summary_threads() == [requests[1]]
+
+    requests[0].comments.append(ReviewCommentSchema(id=2, body="Follow-up #ai-review-summary-reply"))
+    assert await review_comment_gateway.get_summary_threads() == requests
+
+
+@pytest.mark.asyncio
+async def test_summary_reply_marker_prevents_self_reply_after_tag_change(
+        monkeypatch: pytest.MonkeyPatch,
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    body = SummaryCommentReplySchema(text="Quoted #ai-review-summary-reply").body_for_request("t1", "c1")
+    monkeypatch.setattr(settings.review, "summary_tag", "#new-summary-tag")
+    fake_vcs_client.responses["get_general_threads"] = [ReviewThreadSchema(
+        id="reply", kind=ThreadKind.SUMMARY, comments=[ReviewCommentSchema(id="c2", body=body)],
+    )]
+
+    assert await review_comment_gateway.get_summary_threads() == []
+
+
 # === GET INLINE COMMENTS ===
 
 @pytest.mark.asyncio
@@ -192,6 +281,28 @@ async def test_get_summary_comments_returns_empty_when_no_ai_comments(
     assert result == []
 
 
+@pytest.mark.asyncio
+async def test_summary_detection_and_clear_distinguish_requests_replies_and_summaries(
+        fake_vcs_client: FakeVCSClient,
+        review_comment_gateway: ReviewCommentGateway,
+):
+    request = ReviewCommentSchema(id="request", body="Why? #ai-review-summary-reply")
+    reply = ReviewCommentSchema(
+        id="reply", body=SummaryCommentReplySchema(text="Answer").body_for_request("request", "request"),
+    )
+    summary = ReviewCommentSchema(id="summary", body="Review #ai-review-summary")
+    fallback = ReviewCommentSchema(id="fallback", body="Finding #ai-review-inline-fallback")
+    fake_vcs_client.responses["get_general_comments"] = [request, reply, fallback]
+    assert await review_comment_gateway.get_summary_comments() == []
+
+    fake_vcs_client.responses["get_general_comments"].append(summary)
+    assert await review_comment_gateway.get_summary_comments() == [summary]
+    await review_comment_gateway.clear_summary_comments()
+
+    deleted = [call[1][0] for call in fake_vcs_client.calls if call[0] == "delete_general_comment"]
+    assert deleted == ["reply", "fallback", "summary"]
+
+
 # === INLINE REPLY ===
 
 @pytest.mark.asyncio
@@ -244,8 +355,9 @@ async def test_process_summary_reply_success(
 ):
     """Should create summary reply comment."""
     reply = SummaryCommentReplySchema(text="AI summary reply")
-    await review_comment_gateway.process_summary_reply("t42", reply)
-    assert any(call[0] == "create_summary_reply" for call in fake_vcs_client.calls)
+    await review_comment_gateway.process_summary_reply("t42", reply, request_comment_id="c1")
+    call = next(call for call in fake_vcs_client.calls if call[0] == "create_summary_reply")
+    assert call[1] == ("t42", reply.body_for_request("t42", "c1"))
 
     assert ("save_vcs_summary_reply", {"thread_id": "t42", "reply": reply}) in fake_artifacts_service.calls
 
@@ -264,7 +376,7 @@ async def test_process_summary_reply_error(
     fake_vcs_client.create_summary_reply = failing_create_summary_reply
 
     reply = SummaryCommentReplySchema(text="AI summary reply")
-    await review_comment_gateway.process_summary_reply("t42", reply)
+    await review_comment_gateway.process_summary_reply("t42", reply, request_comment_id="c1")
     output = capsys.readouterr().out
 
     assert "Failed to create summary reply" in output

@@ -39,6 +39,10 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
         self.review_comment_gateway = review_comment_gateway
 
     async def process_thread_reply(self, thread: ReviewThreadSchema, review_info: ReviewInfoSchema):
+        if not (request_comment := thread.latest_comment):
+            logger.info(f"No comments in summary thread {thread.id}, skipping")
+            return
+
         logger.info(f"Processing summary reply for thread {thread.id}")
 
         changed_files = self.policy.apply_for_files(review_info.changed_files)
@@ -62,7 +66,9 @@ class SummaryReplyReviewRunner(ReviewRunnerProtocol):
             logger.info(f"No valid reply generated for summary thread {thread.id}")
             return
 
-        await self.review_comment_gateway.process_summary_reply(thread.id, reply)
+        await self.review_comment_gateway.process_summary_reply(
+            thread.id, reply, request_comment_id=request_comment.id,
+        )
 
     async def run(self) -> None:
         await hook.emit_summary_reply_review_start()

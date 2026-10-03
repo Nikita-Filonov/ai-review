@@ -29,8 +29,14 @@ class ReviewConfig(BaseModel):
         description="Request tag on the latest inline comment; must differ from inline_tag",
     )
     inline_fallback_tag: str = Field(default="#ai-review-inline-fallback")
-    summary_tag: str = Field(default="#ai-review-summary")
-    summary_reply_tag: str = Field(default="#ai-review-summary-reply")
+    summary_tag: str = Field(
+        default="#ai-review-summary",
+        description="Marker appended to generated summary comments and replies",
+    )
+    summary_reply_tag: str = Field(
+        default="#ai-review-summary-reply",
+        description="Request tag on the latest summary comment; must differ from summary_tag",
+    )
     context_lines: int = Field(default=10, ge=0)
     allow_changes: list[str] = Field(default_factory=list)
     ignore_changes: list[str] = Field(default_factory=list)

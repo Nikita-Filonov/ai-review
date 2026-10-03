@@ -9,7 +9,7 @@ class FakeSummaryCommentReplyService(SummaryCommentReplyServiceProtocol):
         self.calls: list[tuple[str, dict]] = []
         self.reply = reply or SummaryCommentReplySchema(text="Overall, the code looks clean and efficient.")
 
-    def parse_model_output(self, output: str) -> SummaryCommentReplySchema:
+    def parse_model_output(self, output: str) -> SummaryCommentReplySchema | None:
         self.calls.append(("parse_model_output", {"output": output}))
         return self.reply
 

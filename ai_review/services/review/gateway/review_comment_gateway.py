@@ -9,6 +9,7 @@ from ai_review.services.review.internal.inline.schema import InlineCommentListSc
 from ai_review.services.review.internal.inline_reply.schema import InlineCommentReplySchema
 from ai_review.services.review.internal.summary.schema import SummaryCommentSchema
 from ai_review.services.review.internal.summary_reply.schema import SummaryCommentReplySchema
+from ai_review.services.review.internal.summary_reply.tools import get_summary_reply_reference
 from ai_review.services.vcs.types import (
     VCSClientProtocol,
     ReviewThreadSchema,
@@ -37,9 +38,19 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
 
     async def get_summary_threads(self) -> list[ReviewThreadSchema]:
         threads = await self.vcs.get_general_threads()
+        answered_requests = {
+            reference
+            for thread in threads
+            for comment in thread.comments
+            if (reference := get_summary_reply_reference(comment.body)) is not None
+        }
         summary_threads = [
             thread for thread in threads
-            if any(settings.review.summary_reply_tag in comment.body for comment in thread.comments)
+            if (latest_comment := thread.latest_comment)
+            and contains_tag(latest_comment.body, settings.review.summary_reply_tag)
+            and not contains_tag(latest_comment.body, settings.review.summary_tag)
+            and get_summary_reply_reference(latest_comment.body) is None
+            and (str(thread.id), str(latest_comment.id)) not in answered_requests
         ]
         logger.info(f"Detected {len(summary_threads)}/{len(threads)} AI summary threads")
         return summary_threads
@@ -57,7 +68,8 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
         comments = await self.vcs.get_general_comments()
         summary_comments = [
             comment for comment in comments
-            if settings.review.summary_tag in comment.body
+            if contains_tag(comment.body, settings.review.summary_tag)
+            and get_summary_reply_reference(comment.body) is None
         ]
         logger.info(f"Detected {len(summary_comments)}/{len(comments)} AI summary comments")
         return summary_comments
@@ -65,17 +77,15 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
     async def get_clearable_summary_comments(self) -> list[ReviewCommentSchema]:
         """General comments that clear-summary removes.
 
-        Wider than get_summary_comments: it also matches the inline-fallback tag, so a
-        comment ai-review posted because a diff position was rejected is cleared too.
+        Wider than get_summary_comments: it includes replies and inline fallbacks.
         get_summary_comments must stay narrow — SummaryReviewRunner uses it to decide
-        whether a summary already exists, and a leftover fallback comment must not
-        suppress the summary review.
+        whether a summary already exists; replies and fallbacks must not suppress it.
         """
         tags = (settings.review.summary_tag, settings.review.inline_fallback_tag)
         general_comments = await self.vcs.get_general_comments()
         comments = [
             comment for comment in general_comments
-            if any(tag in comment.body for tag in tags)
+            if any(contains_tag(comment.body, tag) for tag in tags)
         ]
         logger.info(f"Detected {len(comments)}/{len(general_comments)} clearable AI general comments")
         return comments
@@ -91,10 +101,16 @@ class ReviewCommentGateway(ReviewCommentGatewayProtocol):
             logger.exception(f"Failed to create inline reply for thread {thread_id}: {error}")
             await hook.emit_inline_comment_reply_error(reply)
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
         try:
             await hook.emit_summary_comment_reply_start(reply)
-            await self.vcs.create_summary_reply(thread_id, reply.body_with_tag)
+            await self.vcs.create_summary_reply(thread_id, reply.body_for_request(thread_id, request_comment_id))
             await hook.emit_summary_comment_reply_complete(reply)
 
             await self.artifacts.save_vcs_summary_reply(thread_id, reply)

@@ -24,9 +24,16 @@ class ReviewDryRunCommentGateway(ReviewCommentGateway):
 
         await self.artifacts.save_vcs_inline_reply(thread_id, reply)
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
         await hook.emit_summary_comment_reply_start(reply)
-        logger.info(f"[dry-run] Would create summary reply for thread {thread_id}:\n{reply.body_with_tag}")
+        body = reply.body_for_request(thread_id, request_comment_id)
+        logger.info(f"[dry-run] Would create summary reply for thread {thread_id}:\n{body}")
         await hook.emit_summary_comment_reply_complete(reply)
 
         await self.artifacts.save_vcs_summary_reply(thread_id, reply)

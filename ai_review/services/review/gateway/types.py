@@ -38,7 +38,13 @@ class ReviewCommentGatewayProtocol(Protocol):
     async def process_inline_reply(self, thread_id: str, reply: InlineCommentReplySchema) -> None:
         ...
 
-    async def process_summary_reply(self, thread_id: str, reply: SummaryCommentReplySchema) -> None:
+    async def process_summary_reply(
+            self,
+            thread_id: str | int,
+            reply: SummaryCommentReplySchema,
+            *,
+            request_comment_id: str | int,
+    ) -> None:
         ...
 
     async def process_inline_comment(self, comment: InlineCommentSchema) -> None:

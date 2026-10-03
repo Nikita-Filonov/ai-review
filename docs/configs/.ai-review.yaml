@@ -540,7 +540,10 @@ review:
   # Each new question needs this tag. Full thread history is always included.
   inline_reply_tag: "#ai-review-inline-reply"
   inline_fallback_tag: "#ai-review-inline-fallback"
+  # Marker for generated summary comments AND replies.
   summary_tag: "#ai-review-summary"
+  # Tag each new summary question; keep distinct from summary_tag.
+  # Published replies record the question ID so later runs skip answered requests.
   summary_reply_tag: "#ai-review-summary-reply"
 
   # Number of context lines around changes (only used in *_WITH_CONTEXT modes).

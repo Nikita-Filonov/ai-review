@@ -41,11 +41,13 @@ async def test_process_summary_reply_dry_run_logs_and_no_vcs_calls(
 ):
     """Dry-run: should log the summary reply but not call VCS."""
     reply = SummaryCommentReplySchema(text="Dry-run summary reply")
-    await review_dry_run_comment_gateway.process_summary_reply("t2", reply)
+    await review_dry_run_comment_gateway.process_summary_reply("t2", reply, request_comment_id="c2")
     output = capsys.readouterr().out
 
     assert "[dry-run]" in output
     assert "Would create summary reply" in output
+    assert settings.review.summary_reply_tag not in output
+    assert reply.body_for_request("t2", "c2") in output
     assert not any(call[0].startswith("create_") for call in fake_vcs_client.calls)
 
     assert ("save_vcs_summary_reply", {"thread_id": "t2", "reply": reply}) in fake_artifacts_service.calls
