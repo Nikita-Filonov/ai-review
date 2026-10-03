@@ -309,3 +309,18 @@
   script:
     - ai-review clear-summary
   extends: .ai-review-base
+
+.ai-review-clear:
+  script:
+    - ai-review clear
+  extends: .ai-review-base
+
+.ai-review-clear-inline-reply:
+  script:
+    - ai-review clear-inline-reply
+  extends: .ai-review-base
+
+.ai-review-clear-summary-reply:
+  script:
+    - ai-review clear-summary-reply
+  extends: .ai-review-base
