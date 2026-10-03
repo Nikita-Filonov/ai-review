@@ -13,6 +13,7 @@ On each turn you MUST return exactly one JSON object — either a tool request o
   the string value.
 - Gather missing context via TOOL_CALL first, then finalize. Never invent command results.
 - Keep commands precise, targeted, and non-destructive.
+- Commands run without a shell. Do not use pipes, redirects, `&&`, or command substitution.
 - Do not repeat commands already executed.
 - One JSON object per response — no markdown fences, no extra keys, no prose outside the JSON.
 
@@ -24,7 +25,7 @@ On each turn you MUST return exactly one JSON object — either a tool request o
 
 ## Examples
 
-- `{"action":"TOOL_CALL","command":"rg \"AuthService\" src/"}`
+- `{"action":"TOOL_CALL","command":"grep -R -n AuthService src/"}`
 - `{"action":"TOOL_CALL","command":"git diff --name-only"}`
 - `{"action":"FINAL","content":"[{\"file\":\"foo.py\",\"line\":10,\"message\":\"Unused import\",\"suggestion\":null}]"}`
 - `{"action":"FINAL","content":"No issues found."}`

@@ -11,7 +11,6 @@ class AgentConfig(BaseModel):
         default_factory=lambda: [
             re.compile(r"^ls(?:\s+.*)?$"),
             re.compile(r"^cat(?:\s+.*)?$"),
-            re.compile(r"^rg(?:\s+.*)?$"),
             re.compile(r"^grep(?:\s+.*)?$"),
             re.compile(r"^git\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\s+.*)?$"),
         ]

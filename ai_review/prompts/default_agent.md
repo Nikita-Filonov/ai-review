@@ -19,13 +19,18 @@ answer.
 
 ## Command Scope
 
-You can request shell commands for read-only repository exploration (policy enforcement happens outside the model).
+You can request commands for read-only repository exploration (policy enforcement happens outside the model).
+Use only the commands listed below.
 Typical useful operations:
 
 - file listing (`ls`)
 - file reading (`cat`)
-- code search (`rg`, `grep`)
-- repository inspection (`git status`, `git show`, `git diff`, `git log`, `git rev-parse`, `git ls-files`)
+- file discovery (`git ls-files`)
+- code search (`grep`)
+- repository inspection (`git status`, `git show`, `git diff`, `git log`, `git rev-parse`)
+
+Commands run directly without a shell. Do not use pipes, redirects, `&&`, or command substitution; request separate
+`TOOL_CALL`s instead.
 
 Do not request destructive or mutating commands.
 

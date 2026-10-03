@@ -42,7 +42,6 @@ def test_agent_config_default_allow_commands_patterns_are_stable() -> None:
     assert patterns == [
         r"^ls(?:\s+.*)?$",
         r"^cat(?:\s+.*)?$",
-        r"^rg(?:\s+.*)?$",
         r"^grep(?:\s+.*)?$",
         r"^git\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\s+.*)?$",
     ]
@@ -58,12 +57,12 @@ def test_agent_config_default_allow_commands_match_expected_commands() -> None:
     assert is_allowed("ls")
     assert is_allowed("ls -la")
     assert is_allowed("cat README.md")
-    assert is_allowed("rg TODO ai_review")
     assert is_allowed("grep -R foo .")
     assert is_allowed("git status")
     assert is_allowed("git diff --name-only")
     assert is_allowed("git rev-parse HEAD")
 
     assert not is_allowed("python -c 'print(1)'")
+    assert not is_allowed("rg TODO ai_review")
     assert not is_allowed("git checkout main")
     assert not is_allowed("")

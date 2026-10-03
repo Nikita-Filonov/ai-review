@@ -249,12 +249,11 @@ agent:
   # - Keep patterns as narrow as possible to avoid accidental broad access.
   #
   # Default profile is read-oriented:
-  # - ls / cat / rg / grep
+  # - ls / cat / grep
   # - selected read-only git commands
   allow_commands:
     - "^ls(?:\\s+.*)?$"
     - "^cat(?:\\s+.*)?$"
-    - "^rg(?:\\s+.*)?$"
     - "^grep(?:\\s+.*)?$"
     - "^git\\s+(?:status|show|diff|log|rev-parse|ls-files)(?:\\s+.*)?$"
 
