@@ -53,8 +53,8 @@ class BitbucketCloudVCSClient(VCSClientProtocol):
                 description=pr.description or "",
                 author=UserSchema(
                     id=pr.author.uuid,
-                    name=pr.author.display_name,
-                    username=pr.author.nickname,
+                    name=pr.author.display_name or "",
+                    username=pr.author.nickname or "",
                 ),
                 labels=[],
                 base_sha=pr.destination.commit.hash,
@@ -70,8 +70,8 @@ class BitbucketCloudVCSClient(VCSClientProtocol):
                 reviewers=[
                     UserSchema(
                         id=user.uuid,
-                        name=user.display_name,
-                        username=user.nickname,
+                        name=user.display_name or "",
+                        username=user.nickname or "",
                     )
                     for user in pr.reviewers
                 ],

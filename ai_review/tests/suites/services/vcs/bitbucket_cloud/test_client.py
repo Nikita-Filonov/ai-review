@@ -48,6 +48,35 @@ async def test_get_review_info_returns_valid_schema(
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("bitbucket_cloud_http_client_config")
+async def test_get_review_info_accepts_users_without_nicknames(
+        monkeypatch: pytest.MonkeyPatch,
+        bitbucket_cloud_vcs_client: BitbucketCloudVCSClient,
+        fake_bitbucket_cloud_pull_requests_http_client: FakeBitbucketCloudPullRequestsHTTPClient,
+) -> None:
+    original_get_pull_request = fake_bitbucket_cloud_pull_requests_http_client.get_pull_request
+
+    async def get_pull_request(*args, **kwargs):
+        pr = await original_get_pull_request(*args, **kwargs)
+        pr.author.nickname = None
+        pr.author.display_name = None
+        pr.reviewers[0].nickname = None
+        pr.reviewers[0].display_name = None
+        return pr
+
+    monkeypatch.setattr(fake_bitbucket_cloud_pull_requests_http_client, "get_pull_request", get_pull_request)
+
+    info = await bitbucket_cloud_vcs_client.get_review_info()
+
+    assert info.id == 1
+    assert info.changed_files == ["app/main.py", "utils/helper.py"]
+    assert info.author.name == ""
+    assert info.author.username == ""
+    assert info.reviewers[0].name == ""
+    assert info.reviewers[0].username == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("bitbucket_cloud_http_client_config")
 async def test_get_general_comments_filters_inline(
         bitbucket_cloud_vcs_client: BitbucketCloudVCSClient,
         fake_bitbucket_cloud_pull_requests_http_client: FakeBitbucketCloudPullRequestsHTTPClient,
