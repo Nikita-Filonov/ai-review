@@ -6,6 +6,8 @@ from ai_review.libs.config.llm.openai import OpenAIMetaConfig
 @pytest.mark.parametrize(
     "model, expected",
     [
+        ("gpt-6-luna", True),
+        ("gpt-6.1-sol", True),
         ("gpt-5", True),
         ("gpt-5-preview", True),
         ("gpt-4.1", True),

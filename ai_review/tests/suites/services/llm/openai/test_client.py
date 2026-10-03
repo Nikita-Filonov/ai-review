@@ -1,6 +1,6 @@
 import pytest
 
-from ai_review.libs.config.llm.openai import OpenAIReasoningConfig
+from ai_review.libs.config.llm.openai import OpenAIMetaConfig, OpenAIReasoningConfig
 from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.clients.openai import FakeOpenAIV1HTTPClient, FakeOpenAIV2HTTPClient
@@ -79,3 +79,27 @@ async def test_openai_llm_chat_v2_forwards_reasoning_object(
         "mode": "pro",
         "generate_summary": "detailed",
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v2_http_client_config")
+async def test_gpt_6_luna_uses_responses_without_temperature(
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v1_http_client: FakeOpenAIV1HTTPClient,
+        fake_openai_v2_http_client: FakeOpenAIV2HTTPClient,
+):
+    openai_llm_client.meta = OpenAIMetaConfig(
+        model="gpt-6-luna",
+        max_tokens=15000,
+        reasoning=OpenAIReasoningConfig(effort="medium"),
+    )
+
+    await openai_llm_client.chat("prompt", "system")
+
+    assert fake_openai_v1_http_client.calls == []
+    request = fake_openai_v2_http_client.calls[0][1]["request"]
+    payload = request.model_dump(exclude_none=True)
+    assert payload["model"] == "gpt-6-luna"
+    assert payload["reasoning"] == {"effort": "medium"}
+    assert payload["max_output_tokens"] == 15000
+    assert "temperature" not in payload
