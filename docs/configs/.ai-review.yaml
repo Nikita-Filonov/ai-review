@@ -227,7 +227,8 @@ agent:
   enabled: false
 
   # Maximum number of loop iterations in a single agent run.
-  # One iteration = one model response (TOOL_CALL or FINAL).
+  # One iteration = one model response; a Responses API response may contain
+  # multiple ordered TOOL_CALL messages before the next iteration.
   # Protects from infinite loops and helps control latency/cost.
   #
   # Suggested:

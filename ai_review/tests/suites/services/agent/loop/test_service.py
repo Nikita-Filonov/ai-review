@@ -142,6 +142,70 @@ async def test_run_executes_tool_call_then_returns_final(
 
 
 @pytest.mark.asyncio
+async def test_run_executes_all_tool_calls_from_one_response_in_order(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_agent_tool_service: FakeAgentToolService,
+        fake_prompt_service: FakePromptService,
+) -> None:
+    first_call = '{"action":"TOOL_CALL","command":"ls"}'
+    second_call = '{"action":"TOOL_CALL","command":"git status"}'
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat_results([
+            ChatResultSchema(text=first_call + second_call, texts=[first_call, second_call]),
+            ChatResultSchema(text='{"action":"FINAL","content":"review-complete"}'),
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "review-complete"
+    assert fake_agent_tool_service.calls == [
+        ("execute", {"command": "ls"}),
+        ("execute", {"command": "git status"}),
+    ]
+    assert [trace.step.command for trace in result.traces if trace.step and trace.step.command] == [
+        "ls",
+        "git status",
+    ]
+    next_request = [
+        call[1] for call in fake_prompt_service.calls
+        if call[0] == "build_agent_request"
+    ][1]
+    assert [trace.step.command for trace in next_request["traces"] if trace.step and trace.step.command] == [
+        "ls",
+        "git status",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_ignores_final_sharing_a_response_with_tool_calls(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fake_llm_client: FakeLLMClient,
+        fake_agent_tool_service: FakeAgentToolService,
+) -> None:
+    tool_call = '{"action":"TOOL_CALL","command":"ls"}'
+    final = '{"action":"FINAL","content":"premature"}'
+    monkeypatch.setattr(
+        fake_llm_client,
+        "chat",
+        sequence_chat_results([
+            ChatResultSchema(text=tool_call + final, texts=[tool_call, final]),
+            ChatResultSchema(text='{"action":"FINAL","content":"review-complete"}'),
+        ]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "review-complete"
+    assert fake_agent_tool_service.calls == [("execute", {"command": "ls"})]
+
+
+@pytest.mark.asyncio
 async def test_run_step_rejects_step_without_command(
         agent_loop_service: AgentLoopService,
         fake_agent_tool_service: FakeAgentToolService,

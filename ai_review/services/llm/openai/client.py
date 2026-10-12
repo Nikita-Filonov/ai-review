@@ -30,6 +30,7 @@ class OpenAILLMClient(LLMClientProtocol):
         response = await self.http_client_v1.chat(request)
         return ChatResultSchema(
             text=response.first_text,
+            texts=[response.first_text] if response.first_text else [],
             total_tokens=response.usage.total_tokens,
             prompt_tokens=response.usage.prompt_tokens,
             completion_tokens=response.usage.completion_tokens,
@@ -60,6 +61,7 @@ class OpenAILLMClient(LLMClientProtocol):
         response = await self.http_client_v2.chat(request)
         return ChatResultSchema(
             text=response.first_text,
+            texts=response.message_texts,
             total_tokens=response.usage.total_tokens,
             prompt_tokens=response.usage.input_tokens,
             completion_tokens=response.usage.output_tokens,

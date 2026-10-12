@@ -32,6 +32,33 @@ def test_first_text_returns_combined_text():
     assert resp.first_text == "Hello World"
 
 
+def test_message_texts_preserves_separate_assistant_messages():
+    resp = OpenAIResponsesResponseSchema(
+        usage=OpenAIResponseUsageSchema(total_tokens=42, input_tokens=21, output_tokens=21),
+        output=[
+            OpenAIResponseOutputSchema(
+                type="message",
+                role="assistant",
+                content=[OpenAIResponseContentSchema(type="output_text", text='{"action":"TOOL_CALL","command":"ls"}')],
+            ),
+            OpenAIResponseOutputSchema(
+                type="message",
+                role="assistant",
+                content=[OpenAIResponseContentSchema(type="output_text", text='{"action":"TOOL_CALL","command":"git status"}')],
+            ),
+        ],
+    )
+
+    assert resp.message_texts == [
+        '{"action":"TOOL_CALL","command":"ls"}',
+        '{"action":"TOOL_CALL","command":"git status"}',
+    ]
+    assert resp.first_text == (
+        '{"action":"TOOL_CALL","command":"ls"}'
+        '{"action":"TOOL_CALL","command":"git status"}'
+    )
+
+
 def test_first_text_empty_if_no_output():
     resp = OpenAIResponsesResponseSchema(
         usage=OpenAIResponseUsageSchema(total_tokens=0, input_tokens=0, output_tokens=0),

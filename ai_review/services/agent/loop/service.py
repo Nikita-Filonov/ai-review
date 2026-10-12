@@ -46,6 +46,12 @@ class AgentLoopService(AgentLoopServiceProtocol):
             return None
         return self.parser.parse_output(output)
 
+    @staticmethod
+    def response_texts(result: ChatResultSchema) -> list[str]:
+        """Return response messages without losing Responses API message boundaries."""
+        texts = [text.strip() for text in result.texts if text and text.strip()]
+        return texts or ([result.text.strip()] if result.text and result.text.strip() else [])
+
     async def run_step(
             self,
             step: AgentStepSchema,
@@ -82,6 +88,43 @@ class AgentLoopService(AgentLoopServiceProtocol):
             prompt_tokens=chat.prompt_tokens,
             completion_tokens=chat.completion_tokens,
         )
+
+    async def execute_response_steps(
+            self,
+            result: ChatResultSchema,
+            iteration: int,
+            state: AgentRunState,
+    ) -> tuple[AgentStepSchema | None, bool]:
+        """Execute ordered TOOL_CALL messages from one model response.
+
+        A Responses API result may contain multiple assistant message blocks.
+        They must be parsed independently: flattening them creates invalid JSON
+        such as ``{TOOL_CALL}{FINAL}`` and silently drops later tool calls.
+        A FINAL in the same response as a tool call is ignored; the model gets
+        a fresh turn after all calls and their outputs are added to history.
+        """
+        texts = self.response_texts(result)
+        if not texts:
+            return None, False
+
+        has_tool_call = False
+        for text in texts:
+            step = self.parse_step(text)
+            if step is None:
+                return (None, True) if has_tool_call else (None, False)
+
+            if step.action.is_final:
+                if has_tool_call:
+                    logger.warning("Ignoring FINAL emitted in the same response as TOOL_CALL messages")
+                    break
+                return step, False
+
+            has_tool_call = True
+            trace = await self.run_step(step=step, chat=result, state=state, iteration=iteration)
+            state.traces.append(trace)
+            state.context_used += len(trace.tool_output or "")
+
+        return None, has_tool_call
 
     async def force_final(
             self,
@@ -179,7 +222,17 @@ class AgentLoopService(AgentLoopServiceProtocol):
             )
             logger.debug(f"Agent LLM response at iteration {iteration}: {result.text[:500]}")
 
-            step = self.parse_step(result.text)
+            step, executed_tools = await self.execute_response_steps(
+                result=result,
+                iteration=iteration,
+                state=state,
+            )
+            if step is None and executed_tools:
+                if state.context_used >= self.max_context_chars:
+                    logger.info("Agent context limit reached, forcing final response")
+                    break
+                continue
+
             if step is None:
                 fallback_text = result.text or ""
 

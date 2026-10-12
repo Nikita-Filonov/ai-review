@@ -1,6 +1,12 @@
 import pytest
 
 from ai_review.libs.config.llm.openai import OpenAIMetaConfig, OpenAIReasoningConfig
+from ai_review.clients.openai.v2.schema import (
+    OpenAIResponseContentSchema,
+    OpenAIResponseOutputSchema,
+    OpenAIResponseUsageSchema,
+    OpenAIResponsesResponseSchema,
+)
 from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.clients.openai import FakeOpenAIV1HTTPClient, FakeOpenAIV2HTTPClient
@@ -50,6 +56,37 @@ async def test_openai_llm_chat_v2(
     assert result.total_tokens == 20
     assert result.prompt_tokens == 10
     assert result.completion_tokens == 10
+    assert result.texts == ["FAKE_OPENAI_V2_RESPONSE"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v2_http_client_config")
+async def test_openai_llm_chat_v2_preserves_message_boundaries(
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v2_http_client: FakeOpenAIV2HTTPClient,
+):
+    fake_openai_v2_http_client.responses["chat"] = OpenAIResponsesResponseSchema(
+        usage=OpenAIResponseUsageSchema(total_tokens=20, input_tokens=10, output_tokens=10),
+        output=[
+            OpenAIResponseOutputSchema(
+                type="message",
+                role="assistant",
+                content=[OpenAIResponseContentSchema(type="output_text", text='{"action":"TOOL_CALL","command":"ls"}')],
+            ),
+            OpenAIResponseOutputSchema(
+                type="message",
+                role="assistant",
+                content=[OpenAIResponseContentSchema(type="output_text", text='{"action":"TOOL_CALL","command":"git status"}')],
+            ),
+        ],
+    )
+
+    result = await openai_llm_client.chat("prompt", "prompt_system")
+
+    assert result.texts == [
+        '{"action":"TOOL_CALL","command":"ls"}',
+        '{"action":"TOOL_CALL","command":"git status"}',
+    ]
 
     assert fake_openai_v2_http_client.calls[0][0] == "chat"
 

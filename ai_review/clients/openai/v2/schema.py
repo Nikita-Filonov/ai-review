@@ -58,12 +58,24 @@ class OpenAIResponsesResponseSchema(BaseModel):
     output: list[OpenAIResponseOutputSchema]
 
     @property
-    def first_text(self) -> str:
+    def message_texts(self) -> list[str]:
+        """Return each assistant message separately, preserving turn boundaries."""
         results: list[str] = []
         for block in self.output:
-            if block.type == "message" and block.content:
-                for content in block.content:
-                    if content.type == "output_text" and content.text:
-                        results.append(content.text)
+            if block.type != "message" or not block.content:
+                continue
 
-        return "".join(results).strip()
+            text = "".join(
+                content.text
+                for content in block.content
+                if content.type == "output_text" and content.text
+            ).strip()
+            if text:
+                results.append(text)
+
+        return results
+
+    @property
+    def first_text(self) -> str:
+        """Return the legacy flattened text used by non-agent review modes."""
+        return "".join(self.message_texts).strip()
