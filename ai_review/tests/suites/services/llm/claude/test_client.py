@@ -58,3 +58,27 @@ async def test_claude_llm_chat_uses_text_after_thinking_block(
     assert result.total_tokens == 12
     assert result.prompt_tokens == 5
     assert result.completion_tokens == 7
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("claude_http_client_config")
+async def test_chat_preserves_claude_first_text_block(
+        claude_llm_client: ClaudeLLMClient,
+        fake_claude_http_client: FakeClaudeHTTPClient,
+) -> None:
+    fake_claude_http_client.responses["chat"] = ClaudeChatResponseSchema.model_validate({
+        "id": "test", "role": "assistant",
+        "usage": {"input_tokens": 10, "output_tokens": 20},
+        "content": [
+            {"type": "thinking", "text": "ignored"},
+            {"type": "text", "text": " first "},
+            {"type": "text", "text": "second"},
+        ],
+    })
+
+    result = await claude_llm_client.chat("PROMPT", "SYSTEM")
+
+    assert result.text == "first"
+    assert result.total_tokens == 30
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20

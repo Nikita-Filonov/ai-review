@@ -1,5 +1,6 @@
 import pytest
 
+from ai_review.clients.ollama.schema import OllamaChatResponseSchema
 from ai_review.services.llm.ollama.client import OllamaLLMClient
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.clients.ollama import FakeOllamaHTTPClient
@@ -20,3 +21,23 @@ async def test_ollama_llm_chat(
     assert result.completion_tokens == 5
 
     assert fake_ollama_http_client.calls[0][0] == "chat"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("ollama_http_client_config")
+async def test_chat_preserves_ollama_message(
+        ollama_llm_client: OllamaLLMClient,
+        fake_ollama_http_client: FakeOllamaHTTPClient,
+) -> None:
+    fake_ollama_http_client.responses["chat"] = OllamaChatResponseSchema.model_validate({
+        "model": "test",
+        "usage": {"prompt_tokens": 10, "completion_tokens": 20},
+        "message": {"role": "assistant", "content": " first "},
+    })
+
+    result = await ollama_llm_client.chat("PROMPT", "SYSTEM")
+
+    assert result.text == "first"
+    assert result.total_tokens == 30
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20

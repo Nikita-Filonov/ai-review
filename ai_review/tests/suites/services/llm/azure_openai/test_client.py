@@ -1,5 +1,6 @@
 import pytest
 
+from ai_review.clients.azure_openai.schema import AzureOpenAIChatResponseSchema
 from ai_review.services.llm.azure_openai.client import AzureOpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.tests.fixtures.clients.azure_openai import FakeAzureOpenAIHTTPClient
@@ -71,3 +72,27 @@ async def test_azure_openai_llm_chat_sends_no_token_limits_when_both_none(
     request = fake_azure_openai_http_client.calls[0][1]["request"]
     assert request.max_tokens is None
     assert request.max_completion_tokens is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("azure_openai_http_client_config")
+async def test_chat_preserves_azure_combined_first_choice(
+        azure_openai_llm_client: AzureOpenAILLMClient,
+        fake_azure_openai_http_client: FakeAzureOpenAIHTTPClient,
+) -> None:
+    fake_azure_openai_http_client.responses["chat"] = AzureOpenAIChatResponseSchema.model_validate({
+        "usage": {"total_tokens": 30, "prompt_tokens": 10, "completion_tokens": 20},
+        "choices": [
+            {"message": {"role": "assistant", "content": [
+                {"type": "text", "text": " first "}, {"type": "text", "text": "second "},
+            ]}},
+            {"message": {"role": "assistant", "content": "ignored choice"}},
+        ],
+    })
+
+    result = await azure_openai_llm_client.chat("PROMPT", "SYSTEM")
+
+    assert result.text == "first second"
+    assert result.total_tokens == 30
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20

@@ -1,12 +1,17 @@
 import asyncio
+from unittest.mock import AsyncMock, call
 
 import pytest
 
+from ai_review.clients.openai.v2.schema import OpenAIResponsesResponseSchema
 from ai_review.config import settings
 from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema, AgentTraceSchema
 from ai_review.services.agent.loop.service import AgentLoopService
 from ai_review.services.agent.loop.state import AgentRunState
+from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
+from ai_review.services.prompt.tools import format_traces
+from ai_review.tests.fixtures.clients.openai import FakeOpenAIV2HTTPClient
 from ai_review.tests.fixtures.services.agent.tool import FakeAgentToolService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
 from ai_review.tests.fixtures.services.prompt import FakePromptService
@@ -26,6 +31,9 @@ def sequence_chat_results(outputs: list[ChatResultSchema]):
     return chat
 
 
+TOOL_ONE = '{"action":"TOOL_CALL","command":"cat one.py"}'
+TOOL_TWO = '{"action":"TOOL_CALL","command":"cat two.py"}'
+FINAL = '{"action":"FINAL","content":"done"}'
 MALFORMED_TOOL_CALL = '{"action":"TOOL_CALL","command":"git grep -n -i -l "migration" -- docs"}'
 REASONING_PREFIXED_TOOL_CALL = '</think>{"action":"TOOL_CALL","command":"cat modules/Sample.java"}'
 PROSE_WRAPPED_TOOL_CALL = (
@@ -86,7 +94,7 @@ async def test_run_rejects_final_step_without_content_from_parser(
         content=None,
     )
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat(['{"action":"FINAL"}']))
-    monkeypatch.setattr(agent_loop_service.parser, "parse_output", lambda _: invalid_final)
+    monkeypatch.setattr(agent_loop_service.parser, "parse", lambda _: [invalid_final])
 
     with pytest.raises(ValueError, match="FINAL step must contain content"):
         await agent_loop_service.run("PROMPT", "SYSTEM")
@@ -299,7 +307,7 @@ async def test_force_final_accepts_direct_task_output_without_action_parse(
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([INLINE_COMMENTS_JSON]))
     monkeypatch.setattr(
-        agent_loop_service.parser,
+        agent_loop_service.parser.json_parser,
         "parse_output",
         lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
     )
@@ -594,7 +602,7 @@ async def test_run_returns_markdown_summary_as_final_text(
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([MARKDOWN_SUMMARY]))
     monkeypatch.setattr(
-        agent_loop_service.parser,
+        agent_loop_service.parser.json_parser,
         "parse_output",
         lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
     )
@@ -614,7 +622,7 @@ async def test_run_returns_inline_comment_json_array_as_final_text(
 ) -> None:
     monkeypatch.setattr(fake_llm_client, "chat", sequence_chat([INLINE_COMMENTS_JSON]))
     monkeypatch.setattr(
-        agent_loop_service.parser,
+        agent_loop_service.parser.json_parser,
         "parse_output",
         lambda _: pytest.fail("Direct task output must not be parsed as an agent action"),
     )
@@ -747,3 +755,221 @@ async def test_run_does_not_promote_prose_wrapped_action_to_final_text(
 
     assert result.final_text == "review-complete"
     assert result.final_text != PROSE_WRAPPED_TOOL_CALL
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("batch", [
+    TOOL_ONE + TOOL_TWO,
+    FINAL + TOOL_ONE + TOOL_TWO,
+    TOOL_ONE + FINAL + TOOL_TWO,
+    TOOL_ONE + TOOL_TWO + FINAL,
+])
+async def test_batch_executes_in_order_and_passes_results_to_next_request(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        batch: str,
+) -> None:
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=batch, total_tokens=30, prompt_tokens=10, completion_tokens=20),
+        ChatResultSchema(text=FINAL, total_tokens=15, prompt_tokens=5, completion_tokens=10),
+    ])
+    execute = AsyncMock(side_effect=["first file contents", "second file contents"])
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+    monkeypatch.setattr(
+        agent_loop_service.prompt, "build_agent_request", lambda **kwargs: format_traces(kwargs["traces"]),
+    )
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.final_text == "done"
+    assert result.stop_reason == "final"
+    assert execute.await_args_list == [call("cat one.py"), call("cat two.py")]
+    assert chat.await_count == 2
+    history = chat.await_args_list[1].kwargs["prompt"]
+    assert history.index("cat one.py") < history.index("first file contents") < history.index("cat two.py")
+    assert "second file contents" in history
+    assert "Content:" not in history
+    assert [trace.iteration for trace in result.traces] == [1, 1, 2]
+    assert [trace.total_tokens for trace in result.traces] == [30, None, 15]
+    assert (result.total_tokens, result.prompt_tokens, result.completion_tokens) == (45, 15, 30)
+
+
+@pytest.mark.asyncio
+async def test_batch_blocks_duplicates_within_and_across_responses(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+) -> None:
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=TOOL_ONE + TOOL_ONE, total_tokens=10),
+        ChatResultSchema(text=TOOL_ONE + TOOL_TWO, total_tokens=20),
+        ChatResultSchema(text=FINAL, total_tokens=5),
+    ])
+    execute = AsyncMock(return_value="file contents")
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert execute.await_args_list == [call("cat one.py"), call("cat two.py")]
+    assert [trace.iteration for trace in result.traces] == [1, 1, 2, 2, 3]
+    assert "Duplicate tool call blocked" in result.traces[1].warning
+    assert "Duplicate tool call blocked" in result.traces[2].warning
+    assert result.total_tokens == 35
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("batch", [
+    TOOL_ONE + MALFORMED_TOOL_CALL,
+    MALFORMED_TOOL_CALL + TOOL_ONE,
+    FINAL + MALFORMED_TOOL_CALL,
+    MALFORMED_TOOL_CALL + FINAL,
+])
+async def test_invalid_batch_is_rejected_before_any_command_or_final(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        batch: str,
+) -> None:
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=batch, total_tokens=30, prompt_tokens=10, completion_tokens=20),
+        ChatResultSchema(text=FINAL, total_tokens=15, prompt_tokens=5, completion_tokens=10),
+    ])
+    execute = AsyncMock()
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    execute.assert_not_awaited()
+    assert chat.await_count == 2
+    assert result.final_text == "done"
+    assert result.traces[0].step is None
+    assert "Invalid response discarded" in result.traces[0].warning
+    assert (result.total_tokens, result.prompt_tokens, result.completion_tokens) == (45, 15, 30)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("context_limit, executed", [(5, 1), (10, 2), (100, 3)])
+async def test_batch_honors_context_and_request_limits(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        context_limit: int,
+        executed: int,
+) -> None:
+    agent_loop_service.max_iterations = 1
+    agent_loop_service.max_context_chars = context_limit
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=TOOL_ONE + TOOL_TWO + '{"action":"TOOL_CALL","command":"ls"}', total_tokens=30),
+        ChatResultSchema(text=FINAL, total_tokens=15),
+    ])
+    execute = AsyncMock(return_value="12345")
+    histories: list[tuple[bool, str]] = []
+
+    def build_prompt(
+            traces: list[AgentTraceSchema],
+            force_final: bool,
+            original_prompt: str,
+            original_prompt_system: str,
+    ) -> str:
+        history = format_traces(traces)
+        histories.append((force_final, history))
+        return history
+
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+    monkeypatch.setattr(agent_loop_service.prompt, "build_agent_request", build_prompt)
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "max_requests_or_context_limit"
+    assert result.final_text == "done"
+    assert execute.await_count == executed
+    assert chat.await_count == 2
+    assert [trace.iteration for trace in result.traces] == [1] * executed + [2]
+    assert [forced for forced, _ in histories] == [False, True]
+    assert histories[1][1].count("Tool output: 12345") == executed
+    assert result.total_tokens == 45
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fenced", [False, True])
+async def test_force_final_does_not_accept_final_from_mixed_batch(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        fenced: bool,
+) -> None:
+    batch = f"```json\n{FINAL}\n```\n```json\n{TOOL_TWO}\n```" if fenced else FINAL + TOOL_TWO
+    agent_loop_service.max_iterations = 1
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=TOOL_ONE, total_tokens=10),
+        ChatResultSchema(text=batch, total_tokens=20),
+    ])
+    execute = AsyncMock(return_value="contents")
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "max_requests_or_context_limit"
+    assert result.final_text == batch  # Preserve the existing last-resort raw response contract.
+    execute.assert_awaited_once_with("cat one.py")
+    assert result.total_tokens == 30
+
+
+@pytest.mark.asyncio
+async def test_invalid_batch_uses_protocol_violation_budget(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+) -> None:
+    agent_loop_service.max_protocol_violations = 1
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=TOOL_ONE + MALFORMED_TOOL_CALL, total_tokens=10),
+        ChatResultSchema(text=TOOL_ONE + MALFORMED_TOOL_CALL, total_tokens=20),
+        ChatResultSchema(text=FINAL, total_tokens=5),
+    ])
+    execute = AsyncMock()
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert result.stop_reason == "max_requests_or_context_limit"
+    assert [trace.iteration for trace in result.traces] == [1, 2, 3]
+    assert result.total_tokens == 35
+    execute.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v2_http_client_config")
+async def test_responses_tool_batch_reaches_agent_in_order(
+        monkeypatch: pytest.MonkeyPatch,
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v2_http_client: FakeOpenAIV2HTTPClient,
+        agent_loop_service: AgentLoopService,
+) -> None:
+    texts = ['{"action":"TOOL_CALL","command":"ls"}', '{"action":"TOOL_CALL","command":"cat a.py"}']
+    content = [{"type": "output_text", "text": text} for text in texts]
+    messages = [{"type": "message", "content": [part]} for part in content]
+    response = OpenAIResponsesResponseSchema.model_validate({
+        "usage": {"total_tokens": 30, "input_tokens": 10, "output_tokens": 20},
+        "output": [{"type": "reasoning"}, *messages],
+    })
+    final = OpenAIResponsesResponseSchema.model_validate({
+        "usage": {"total_tokens": 15, "input_tokens": 5, "output_tokens": 10},
+        "output": [{"type": "message", "content": [{
+            "type": "output_text", "text": '{"action":"FINAL","content":"done"}',
+        }]}],
+    })
+    http_chat = AsyncMock(side_effect=[response, final])
+    execute = AsyncMock(return_value="command output")
+    monkeypatch.setattr(fake_openai_v2_http_client, "chat", http_chat)
+    monkeypatch.setattr(agent_loop_service.agent_tool, "execute", execute)
+    agent_loop_service.llm = openai_llm_client
+
+    result = await agent_loop_service.run("PROMPT", "SYSTEM")
+
+    assert response.first_text == "".join(texts)
+    assert result.final_text == "done"
+    assert [args.args[0] for args in execute.await_args_list] == ["ls", "cat a.py"]
+    assert http_chat.await_count == 2
+    assert (result.total_tokens, result.prompt_tokens, result.completion_tokens) == (45, 15, 30)

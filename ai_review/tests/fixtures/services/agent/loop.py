@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 
+from ai_review.services.agent.loop.parser import AgentResponseParser
 from ai_review.services.agent.loop.schema import AgentLoopResultSchema
 from ai_review.services.agent.loop.service import AgentLoopService
 from ai_review.services.agent.loop.types import AgentLoopServiceProtocol
@@ -45,3 +46,8 @@ def agent_loop_service(
 @pytest.fixture
 def fake_agent_loop_service() -> FakeAgentLoopService:
     return FakeAgentLoopService()
+
+
+@pytest.fixture
+def agent_response_parser() -> AgentResponseParser:
+    return AgentResponseParser()

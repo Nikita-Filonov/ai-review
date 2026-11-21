@@ -1,10 +1,17 @@
+from unittest.mock import AsyncMock
+
 import pytest
 
 from ai_review.services.agent.loop.schema import AgentAction, AgentStepSchema, AgentTraceSchema
 from ai_review.services.agent.loop.schema import AgentLoopResultSchema
+from ai_review.services.agent.loop.service import AgentLoopService
+from ai_review.services.agent.tool.service import AgentToolService
+from ai_review.services.llm.types import ChatResultSchema
+from ai_review.services.prompt.tools import format_traces
 from ai_review.services.review.gateway.review_agent_llm_gateway import ReviewAgentLLMGateway
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.cost import FakeCostService
+from ai_review.tests.fixtures.services.policy import FakePolicyService
 from ai_review.tests.fixtures.services.review.gateway.review_agent_llm_gateway import FakeAgentLoopService
 from ai_review.tests.fixtures.services.review.gateway.review_agent_llm_gateway import FakeFallbackReviewLLMGateway
 
@@ -94,3 +101,40 @@ async def test_agent_gateway_calculates_zero_cost_for_missing_trace_tokens(
     assert len(calculate_calls) == 1
     assert calculate_calls[0][1]["result"].prompt_tokens == 0
     assert calculate_calls[0][1]["result"].completion_tokens == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_preserves_tool_policy_and_gateway_cost_accounting(
+        monkeypatch: pytest.MonkeyPatch,
+        agent_loop_service: AgentLoopService,
+        agent_tool_service: AgentToolService,
+        fake_policy_service: FakePolicyService,
+        review_agent_llm_gateway: ReviewAgentLLMGateway,
+        fake_cost_service: FakeCostService,
+) -> None:
+    tool_one = '{"action":"TOOL_CALL","command":"cat one.py"}'
+    tool_two = '{"action":"TOOL_CALL","command":"cat two.py"}'
+    final = '{"action":"FINAL","content":"done"}'
+    fake_policy_service.responses["should_agent_run_command"] = False
+    agent_loop_service.agent_tool = agent_tool_service
+    review_agent_llm_gateway.agent_loop = agent_loop_service
+    chat = AsyncMock(side_effect=[
+        ChatResultSchema(text=tool_one + tool_two, prompt_tokens=10, completion_tokens=20),
+        ChatResultSchema(text=final, prompt_tokens=5, completion_tokens=10),
+    ])
+    monkeypatch.setattr(agent_loop_service.llm, "chat", chat)
+    monkeypatch.setattr(
+        agent_loop_service.prompt, "build_agent_request", lambda **kwargs: format_traces(kwargs["traces"]),
+    )
+
+    result = await review_agent_llm_gateway.ask("PROMPT", "SYSTEM")
+
+    assert result == "done"
+    assert fake_policy_service.calls == [
+        ("should_agent_run_command", {"command": "cat one.py"}),
+        ("should_agent_run_command", {"command": "cat two.py"}),
+    ]
+    assert chat.await_args_list[1].kwargs["prompt"].count("blocked by policy") == 2
+    assert len(fake_cost_service.calculated_results) == 1
+    assert fake_cost_service.calculated_results[0].prompt_tokens == 15
+    assert fake_cost_service.calculated_results[0].completion_tokens == 30

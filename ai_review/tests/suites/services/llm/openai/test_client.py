@@ -1,5 +1,7 @@
 import pytest
 
+from ai_review.clients.openai.v1.schema import OpenAIChatResponseSchema
+from ai_review.clients.openai.v2.schema import OpenAIResponsesResponseSchema
 from ai_review.libs.config.llm.openai import OpenAIMetaConfig, OpenAIReasoningConfig
 from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
@@ -103,3 +105,48 @@ async def test_gpt_6_luna_uses_responses_without_temperature(
     assert payload["reasoning"] == {"effort": "medium"}
     assert payload["max_output_tokens"] == 15000
     assert "temperature" not in payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v1_http_client_config")
+async def test_chat_preserves_openai_chat_first_choice(
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v1_http_client: FakeOpenAIV1HTTPClient,
+) -> None:
+    fake_openai_v1_http_client.responses["chat"] = OpenAIChatResponseSchema.model_validate({
+        "usage": {"total_tokens": 30, "prompt_tokens": 10, "completion_tokens": 20},
+        "choices": [
+            {"message": {"role": "assistant", "content": " first "}},
+            {"message": {"role": "assistant", "content": "second"}},
+        ],
+    })
+
+    result = await openai_llm_client.chat("PROMPT", "SYSTEM")
+
+    assert result.text == "first"
+    assert result.total_tokens == 30
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v2_http_client_config")
+async def test_chat_v2_preserves_json_split_across_content_blocks(
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v2_http_client: FakeOpenAIV2HTTPClient,
+) -> None:
+    fake_openai_v2_http_client.responses["chat"] = OpenAIResponsesResponseSchema.model_validate({
+        "usage": {"total_tokens": 30, "input_tokens": 10, "output_tokens": 20},
+        "output": [{"type": "message", "content": [
+            {"type": "output_text", "text": '{"action":"TOOL_CALL",'},
+            {"type": "output_text", "text": '"command":"ls"}'},
+            {"type": "output_text", "text": '{"action":"TOOL_CALL","command":"cat a.py"}'},
+        ]}],
+    })
+
+    result = await openai_llm_client.chat("PROMPT", "SYSTEM")
+
+    assert result.text == '{"action":"TOOL_CALL","command":"ls"}{"action":"TOOL_CALL","command":"cat a.py"}'
+    assert result.total_tokens == 30
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20

@@ -1,7 +1,10 @@
 import pytest
 
+from ai_review.clients.openai.v2.schema import OpenAIResponsesResponseSchema
+from ai_review.services.llm.openai.client import OpenAILLMClient
 from ai_review.services.llm.types import ChatResultSchema
 from ai_review.services.review.gateway.review_direct_llm_gateway import ReviewDirectLLMGateway
+from ai_review.tests.fixtures.clients.openai import FakeOpenAIV2HTTPClient
 from ai_review.tests.fixtures.services.artifacts import FakeArtifactsService
 from ai_review.tests.fixtures.services.cost import FakeCostService
 from ai_review.tests.fixtures.services.llm import FakeLLMClient
@@ -89,3 +92,32 @@ async def test_ask_handles_llm_error(
     assert result is None
     assert "LLM request failed" in output
     assert "RuntimeError" in output
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("openai_v2_http_client_config")
+@pytest.mark.parametrize("texts", [
+    ["  Hello", " World\n"],
+    ['{"action":"TOOL_CALL","command":"ls"}', '{"action":"TOOL_CALL","command":"cat a.py"}'],
+    ['{"file":"a.py",', '"line":1,"message":"review"}'],
+])
+async def test_responses_direct_review_keeps_combined_text_contract(
+        openai_llm_client: OpenAILLMClient,
+        fake_openai_v2_http_client: FakeOpenAIV2HTTPClient,
+        review_direct_llm_gateway: ReviewDirectLLMGateway,
+        texts: list[str],
+) -> None:
+    fake_openai_v2_http_client.responses["chat"] = OpenAIResponsesResponseSchema.model_validate({
+        "usage": {"total_tokens": 30, "input_tokens": 10, "output_tokens": 20},
+        "output": [
+            {"type": "reasoning", "content": [{"type": "output_text", "text": "ignored reasoning"}]},
+            *[{"type": "message", "content": [{"type": "output_text", "text": text}]} for text in texts],
+            {"type": "message", "content": [{"type": "refusal", "text": "ignored non-output text"}]},
+        ],
+    })
+    review_direct_llm_gateway.llm = openai_llm_client
+
+    result = await review_direct_llm_gateway.ask("PROMPT", "SYSTEM")
+
+    assert result == "".join(texts).strip()
+    assert len(fake_openai_v2_http_client.calls) == 1
