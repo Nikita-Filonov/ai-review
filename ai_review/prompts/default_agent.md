@@ -6,7 +6,8 @@ answer.
 ## How To Work
 
 - Start from the provided task and diff context.
-- If context is missing, request exactly one command execution via `TOOL_CALL`.
+- If context is missing, request one or more commands via separate `TOOL_CALL` objects, separated by newlines.
+- Request commands that depend on earlier results in a later turn. Return `FINAL` separately after reviewing tool results.
 - Use command outputs from history to refine your understanding.
 - Stop calling commands as soon as confidence is sufficient, then return `FINAL`.
 

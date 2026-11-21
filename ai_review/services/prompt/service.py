@@ -32,7 +32,7 @@ class PromptService(PromptServiceProtocol):
             original_prompt: str,
             original_prompt_system: str,
     ) -> str:
-        mode = "Return FINAL only." if force_final else "You can either call a tool or return FINAL."
+        mode = "Return FINAL only." if force_final else "You can request one or more tool calls or return a single FINAL."
         history = format_traces(traces)
         agent_prompt = cls.prepare_prompt(settings.prompt.load_agent(), PromptContextSchema())
 

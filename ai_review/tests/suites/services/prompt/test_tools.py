@@ -230,7 +230,7 @@ def test_format_traces_joins_entries_with_separator():
 def test_format_trace_without_step_renders_warning_only():
     trace = AgentTraceSchema(
         iteration=2,
-        warning="Invalid response discarded: it carried an agent action but was not a single valid JSON object.",
+        warning="Invalid response discarded: it did not follow the agent JSON protocol.",
         raw_output='{"action":"TOOL_CALL","command":"git grep -n "x" -- docs"}',
     )
     result = format_trace(trace)

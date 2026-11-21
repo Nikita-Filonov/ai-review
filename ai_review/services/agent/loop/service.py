@@ -16,10 +16,12 @@ from ai_review.services.prompt.types import PromptServiceProtocol
 logger = get_logger("AGENT_LOOP_SERVICE")
 
 PROTOCOL_RETRY_WARNING = (
-    "Invalid response discarded: it carried an agent action but was not a single valid JSON object. "
-    "Respond with exactly one JSON object and nothing else: "
+    "Invalid response discarded: it did not follow the agent JSON protocol. "
+    "Respond with one or more TOOL_CALL objects, one per command, separated by newlines: "
     '{"action": "TOOL_CALL", "command": "<single command>"} '
-    'or {"action": "FINAL", "content": "<complete answer as a string>"}. '
+    'or a single {"action": "FINAL", "content": "<complete answer as a string>"} object. '
+    "Do not mix FINAL with TOOL_CALL; wait for tool results before finalizing. "
+    "Do not include markdown fences or prose outside the JSON objects. "
     'Every quote inside a JSON string value must be escaped as \\".'
 )
 
