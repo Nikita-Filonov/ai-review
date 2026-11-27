@@ -53,7 +53,7 @@ improve code quality, enforce consistency, and speed up the review process.
 ✨ Key features:
 
 - **Multiple LLM providers** — choose between **OpenAI**, **Claude**, **Gemini**, **Ollama**, **Bedrock**,
-  **OpenRouter**, or **Azure OpenAI** and switch anytime.
+  **OpenRouter**, **Azure OpenAI**, or **LLMTR** and switch anytime.
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**.
 - **Customizable prompts** — adapt inline, context, and summary reviews to match your team’s coding guidelines.
@@ -167,7 +167,7 @@ for complete, ready-to-use examples.
 
 Key things you can customize:
 
-- **LLM provider** — OpenAI, Gemini, Claude, Ollama, Bedrock, OpenRouter, or Azure OpenAI
+- **LLM provider** — OpenAI, Gemini, Claude, Ollama, Bedrock, OpenRouter, Azure OpenAI, or LLMTR
 - **Model settings** — model name, temperature, max tokens
 - **VCS integration** — works out of the box with **GitLab**, **GitHub**, **Bitbucket Cloud**, **Bitbucket Server**,
   **Azure DevOps**, and **Gitea**
@@ -306,7 +306,7 @@ AI Review does **not store**, **log**, or **transmit** your source code to any e
 provider** explicitly configured in your `.ai-review.yaml`.
 
 All data is sent **directly** from your CI/CD environment to the selected LLM API endpoint (e.g. OpenAI, Gemini,
-Claude, OpenRouter). No intermediary servers or storage layers are involved.
+Claude, OpenRouter, LLMTR). No intermediary servers or storage layers are involved.
 
 If you use **Ollama**, requests are sent to your **local or self-hosted Ollama runtime**  
 (by default `http://localhost:11434`). This allows you to run reviews completely **offline**, keeping all data strictly
