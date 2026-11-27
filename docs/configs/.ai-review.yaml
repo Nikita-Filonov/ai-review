@@ -4,7 +4,7 @@
 
 llm:
   # Provider for the Large Language Model.
-  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI
+  # Options: OPENAI | GEMINI | CLAUDE | OLLAMA | BEDROCK | OPENROUTER | AZURE_OPENAI | LLMTR
   provider: OPENAI
 
   # Path to the pricing file used for cost estimation.
@@ -56,6 +56,11 @@ llm:
     # title: "AI Review"                   # (optional) project title for analytics
     # referer: "https://your-domain.com"   # (optional) referer URL for analytics
 
+    # --- LLMTR ---
+    # model: qwen/qwen3.8-27b-free  # or any other vendor/model id available on LLMTR
+    # max_tokens: 1200
+    # temperature: 0.3
+
     # --- Azure OpenAI ---
     # model: gpt-4o-mini  # IMPORTANT: In Azure, the `model` field specifies the *deployment name*, not an OpenAI model ID.
     # max_tokens: 1200              # (optional) Token limit for older models (gpt-4o, gpt-4o-mini, etc.)
@@ -105,6 +110,10 @@ llm:
     # --- OpenRouter ---
     # api_url: https://openrouter.ai/api/v1
     # api_token: ${OPENROUTER_API_KEY}
+
+    # --- LLMTR ---
+    # api_url: https://llmtr.com/v1
+    # api_token: ${LLMTR_API_KEY}
 
     # --- Azure OpenAI ---
     # api_url: https://<your-resource>.openai.azure.com
